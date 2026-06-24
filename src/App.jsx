@@ -589,6 +589,7 @@ function App() {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole') || 'admin'); // admin, warehouse_manager, agent
+  const [currentUserId, setCurrentUserId] = useState(() => localStorage.getItem('currentUserId') || '');
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loginError, setLoginError] = useState('');
 
@@ -665,7 +666,12 @@ function App() {
       }
 
       // 4. Fetch Sales
-      const salesRes = await fetch(`${API_URL}/sales`, {
+      const isAgent = (storedRole === 'agent');
+      const salesUrl = isAgent 
+        ? `${API_URL}/sales/agent/${localStorage.getItem('currentUserId') || currentUserId}`
+        : `${API_URL}/sales`;
+        
+      const salesRes = await fetch(salesUrl, {
         headers: { 'Authorization': `Bearer ${authToken}` }
       });
       if (!salesRes.ok) throw new Error('Savdolarni yuklashda xatolik');
@@ -761,8 +767,10 @@ function App() {
 
   const handleLogout = () => {
     setToken('');
+    setCurrentUserId('');
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
+    localStorage.removeItem('currentUserId');
     localStorage.removeItem('adminName');
     localStorage.removeItem('adminPhoto');
     setIsLoggedIn(false);
@@ -920,6 +928,8 @@ function App() {
       localStorage.setItem('token', data.token);
       setUserRole(data.user.role);
       localStorage.setItem('userRole', data.user.role);
+      setCurrentUserId(data.user.id);
+      localStorage.setItem('currentUserId', data.user.id);
       setAdminName(data.user.name || data.user.username);
       localStorage.setItem('adminName', data.user.name || data.user.username);
       setIsLoggedIn(true);
