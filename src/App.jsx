@@ -588,7 +588,7 @@ function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [userRole, setUserRole] = useState('admin'); // admin, warehouse_manager
+  const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole') || 'admin'); // admin, warehouse_manager, agent
   const [activeTab, setActiveTab] = useState('dashboard');
   const [loginError, setLoginError] = useState('');
 
@@ -653,12 +653,16 @@ function App() {
       if (!storesRes.ok) throw new Error('Do\'konlarni yuklashda xatolik');
       const storesData = await storesRes.json();
 
-      // 3. Fetch Agents (Users)
-      const agentsRes = await fetch(`${API_URL}/auth/users`, {
-        headers: { 'Authorization': `Bearer ${authToken}` }
-      });
-      if (!agentsRes.ok) throw new Error('Agentlarni yuklashda xatolik');
-      const agentsData = await agentsRes.json();
+      // 3. Fetch Agents (Users) - Only for admin/warehouse_manager
+      let agentsData = [];
+      const storedRole = localStorage.getItem('userRole') || userRole;
+      if (storedRole !== 'agent') {
+        const agentsRes = await fetch(`${API_URL}/auth/users`, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (!agentsRes.ok) throw new Error('Agentlarni yuklashda xatolik');
+        agentsData = await agentsRes.json();
+      }
 
       // 4. Fetch Sales
       const salesRes = await fetch(`${API_URL}/sales`, {
@@ -758,6 +762,9 @@ function App() {
   const handleLogout = () => {
     setToken('');
     localStorage.removeItem('token');
+    localStorage.removeItem('userRole');
+    localStorage.removeItem('adminName');
+    localStorage.removeItem('adminPhoto');
     setIsLoggedIn(false);
     showAlert('Tizimdan chiqildi', 'info');
   };
@@ -912,6 +919,7 @@ function App() {
       setToken(data.token);
       localStorage.setItem('token', data.token);
       setUserRole(data.user.role);
+      localStorage.setItem('userRole', data.user.role);
       setAdminName(data.user.name || data.user.username);
       localStorage.setItem('adminName', data.user.name || data.user.username);
       setIsLoggedIn(true);
