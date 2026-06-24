@@ -905,8 +905,8 @@ function App() {
         throw new Error(data.error || 'Kirishda xatolik yuz berdi');
       }
 
-      if (data.user.role !== 'admin' && data.user.role !== 'warehouse_manager') {
-        throw new Error('Ushbu panelga faqat administratorlar kira oladi!');
+      if (data.user.role !== 'admin' && data.user.role !== 'warehouse_manager' && data.user.role !== 'agent') {
+        throw new Error('Ushbu panelga kirishga ruxsatingiz yo\'q!');
       }
 
       setToken(data.token);
@@ -915,7 +915,14 @@ function App() {
       setAdminName(data.user.name || data.user.username);
       localStorage.setItem('adminName', data.user.name || data.user.username);
       setIsLoggedIn(true);
-      setActiveTab(data.user.role === 'admin' ? 'dashboard' : 'products');
+      
+      let defaultTab = 'products';
+      if (data.user.role === 'admin') {
+        defaultTab = 'dashboard';
+      } else if (data.user.role === 'agent') {
+        defaultTab = 'assignments';
+      }
+      setActiveTab(defaultTab);
       showAlert('Tizimga muvaffaqiyatli kirildi!', 'success');
     } catch (error) {
       setLoginError(error.message);
