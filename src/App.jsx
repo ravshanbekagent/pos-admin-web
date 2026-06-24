@@ -952,6 +952,19 @@ function App() {
     e.preventDefault();
     if (!newProduct.barcode || !newProduct.name || !newProduct.price) return;
     
+    const sellPrice = parseFloat(newProduct.price);
+    const costPrice = newProduct.originalPrice ? parseFloat(newProduct.originalPrice) : 0;
+
+    if (costPrice > 0 && sellPrice <= costPrice) {
+      showAlert(
+        language === 'uz' 
+          ? "Sotish narxi asl narxidan (tannarxidan) katta bo'lishi shart! Zarariga sotish mumkin emas." 
+          : "Цена продажи должна быть больше себестоимости! Нельзя продавать в убыток.", 
+        'error'
+      );
+      return;
+    }
+    
     setIsLoading(true);
     try {
       const res = await fetch(`${API_URL}/products`, {
