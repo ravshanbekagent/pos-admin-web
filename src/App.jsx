@@ -828,6 +828,7 @@ function App() {
 
   // Form States & Modals
   const [showAddProductModal, setShowAddProductModal] = useState(false);
+  const [showAddStoreModal, setShowAddStoreModal] = useState(false);
   const [showAssignProductModal, setShowAssignProductModal] = useState(false);
   const [showAssignStoreModal, setShowAssignStoreModal] = useState(false);
   const [showEditAssignmentModal, setShowEditAssignmentModal] = useState(false);
@@ -1238,6 +1239,7 @@ function App() {
         census_type: 'Census    RET',
         status: '0'
       });
+      setShowAddStoreModal(false);
       await loadCloudData(token);
     } catch (error) {
       showAlert(error.message, 'error');
@@ -3538,205 +3540,18 @@ function App() {
           {activeTab === 'stores' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
-              {/* Stores Grid Controls */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '24px' }}>
-                {/* Add Store Form */}
-                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', height: 'fit-content' }}>
-                  <h3 style={{ fontSize: '16px', fontWeight: '500', marginBottom: '20px' }}>{t('add_store_title')}</h3>
-                  <form onSubmit={handleAddStore} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{language === 'uz' ? 'Do\'kon kodi (ID)' : 'Код магазина (ID)'}</label>
-                        <input 
-                          type="number" 
-                          value={newStore.id}
-                          onChange={(e) => setNewStore({ ...newStore, id: e.target.value })}
-                          placeholder={language === 'uz' ? 'Avtomatik (ixtiyoriy)' : 'Автоматически (опционально)'}
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{language === 'uz' ? 'Do\'kon nomi' : 'Название магазина'}</label>
-                        <input 
-                          type="text" 
-                          required
-                          value={newStore.name}
-                          onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
-                          placeholder={language === 'uz' ? 'Masalan: Humo smoke' : 'Например: Humo smoke'}
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('owner_name_label')}</label>
-                        <input 
-                          type="text" 
-                          value={newStore.owner_name}
-                          onChange={(e) => setNewStore({ ...newStore, owner_name: e.target.value })}
-                          placeholder={language === 'uz' ? 'F.I.SH.' : 'Ф.И.О.'}
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('phone_label')}</label>
-                        <input 
-                          type="text" 
-                          value={newStore.phone}
-                          onChange={(e) => setNewStore({ ...newStore, phone: e.target.value })}
-                          placeholder="+998 90..."
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('address_label')}</label>
-                      <input 
-                        type="text" 
-                        required
-                        value={newStore.address}
-                        onChange={(e) => setNewStore({ ...newStore, address: e.target.value })}
-                        placeholder={language === 'uz' ? 'Chilonzor 4-daha...' : 'Чиланзар 4-квартал...'}
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                      />
-                    </div>
-
-                    <div>
-                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '500' }}>{t('map_link_label')}</label>
-                      <input 
-                        type="text" 
-                        value={newStore.map_link}
-                        onChange={(e) => handleMapLinkChange(e.target.value, false)}
-                        placeholder={language === 'uz' ? 'Havolani kiritsangiz koordinatalar avtomatik to\'ladi' : 'Вставьте ссылку, чтобы координаты заполнились автоматически'}
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px dashed var(--accent-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                      />
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('lat_label')}</label>
-                        <input 
-                          type="text" 
-                          value={newStore.latitude}
-                          onChange={(e) => setNewStore({ ...newStore, latitude: e.target.value })}
-                          placeholder="41.0015"
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('lng_label')}</label>
-                        <input 
-                          type="text" 
-                          value={newStore.longitude}
-                          onChange={(e) => setNewStore({ ...newStore, longitude: e.target.value })}
-                          placeholder="71.5865"
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                        />
-                      </div>
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('route_label')}</label>
-                        <input 
-                          type="text" 
-                          value={newStore.route}
-                          onChange={(e) => setNewStore({ ...newStore, route: e.target.value, sde: `SDE_${e.target.value}` })}
-                          placeholder="NM_01"
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                        />
-                      </div>
-                      <div>
-                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('status_label')}</label>
-                        <select 
-                          value={newStore.status}
-                          onChange={(e) => setNewStore({ ...newStore, status: e.target.value })}
-                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px' }}
-                        >
-                          <option value="0">{language === 'uz' ? '0 (Normal)' : '0 (Нормальный)'}</option>
-                          <option value="1">{language === 'uz' ? '1 (Xato RET)' : '1 (Ошибка RET)'}</option>
-                        </select>
-                      </div>
-                    </div>
-
-                    <button 
-                      type="submit"
-                      style={{
-                        padding: '11px',
-                        borderRadius: '8px',
-                        border: 'none',
-                        backgroundColor: 'var(--accent-color)',
-                        color: '#fff',
-                        fontSize: '14px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '8px',
-                        marginTop: '8px'
-                      }}
-                    >
-                      <Plus size={16} /> {t('add_store')}
-                    </button>
-                  </form>
-                </div>
-
-                {/* Stores List Table */}
-                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
-                    <h3 style={{ fontSize: '16px', fontWeight: '500' }}>{t('stores_list')}</h3>
-                    <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                      {selectedStoreIds.length > 0 && (
-                        <button
-                          onClick={handleDeleteSelectedStores}
-                          style={{
-                            padding: '8px 16px',
-                            borderRadius: '8px',
-                            backgroundColor: 'var(--danger-color)',
-                            color: '#fff',
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            border: 'none',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px'
-                          }}
-                        >
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6M10 11v6M14 11v6"/></svg>
-                          {language === 'uz' ? `Tanlanganlarni o'chirish (${selectedStoreIds.length})` : `Удалить выбранные (${selectedStoreIds.length})`}
-                        </button>
-                      )}
-                      <label style={{
-                        padding: '8px 16px',
-                        borderRadius: '8px',
-                        backgroundColor: 'var(--accent-color)',
-                        color: '#fff',
-                        fontSize: '13px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '8px'
-                      }}>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-                        {t('import_excel')}
-                        <input 
-                          type="file" 
-                          accept=".xlsx" 
-                          onChange={handleImportExcel} 
-                          style={{ display: 'none' }} 
-                        />
-                      </label>
+              {/* Stores Table Container (Full Width) */}
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '500' }}>{t('stores_list')}</h3>
+                  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    {selectedStoreIds.length > 0 && (
                       <button
-                        onClick={handleExportExcel}
+                        onClick={handleDeleteSelectedStores}
                         style={{
                           padding: '8px 16px',
                           borderRadius: '8px',
-                          backgroundColor: 'var(--accent-color)',
+                          backgroundColor: 'var(--danger-color)',
                           color: '#fff',
                           fontSize: '13px',
                           fontWeight: '600',
@@ -3744,14 +3559,79 @@ function App() {
                           cursor: 'pointer',
                           display: 'inline-flex',
                           alignItems: 'center',
-                          gap: '8px'
+                          gap: '6px'
                         }}
                       >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
-                        {language === 'uz' ? 'Excelga yuklash' : 'Экспорт в Excel'}
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-6M10 11v6M14 11v6"/></svg>
+                        {language === 'uz' ? `Tanlanganlarni o'chirish (${selectedStoreIds.length})` : `Удалить выбранные (${selectedStoreIds.length})`}
                       </button>
-                    </div>
+                    )}
+                    
+                    {/* Compact Excel Import */}
+                    <label style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      backgroundColor: 'rgba(13, 148, 136, 0.15)',
+                      color: 'var(--accent-color)',
+                      border: '1px solid rgba(13, 148, 136, 0.3)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s',
+                    }} title={t('import_excel')}>
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+                      <input 
+                        type="file" 
+                        accept=".xlsx" 
+                        onChange={handleImportExcel} 
+                        style={{ display: 'none' }} 
+                      />
+                    </label>
+
+                    {/* Compact Excel Export */}
+                    <button
+                      onClick={handleExportExcel}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: '8px',
+                        backgroundColor: 'rgba(13, 148, 136, 0.15)',
+                        color: 'var(--accent-color)',
+                        border: '1px solid rgba(13, 148, 136, 0.3)',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.2s',
+                      }}
+                      title={language === 'uz' ? 'Excelga yuklash' : 'Экспорт в Excel'}
+                    >
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+                    </button>
+
+                    {/* Add Store Button */}
+                    <button
+                      onClick={() => setShowAddStoreModal(true)}
+                      style={{
+                        padding: '8px 16px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--accent-color)',
+                        color: '#fff',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        transition: 'all 0.2s',
+                      }}
+                    >
+                      <Plus size={16} />
+                      {language === 'uz' ? "Do'kon qo'shish" : "Добавить магазин"}
+                    </button>
                   </div>
+                </div>
 
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
@@ -3898,7 +3778,189 @@ function App() {
                     </tbody>
                   </table>
                 </div>
-              </div>
+
+              {/* Modal 4: Add Store */}
+              {showAddStoreModal && (
+                <div style={{
+                  position: 'fixed',
+                  top: 0,
+                  left: 0,
+                  width: '100vw',
+                  height: '100vh',
+                  backgroundColor: 'rgba(15, 23, 42, 0.75)',
+                  backdropFilter: 'blur(4px)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  zIndex: 1000
+                }} className="fade-in">
+                  <div style={{
+                    width: '560px',
+                    backgroundColor: 'var(--bg-secondary)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '16px',
+                    padding: '32px',
+                    boxShadow: 'var(--shadow-lg)',
+                    maxHeight: '90vh',
+                    overflowY: 'auto'
+                  }}>
+                    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px' }}>{t('add_store_title')}</h3>
+                    <form onSubmit={handleAddStore} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{language === 'uz' ? 'Do\'kon kodi (ID)' : 'Код магазина (ID)'}</label>
+                          <input 
+                            type="number" 
+                            value={newStore.id}
+                            onChange={(e) => setNewStore({ ...newStore, id: e.target.value })}
+                            placeholder={language === 'uz' ? 'Avtomatik (ixtiyoriy)' : 'Автоматически (опционально)'}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{language === 'uz' ? 'Do\'kon nomi' : 'Название магазина'}</label>
+                          <input 
+                            type="text" 
+                            required
+                            value={newStore.name}
+                            onChange={(e) => setNewStore({ ...newStore, name: e.target.value })}
+                            placeholder={language === 'uz' ? 'Masalan: Humo smoke' : 'Например: Humo smoke'}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('owner_name_label')}</label>
+                          <input 
+                            type="text" 
+                            value={newStore.owner_name}
+                            onChange={(e) => setNewStore({ ...newStore, owner_name: e.target.value })}
+                            placeholder={language === 'uz' ? 'F.I.SH.' : 'Ф.И.О.'}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('phone_label')}</label>
+                          <input 
+                            type="text" 
+                            value={newStore.phone}
+                            onChange={(e) => setNewStore({ ...newStore, phone: e.target.value })}
+                            placeholder="+998 90..."
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('address_label')}</label>
+                        <input 
+                          type="text" 
+                          required
+                          value={newStore.address}
+                          onChange={(e) => setNewStore({ ...newStore, address: e.target.value })}
+                          placeholder={language === 'uz' ? 'Chilonzor 4-daha...' : 'Чиланзар 4-квартал...'}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                        />
+                      </div>
+
+                      <div>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '500' }}>{t('map_link_label')}</label>
+                        <input 
+                          type="text" 
+                          value={newStore.map_link}
+                          onChange={(e) => handleMapLinkChange(e.target.value, false)}
+                          placeholder={language === 'uz' ? 'Havolani kiritsangiz koordinatalar avtomatik to\'ladi' : 'Вставьте ссылку, чтобы координаты заполнились автоматически'}
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px dashed var(--accent-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('lat_label')}</label>
+                          <input 
+                            type="text" 
+                            value={newStore.latitude}
+                            onChange={(e) => setNewStore({ ...newStore, latitude: e.target.value })}
+                            placeholder="41.0015"
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('lng_label')}</label>
+                          <input 
+                            type="text" 
+                            value={newStore.longitude}
+                            onChange={(e) => setNewStore({ ...newStore, longitude: e.target.value })}
+                            placeholder="71.5865"
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          />
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('route_label')}</label>
+                          <input 
+                            type="text" 
+                            value={newStore.route}
+                            onChange={(e) => setNewStore({ ...newStore, route: e.target.value, sde: `SDE_${e.target.value}` })}
+                            placeholder="NM_01"
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          />
+                        </div>
+                        <div>
+                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('status_label')}</label>
+                          <select 
+                            value={newStore.status}
+                            onChange={(e) => setNewStore({ ...newStore, status: e.target.value })}
+                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          >
+                            <option value="0">{language === 'uz' ? '0 (Normal)' : '0 (Нормальный)'}</option>
+                            <option value="1">{language === 'uz' ? '1 (Xato RET)' : '1 (Ошибка RET)'}</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                        <button 
+                          type="button"
+                          onClick={() => setShowAddStoreModal(false)}
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'transparent',
+                            color: 'var(--text-secondary)',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {t('cancel')}
+                        </button>
+                        <button 
+                          type="submit"
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: 'var(--accent-color)',
+                            color: '#fff',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {t('save')}
+                        </button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
 
               {/* Modal 3: Edit Store */}
               {showEditStoreModal && editingStore && (
