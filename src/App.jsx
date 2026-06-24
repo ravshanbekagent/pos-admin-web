@@ -2730,7 +2730,7 @@ function App() {
         </header>
 
         {/* Content Body scrollable */}
-        <div style={{ flexGrow: 1, overflowY: 'auto', padding: '32px' }}>
+        <div className="content-body" style={{ flexGrow: 1, overflowY: 'auto', padding: '32px' }}>
           
           {/* VIEW 1: DASHBOARD */}
           {activeTab === 'dashboard' && (

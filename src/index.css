@@ -144,6 +144,13 @@ tr.hoverable-row:hover {
    Premium Responsive Layout (Mobile-Friendly)
    ========================================== */
 @media (max-width: 768px) {
+  /* Ensure viewport and body are locked to prevent default bouncing, but sub-elements scroll */
+  body, html, #root {
+    height: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+
   /* Sidebar responsive styles */
   aside.sidebar {
     position: fixed !important;
@@ -185,54 +192,123 @@ tr.hoverable-row:hover {
   }
   
   header.top-header h2 {
-    font-size: 18px !important;
+    font-size: 16px !important;
   }
 
   header.top-header span {
-    font-size: 11px !important;
+    font-size: 10px !important;
   }
 
-  /* Adjust main container scrolling and layout */
+  /* Adjust main container layout */
   main {
     width: 100% !important;
     min-width: 100% !important;
+    height: 100vh !important;
+    overflow: hidden !important;
   }
 
-  /* Responsive Flex & Grid items */
-  div[style*="display: flex"][style*="flex-direction: row"],
-  div[style*="display: flex"]:not([style*="flex-direction: column"]):not([style*="flex-direction:row"]) {
-    /* If it contains multiple large items (like cards/tables), wrap them! */
+  /* Force the content body to scroll with smooth iOS momentum scrolling */
+  .content-body {
+    padding: 16px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    -webkit-overflow-scrolling: touch !important;
+    flex-grow: 1 !important;
+    height: calc(100vh - 70px) !important; /* Viewport height minus header height */
+    box-sizing: border-box !important;
+  }
+
+  /* Adjust typography to be readable but compact on mobile */
+  h1 { font-size: 18px !important; }
+  h2 { font-size: 16px !important; }
+  h3 { font-size: 14px !important; }
+  span, p, label, input, button, select, option {
+    font-size: 12px !important;
+  }
+
+  /* Make sure all flex containers wrap their children on mobile */
+  div[style*="display: flex"],
+  div[style*="display:flex"] {
     flex-wrap: wrap !important;
   }
 
-  /* Make grids take single column on mobile */
-  div[style*="grid-template-columns"] {
+  /* Prevent wrapping for specific inline layouts (like avatar + name, icon + text) */
+  .sidebar div[style*="display: flex"],
+  .sidebar-overlay,
+  .top-header div[style*="display: flex"],
+  div[style*="align-items: center"][style*="gap: 10px"],
+  div[style*="align-items: center"][style*="gap: 8px"],
+  div[style*="align-items: center"][style*="gap: 12px"] {
+    flex-wrap: nowrap !important;
+  }
+
+  /* Make sure forms, inputs, and buttons take 100% width on mobile */
+  input, select, textarea, button {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Forms and button groups */
+  form {
+    width: 100% !important;
+    gap: 12px !important;
+  }
+
+  /* Date filters and control bars */
+  div[style*="align-self: flex-start"],
+  div[style*="alignSelf: 'flex-start'"] {
+    align-self: stretch !important;
+    width: 100% !important;
+  }
+
+  /* Filter and Action Headers - make them stack vertically on mobile */
+  div[style*="justify-content: space-between"],
+  div[style*="justifyContent: 'space-between'"] {
+    justify-content: flex-start !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    gap: 12px !important;
+  }
+
+  /* Grid containers - force single column */
+  .responsive-grid,
+  div[style*="display: grid"],
+  div[style*="display:grid"] {
     grid-template-columns: 1fr !important;
     gap: 16px !important;
+    width: 100% !important;
   }
 
-  /* Dashboard Cards / Quick Stats Grid */
-  div[style*="grid-template-columns: repeat(4"] {
-    grid-template-columns: 1fr !important;
-  }
-  
-  div[style*="grid-template-columns: repeat(2"] {
-    grid-template-columns: 1fr !important;
-  }
-
-  /* Make forms and tables 100% width and wrap */
-  div[style*="flex-grow: 1"] {
+  /* Cards in grids or rows */
+  div[style*="background-color: var(--bg-secondary)"] {
+    width: 100% !important;
     padding: 16px !important;
+    margin-bottom: 8px !important;
+    box-sizing: border-box !important;
   }
 
-  /* Responsive inner containers */
-  div[style*="gap: 24px"] {
+  /* Adjust padding and margins of main sections */
+  .fade-in {
     gap: 16px !important;
+    width: 100% !important;
   }
 
-  div[style*="padding: 24px"],
-  div[style*="padding: 32px"] {
+  /* Modals: make them fill the screen nicely with safety margins */
+  div[style*="position: fixed"][style*="z-index"] > div[style*="background-color: var(--bg-secondary)"] {
+    width: 95% !important;
+    max-width: 95% !important;
     padding: 16px !important;
+    border-radius: 12px !important;
+    overflow-y: auto !important;
+    max-height: 85vh !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Chart containers */
+  .recharts-responsive-container {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: 220px !important;
   }
 
   /* Table responsiveness wrapper */
@@ -245,14 +321,5 @@ tr.hoverable-row:hover {
 
   table {
     min-width: 600px !important; /* Ensure table remains readable but scrollable horizontally */
-  }
-
-  /* Modals responsiveness */
-  div[style*="width: 500px"],
-  div[style*="width: 600px"],
-  div[style*="width: 800px"] {
-    width: 95% !important;
-    max-width: 95% !important;
-    margin: 0 auto !important;
   }
 }
