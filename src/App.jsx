@@ -1961,6 +1961,36 @@ function App() {
     setDraggedStoreIndex(null);
   };
 
+  const handleMoveStore = (index, direction) => {
+    const targetIndex = index + direction;
+    const agent = agents.find(a => a.id === selectedAgentId);
+    if (!agent) return;
+
+    // Filter and sort by current order
+    const agentStores = storeAssignments
+      .filter(ass => ass.agentId === agent.id)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+    if (targetIndex < 0 || targetIndex >= agentStores.length) return;
+
+    // Reorder
+    const updated = [...agentStores];
+    const [moved] = updated.splice(index, 1);
+    updated.splice(targetIndex, 0, moved);
+
+    // Reassign order
+    const updatedWithOrder = updated.map((item, idx) => ({
+      ...item,
+      order: idx + 1
+    }));
+
+    // Update main state
+    setStoreAssignments(prev => {
+      const others = prev.filter(ass => ass.agentId !== agent.id);
+      return [...others, ...updatedWithOrder];
+    });
+  };
+
   const handleDeleteStoreAssignment = (id) => {
     showConfirm(
       language === 'uz'
@@ -4903,8 +4933,60 @@ function App() {
                                       </div>
                                     </td>
                                     <td style={{ padding: '10px 4px', fontWeight: '600' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        {/* Drag handle for desktop */}
                                         <span style={{ color: 'var(--text-muted)', fontSize: '14px', cursor: 'grab', userSelect: 'none' }}>☰</span>
+                                        
+                                        {/* Up/Down buttons for mobile & easy desktop sorting */}
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleMoveStore(idx, -1);
+                                            }}
+                                            disabled={idx === 0}
+                                            style={{
+                                              border: 'none',
+                                              backgroundColor: 'transparent',
+                                              color: idx === 0 ? 'var(--text-muted)' : 'var(--accent-color)',
+                                              padding: '1px 3px',
+                                              cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              fontSize: '9px',
+                                              lineHeight: '1',
+                                              fontWeight: 'bold'
+                                            }}
+                                            title={language === 'uz' ? "Tepaga ko'tarish" : "Поднять вверх"}
+                                          >
+                                            ▲
+                                          </button>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              handleMoveStore(idx, 1);
+                                            }}
+                                            disabled={idx === agentStores.length - 1}
+                                            style={{
+                                              border: 'none',
+                                              backgroundColor: 'transparent',
+                                              color: idx === agentStores.length - 1 ? 'var(--text-muted)' : 'var(--accent-color)',
+                                              padding: '1px 3px',
+                                              cursor: idx === agentStores.length - 1 ? 'not-allowed' : 'pointer',
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              fontSize: '9px',
+                                              lineHeight: '1',
+                                              fontWeight: 'bold'
+                                            }}
+                                            title={language === 'uz' ? "Pastga tushirish" : "Опустить вниз"}
+                                          >
+                                            ▼
+                                          </button>
+                                        </div>
+
                                         <span>{store.storeName}</span>
                                       </div>
                                     </td>

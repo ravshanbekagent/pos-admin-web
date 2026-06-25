@@ -315,6 +315,8 @@ tr.hoverable-row:hover {
   .table-responsive-container,
   div:has(> table) {
     width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important; /* Critical for flexbox children to shrink and allow scroll */
     overflow-x: auto !important;
     -webkit-overflow-scrolling: touch !important;
   }
