@@ -5033,8 +5033,12 @@ function App() {
                         border: '1px solid var(--border-color)',
                         borderRadius: '12px',
                         padding: '20px',
-                        display: 'flex',
-                        flexDirection: 'column'
+                        display: window.innerWidth > 768 ? 'flex' : 'block',
+                        flexDirection: 'column',
+                        width: '100%',
+                        maxWidth: '100%',
+                        overflowX: window.innerWidth > 768 ? 'visible' : 'auto',
+                        minWidth: 0
                       }}>
                         <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? 'Biriktirilgan mahsulotlar (Bugun uchun)' : 'Закрепленные товары (на сегодня)'}</h3>
                          <div style={{ 
@@ -5122,8 +5126,12 @@ function App() {
                         border: '1px solid var(--border-color)',
                         borderRadius: '12px',
                         padding: '20px',
-                        display: 'flex',
-                        flexDirection: 'column'
+                        display: window.innerWidth > 768 ? 'flex' : 'block',
+                        flexDirection: 'column',
+                        width: '100%',
+                        maxWidth: '100%',
+                        overflowX: window.innerWidth > 768 ? 'visible' : 'auto',
+                        minWidth: 0
                       }}>
                         <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? 'Biriktirilgan do\'konlar (Kanal)' : 'Закрепленные магазины (Канал)'}</h3>
                          <div style={{ 
