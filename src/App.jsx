@@ -769,6 +769,9 @@ function App() {
             ownerName: s.owner_name,
             phone: s.phone,
             address: s.address,
+            map_link: s.map_link,
+            latitude: s.latitude,
+            longitude: s.longitude,
             date: new Date().toISOString().split('T')[0],
             order: s.order || 1
           };
@@ -5034,7 +5037,7 @@ function App() {
                         flexDirection: 'column'
                       }}>
                         <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? 'Biriktirilgan mahsulotlar (Bugun uchun)' : 'Закрепленные товары (на сегодня)'}</h3>
-                        <div style={{ overflowY: 'auto', flexGrow: 1 }}>
+                        <div style={{ overflowX: 'auto', overflowY: 'auto', flexGrow: 1, width: '100%', WebkitOverflowScrolling: 'touch' }}>
                           {agentProducts.length === 0 ? (
                             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? 'Mahsulotlar biriktirilmagan' : 'Товары не закреплены'}</div>
                           ) : (
@@ -5114,7 +5117,7 @@ function App() {
                         flexDirection: 'column'
                       }}>
                         <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? 'Biriktirilgan do\'konlar (Kanal)' : 'Закрепленные магазины (Канал)'}</h3>
-                        <div style={{ overflowY: 'auto', flexGrow: 1 }}>
+                        <div style={{ overflowX: 'auto', overflowY: 'auto', flexGrow: 1, width: '100%', WebkitOverflowScrolling: 'touch' }}>
                           {agentStores.length === 0 ? (
                             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? 'Do\'konlar biriktirilmagan' : 'Магазины не закреплены'}</div>
                           ) : (
