@@ -754,6 +754,55 @@ function App() {
       setAdmins(mappedAdmins);
       setSales(mappedSales);
 
+      // 5. Dynamic Store Assignments loading
+      const loadedStoreAssignments = mappedStores
+        .filter(s => s.agentId !== null && s.agentId !== undefined)
+        .map(s => {
+          const agent = mappedAgents.find(a => a.id === s.agentId) || { name: 'Agent' };
+          return {
+            id: s.id,
+            agentId: s.agentId,
+            agentName: agent.name || agent.login,
+            storeName: s.name,
+            ownerName: s.owner_name,
+            phone: s.phone,
+            address: s.address,
+            date: new Date().toISOString().split('T')[0],
+            order: s.order || 1
+          };
+        })
+        .sort((a, b) => (a.order || 0) - (b.order || 0));
+      setStoreAssignments(loadedStoreAssignments);
+
+      // 6. Fetch Product Assignments (Agent Inventory)
+      const activeAgentId = storedRole === 'agent' 
+        ? parseInt(localStorage.getItem('currentUserId') || currentUserId || '0')
+        : selectedAgentId;
+
+      if (activeAgentId) {
+        try {
+          const inventoryRes = await fetch(`${API_URL}/inventory/agent/${activeAgentId}`, {
+            headers: { 'Authorization': `Bearer ${authToken}` }
+          });
+          if (inventoryRes.ok) {
+            const inventoryData = await inventoryRes.json();
+            const mappedAssignments = inventoryData.map(item => ({
+              id: item.id,
+              agentId: item.agent_id,
+              agentName: (mappedAgents.find(a => a.id === item.agent_id) || { name: 'Agent' }).name,
+              productId: item.product_id,
+              productName: item.product ? item.product.name : 'Noma\'lum',
+              qty: item.qty_given,
+              remainingQty: item.qty_given - item.qty_sold - item.qty_returned,
+              date: item.date
+            }));
+            setAssignments(mappedAssignments);
+          }
+        } catch (err) {
+          console.error("Failed to fetch product assignments:", err);
+        }
+      }
+
     } catch (error) {
       console.error(error);
       showAlert(error.message, 'error');
@@ -796,6 +845,36 @@ function App() {
       }
     });
   });
+
+  // Fetch product assignments when selectedAgentId changes (for admin view)
+  useEffect(() => {
+    if (token && selectedAgentId && userRole !== 'agent') {
+      const fetchInventory = async () => {
+        try {
+          const res = await fetch(`${API_URL}/inventory/agent/${selectedAgentId}`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const mapped = data.map(item => ({
+              id: item.id,
+              agentId: item.agent_id,
+              agentName: (agents.find(a => a.id === item.agent_id) || { name: 'Agent' }).name,
+              productId: item.product_id,
+              productName: item.product ? item.product.name : 'Noma\'lum',
+              qty: item.qty_given,
+              remainingQty: item.qty_given - item.qty_sold - item.qty_returned,
+              date: item.date
+            }));
+            setAssignments(mapped);
+          }
+        } catch (err) {
+          console.error("Error fetching selected agent inventory:", err);
+        }
+      };
+      fetchInventory();
+    }
+  }, [selectedAgentId, token, userRole, agents]);
 
   const [language, setLanguage] = useState(() => localStorage.getItem('lang') || 'uz');
   const [adminName, setAdminName] = useState(() => localStorage.getItem('adminName') || 'Bosh Admin');
@@ -1793,26 +1872,49 @@ function App() {
       return;
     }
 
-    // Deduct stock from warehouse products list
-    setProducts(products.map(p => {
-      if (p.id === product.id) {
-        return { ...p, stock: p.stock - requestedQty };
-      }
-      return p;
-    }));
+    // Call backend API to save the assignment
+    fetch(`${API_URL}/inventory/assign`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        agent_id: agent.id,
+        date: new Date().toISOString().split('T')[0],
+        products: [
+          {
+            product_id: product.id,
+            qty_given: requestedQty
+          }
+        ]
+      })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Serverga saqlashda xatolik');
+      return res.json();
+    })
+    .then(() => {
+      showAlert(
+        language === 'uz' ? 'Mahsulot muvaffaqiyatli biriktirildi' : 'Товар успешно закреплен',
+        'success'
+      );
+      // Deduct stock from warehouse products list locally
+      setProducts(products.map(p => {
+        if (p.id === product.id) {
+          return { ...p, stock: p.stock - requestedQty };
+        }
+        return p;
+      }));
 
-    setAssignments([
-      ...assignments,
-      {
-        id: Date.now(),
-        agentId: agent.id,
-        agentName: agent.name || agent.login,
-        productName: product.name,
-        qty: requestedQty,
-        remainingQty: requestedQty, // default to all remaining
-        date: new Date().toISOString().split('T')[0]
-      }
-    ]);
+      // Reload assignments
+      loadCloudData(token);
+    })
+    .catch(err => {
+      console.error(err);
+      showAlert(language === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка', 'error');
+    });
+
     setNewAssignment({ agentId: '', productId: '', qty: '' });
     setShowAssignProductModal(false);
   };
@@ -1900,20 +2002,44 @@ function App() {
 
     if (!agent || !store) return;
 
-    setStoreAssignments([
-      ...storeAssignments,
-      {
-        id: Date.now(),
-        agentId: agent.id,
-        agentName: agent.name || agent.login,
-        storeName: store.name,
-        ownerName: store.owner_name,
+    const nextOrder = storeAssignments.filter(ass => ass.agentId === agent.id).length + 1;
+
+    // Send PUT request to save the assignment in the database
+    fetch(`${API_URL}/stores/${store.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        name: store.name,
+        owner_name: store.ownerName || store.owner_name,
         phone: store.phone,
         address: store.address,
-        date: new Date().toISOString().split('T')[0],
-        order: storeAssignments.filter(ass => ass.agentId === agent.id).length + 1
-      }
-    ]);
+        map_link: store.map_link,
+        location_lat: String(store.latitude || store.location_lat || ''),
+        location_lng: String(store.longitude || store.location_lng || ''),
+        agent_id: agent.id,
+        order: nextOrder
+      })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Do\'konni biriktirishda xatolik');
+      return res.json();
+    })
+    .then(() => {
+      showAlert(
+        language === 'uz' ? 'Do\'kon muvaffaqiyatli biriktirildi' : 'Магазин успешно закреплен',
+        'success'
+      );
+      // Reload all data to refresh state
+      loadCloudData(token);
+    })
+    .catch(err => {
+      console.error(err);
+      showAlert(err.message, 'error');
+    });
+
     setNewStoreAssignment({ agentId: '', storeId: '' });
     setShowAssignStoreModal(false);
   };
@@ -1952,13 +2078,41 @@ function App() {
       order: idx + 1
     }));
 
-    // Update main state
+    // Update main state locally
     setStoreAssignments(prev => {
       const others = prev.filter(ass => ass.agentId !== agent.id);
       return [...others, ...updatedWithOrder];
     });
 
     setDraggedStoreIndex(null);
+
+    // Persist new orders to backend
+    Promise.all(updatedWithOrder.map(item => {
+      const fullStore = stores.find(s => s.id === item.id);
+      if (!fullStore) return Promise.resolve();
+      return fetch(`${API_URL}/stores/${item.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: fullStore.name,
+          owner_name: fullStore.ownerName || fullStore.owner_name,
+          phone: fullStore.phone,
+          address: fullStore.address,
+          map_link: fullStore.map_link,
+          location_lat: String(fullStore.latitude || fullStore.location_lat || ''),
+          location_lng: String(fullStore.longitude || fullStore.location_lng || ''),
+          agent_id: agent.id,
+          order: item.order
+        })
+      });
+    }))
+    .then(() => {
+      loadCloudData(token);
+    })
+    .catch(err => console.error("Drop reorder save error:", err));
   };
 
   const handleMoveStore = (index, direction) => {
@@ -1984,11 +2138,39 @@ function App() {
       order: idx + 1
     }));
 
-    // Update main state
+    // Update main state locally
     setStoreAssignments(prev => {
       const others = prev.filter(ass => ass.agentId !== agent.id);
       return [...others, ...updatedWithOrder];
     });
+
+    // Persist new orders to backend
+    Promise.all(updatedWithOrder.map(item => {
+      const fullStore = stores.find(s => s.id === item.id);
+      if (!fullStore) return Promise.resolve();
+      return fetch(`${API_URL}/stores/${item.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: fullStore.name,
+          owner_name: fullStore.ownerName || fullStore.owner_name,
+          phone: fullStore.phone,
+          address: fullStore.address,
+          map_link: fullStore.map_link,
+          location_lat: String(fullStore.latitude || fullStore.location_lat || ''),
+          location_lng: String(fullStore.longitude || fullStore.location_lng || ''),
+          agent_id: agent.id,
+          order: item.order
+        })
+      });
+    }))
+    .then(() => {
+      loadCloudData(token);
+    })
+    .catch(err => console.error("Move reorder save error:", err));
   };
 
   const handleDeleteStoreAssignment = (id) => {
@@ -1997,24 +2179,42 @@ function App() {
         ? "Ushbu do'konni agent biriktiruvidan o'chirishni xohlaysizmi?"
         : "Вы действительно хотите удалить привязку этого магазина?",
       () => {
-        setStoreAssignments(prev => {
-          const remaining = prev.filter(ass => ass.id !== id);
-          // Optional: Re-calculate orders for the same agent
-          const agent = agents.find(a => a.id === selectedAgentId);
-          if (!agent) return remaining;
-          
-          const others = remaining.filter(ass => ass.agentId !== agent.id);
-          const agentStores = remaining
-            .filter(ass => ass.agentId === agent.id)
-            .sort((a, b) => (a.order || 0) - (b.order || 0))
-            .map((item, idx) => ({ ...item, order: idx + 1 }));
+        const store = stores.find(s => s.id === id);
+        if (!store) return;
 
-          return [...others, ...agentStores];
+        fetch(`${API_URL}/stores/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({
+            name: store.name,
+            owner_name: store.ownerName || store.owner_name,
+            phone: store.phone,
+            address: store.address,
+            map_link: store.map_link,
+            location_lat: String(store.latitude || store.location_lat || ''),
+            location_lng: String(store.longitude || store.location_lng || ''),
+            agent_id: null,
+            order: null
+          })
+        })
+        .then(res => {
+          if (!res.ok) throw new Error('Biriktiruvni o\'chirishda xatolik');
+          return res.json();
+        })
+        .then(() => {
+          showAlert(
+            language === 'uz' ? "Do'kon biriktiruvi o'chirildi" : "Привязка магазина удалена",
+            'success'
+          );
+          loadCloudData(token);
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert(err.message, 'error');
         });
-        showAlert(
-          language === 'uz' ? "Do'kon biriktiruvi o'chirildi" : "Привязка магазина удалена",
-          'success'
-        );
       }
     );
   };
@@ -2028,23 +2228,40 @@ function App() {
         ? "Ushbu mahsulotni agent biriktiruvidan o'chirishni va qoldiqni omborga qaytarishni xohlaysizmi?"
         : "Вы действительно хотите удалить привязку этого товара и вернуть остаток на склад?",
       () => {
-        const remainingVal = ass.remainingQty !== undefined ? ass.remainingQty : ass.qty;
-        const remainingQtyToReturn = remainingVal === "" ? 0 : remainingVal;
+        // Call backend API to delete the assignment
+        fetch(`${API_URL}/inventory/${id}`, {
+          method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        })
+        .then(res => {
+          if (!res.ok) throw new Error('Biriktiruvni o\'chirishda xatolik');
+          return res.json();
+        })
+        .then(() => {
+          const remainingVal = ass.remainingQty !== undefined ? ass.remainingQty : ass.qty;
+          const remainingQtyToReturn = remainingVal === "" ? 0 : remainingVal;
 
-        if (remainingQtyToReturn > 0) {
-          setProducts(prevProducts => prevProducts.map(p => {
-            if (p.name === ass.productName) {
-              return { ...p, stock: p.stock + remainingQtyToReturn };
-            }
-            return p;
-          }));
-        }
+          if (remainingQtyToReturn > 0) {
+            setProducts(prevProducts => prevProducts.map(p => {
+              if (p.name === ass.productName) {
+                return { ...p, stock: p.stock + remainingQtyToReturn };
+              }
+              return p;
+            }));
+          }
 
-        setAssignments(prev => prev.filter(a => a.id !== id));
-        showAlert(
-          language === 'uz' ? "Mahsulot biriktiruvi o'chirildi" : "Привязка товара удалена",
-          'success'
-        );
+          setAssignments(prev => prev.filter(a => a.id !== id));
+          showAlert(
+            language === 'uz' ? "Mahsulot biriktiruvi o'chirildi" : "Привязка товара удалена",
+            'success'
+          );
+        })
+        .catch(err => {
+          console.error(err);
+          showAlert(err.message, 'error');
+        });
       }
     );
   };
@@ -4702,7 +4919,9 @@ function App() {
 
               {/* Right Column: Selected Agent Assignment Details */}
               {(() => {
-                const selectedAgent = agents.find(a => a.id === selectedAgentId);
+                const selectedAgent = userRole === 'agent'
+                  ? { id: parseInt(currentUserId || localStorage.getItem('currentUserId') || '0'), login: adminName, username: adminName }
+                  : agents.find(a => a.id === selectedAgentId);
                 if (!selectedAgent) {
                   return (
                     <div style={{ flexGrow: 1, backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-secondary)' }}>
@@ -4893,10 +5112,9 @@ function App() {
                               <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '12px' }}>
                                   <th style={{ padding: '8px 4px', width: '36px' }}>№</th>
-                                  <th style={{ padding: '8px 4px' }}>{language === 'uz' ? 'Do\'kon nomi' : 'Название магазина'}</th>
-                                  <th style={{ padding: '8px 4px' }}>{language === 'uz' ? 'Telefon / Rahbar' : 'Телефон / Руководитель'}</th>
-                                  <th style={{ padding: '8px 4px' }}>{language === 'uz' ? 'Manzil' : 'Адрес'}</th>
-                                  <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? 'O\'chirish' : 'Удалить'}</th>
+                                  <th style={{ padding: '8px 4px' }}>{language === 'uz' ? 'Do\'kon / Rahbar / Manzil' : 'Магазин / Руководитель / Адрес'}</th>
+                                  <th style={{ padding: '8px 4px', textAlign: 'center', width: '70px' }}>{language === 'uz' ? 'Lokatsiya' : 'Локация'}</th>
+                                  <th style={{ padding: '8px 4px', textAlign: 'right', width: '60px' }}>{language === 'uz' ? 'O\'chirish' : 'Удалить'}</th>
                                 </tr>
                               </thead>
                               <tbody>
@@ -4932,7 +5150,7 @@ function App() {
                                         {idx + 1}
                                       </div>
                                     </td>
-                                    <td style={{ padding: '10px 4px', fontWeight: '600' }}>
+                                    <td style={{ padding: '10px 4px' }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                         {/* Drag handle for desktop */}
                                         <span style={{ color: 'var(--text-muted)', fontSize: '14px', cursor: 'grab', userSelect: 'none' }}>☰</span>
@@ -4987,15 +5205,47 @@ function App() {
                                           </button>
                                         </div>
 
-                                        <span>{store.storeName}</span>
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                          <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>{store.storeName}</span>
+                                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                            👤 {store.ownerName || 'Tadbirkor'} • 📞 {store.phone || 'Telefon yo\'q'}
+                                          </span>
+                                          {store.address && (
+                                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                              📍 {store.address}
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                     </td>
-                                    <td style={{ padding: '10px 4px' }}>
-                                      <div style={{ fontWeight: '500' }}>{store.ownerName}</div>
-                                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{store.phone}</span>
-                                    </td>
-                                    <td style={{ padding: '10px 4px', color: 'var(--text-secondary)', maxWidth: '140px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                      {store.address}
+                                    <td style={{ padding: '10px 4px', textAlign: 'center' }}>
+                                      {store.map_link || (store.latitude && store.longitude) ? (
+                                        <a
+                                          href={store.map_link || `https://maps.google.com/?q=${store.latitude},${store.longitude}`}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            width: '32px',
+                                            height: '32px',
+                                            borderRadius: '50%',
+                                            backgroundColor: 'var(--accent-light)',
+                                            color: 'var(--accent-color)',
+                                            transition: 'all 0.2s ease',
+                                            cursor: 'pointer',
+                                            border: 'none'
+                                          }}
+                                          className="map-pin-btn"
+                                          title={language === 'uz' ? "Xaritada ko'rish" : "Посмотреть на карте"}
+                                          onClick={(e) => e.stopPropagation()}
+                                        >
+                                          <MapPin size={16} />
+                                        </a>
+                                      ) : (
+                                        <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>
+                                      )}
                                     </td>
                                     <td style={{ padding: '10px 4px', textAlign: 'right' }}>
                                       <button
