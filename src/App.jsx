@@ -702,7 +702,9 @@ function App() {
         route: s.route || 'NM_01',
         sde: s.sde || 'SDE_NM_01',
         census_type: s.census_type || 'Census RET',
-        status: s.status || 0
+        status: s.status || 0,
+        agentId: s.agent_id,
+        order: s.order
       }));
 
       // Map agents
@@ -1924,41 +1926,49 @@ function App() {
     if (!ass) return false;
 
     const qtyDiff = newQty - ass.qty;
-    if (qtyDiff > 0) {
-      const p = products.find(prod => prod.name === ass.productName);
-      if (p && p.stock < qtyDiff) {
-        showAlert(
-          language === 'uz'
-            ? `Omborda yetarli mahsulot yo'q! Qo'shimcha so'ralgan: ${qtyDiff}, omborda: ${p.stock}`
-            : `Недостаточно товара на складе! Дополнительно запрошено: ${qtyDiff}, на складе: ${p.stock}`,
-          'error'
-        );
-        return false;
-      }
+    const p = products.find(prod => prod.name === ass.productName);
+
+    if (qtyDiff > 0 && p && p.stock < qtyDiff) {
+      showAlert(
+        language === 'uz'
+          ? `Omborda yetarli mahsulot yo'q! Qo'shimcha so'ralgan: ${qtyDiff}, omborda: ${p.stock}`
+          : `Недостаточно товара на складе! Дополнительно запрошено: ${qtyDiff}, на складе: ${p.stock}`,
+        'error'
+      );
+      return false;
     }
 
-    // Adjust products stock:
-    setProducts(prevProducts => prevProducts.map(p => {
-      if (p.name === ass.productName) {
-        return { ...p, stock: p.stock - qtyDiff };
+    // Call backend API to update assignment
+    fetch(`${API_URL}/inventory/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        qty_given: newQty
+      })
+    })
+    .then(res => {
+      if (!res.ok) {
+        return res.json().then(err => { throw new Error(err.error || 'Yangilashda xatolik'); });
       }
-      return p;
-    }));
+      return res.json();
+    })
+    .then(() => {
+      showAlert(
+        language === 'uz'
+          ? "Biriktirilgan mahsulot muvaffaqiyatli yangilandi"
+          : "Закрепленный товар успешно обновлен",
+        'success'
+      );
+      loadCloudData(token);
+    })
+    .catch(err => {
+      console.error(err);
+      showAlert(err.message, 'error');
+    });
 
-    // Update assignment:
-    setAssignments(prev => prev.map(a => {
-      if (a.id === id) {
-        return { ...a, qty: newQty, remainingQty: newRemainingQty };
-      }
-      return a;
-    }));
-
-    showAlert(
-      language === 'uz'
-        ? "Biriktirilgan mahsulot muvaffaqiyatli yangilandi"
-        : "Закрепленный товар успешно обновлен",
-      'success'
-    );
     return true;
   };
 
