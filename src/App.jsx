@@ -5134,14 +5134,14 @@ function App() {
                                 {agentStores.map((store, idx) => (
                                   <tr 
                                     key={store.id} 
-                                    draggable={true}
+                                    draggable={window.innerWidth > 768}
                                     onDragStart={(e) => handleStoreDragStart(e, idx)}
                                     onDragOver={handleStoreDragOver}
                                     onDrop={(e) => handleStoreDrop(e, idx)}
                                     style={{ 
                                       borderBottom: '1px solid var(--border-color)', 
                                       fontSize: '13px', 
-                                      cursor: 'grab',
+                                      cursor: window.innerWidth > 768 ? 'grab' : 'default',
                                       backgroundColor: draggedStoreIndex === idx ? 'var(--bg-primary)' : 'transparent',
                                       opacity: draggedStoreIndex === idx ? 0.5 : 1
                                     }}
