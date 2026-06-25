@@ -5037,11 +5037,20 @@ function App() {
                         flexDirection: 'column'
                       }}>
                         <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? 'Biriktirilgan mahsulotlar (Bugun uchun)' : 'Закрепленные товары (на сегодня)'}</h3>
-                        <div style={{ overflowX: 'auto', overflowY: 'auto', flexGrow: 1, width: '100%', WebkitOverflowScrolling: 'touch' }}>
+                         <div style={{ 
+                          overflowX: 'auto', 
+                          overflowY: 'auto', 
+                          flexGrow: 1, 
+                          width: '100%', 
+                          maxWidth: '100%', 
+                          minWidth: 0, 
+                          display: 'block', 
+                          WebkitOverflowScrolling: 'touch' 
+                        }}>
                           {agentProducts.length === 0 ? (
                             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? 'Mahsulotlar biriktirilmagan' : 'Товары не закреплены'}</div>
                           ) : (
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
                               <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '12px' }}>
                                   <th style={{ padding: '8px 4px' }}>{language === 'uz' ? 'Mahsulot' : 'Товар'}</th>
@@ -5117,11 +5126,20 @@ function App() {
                         flexDirection: 'column'
                       }}>
                         <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? 'Biriktirilgan do\'konlar (Kanal)' : 'Закрепленные магазины (Канал)'}</h3>
-                        <div style={{ overflowX: 'auto', overflowY: 'auto', flexGrow: 1, width: '100%', WebkitOverflowScrolling: 'touch' }}>
+                         <div style={{ 
+                          overflowX: 'auto', 
+                          overflowY: 'auto', 
+                          flexGrow: 1, 
+                          width: '100%', 
+                          maxWidth: '100%', 
+                          minWidth: 0, 
+                          display: 'block', 
+                          WebkitOverflowScrolling: 'touch' 
+                        }}>
                           {agentStores.length === 0 ? (
                             <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? 'Do\'konlar biriktirilmagan' : 'Магазины не закреплены'}</div>
                           ) : (
-                            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                            <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
                               <thead>
                                 <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '12px' }}>
                                   <th style={{ padding: '8px 4px', width: '36px' }}>№</th>
