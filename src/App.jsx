@@ -894,6 +894,21 @@ function App() {
     return stored ? JSON.parse(stored) : [10, 20, 50];
   });
 
+  // Agent Cashier (POS) and Payment Integration States
+  const [activeCashierStore, setActiveCashierStore] = useState(null);
+  const [cashierCart, setCashierCart] = useState([]);
+  const [barcodeInput, setBarcodeInput] = useState('');
+  const [searchProductQuery, setSearchProductQuery] = useState('');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Naqd');
+  const [cashierDiscount, setCashierDiscount] = useState(0);
+  const [customDiscountInput, setCustomDiscountInput] = useState('');
+  const [showPaymentSection, setShowPaymentSection] = useState(false);
+  const [paymentIntegrations, setPaymentIntegrations] = useState(() => {
+    const stored = localStorage.getItem('payment_integrations');
+    return stored ? JSON.parse(stored) : ['Naqd', 'Click', 'Payme'];
+  });
+
+
   // Custom alert and confirm states
   const [toast, setToast] = useState(null); // { message: '', type: 'success' | 'error' | 'info' }
   const [confirmDialog, setConfirmDialog] = useState(null); // { message: '', onConfirm: () => void, onCancel: () => void }
@@ -2341,6 +2356,157 @@ function App() {
     showAlert(t('discount_deleted_success'), 'success');
   };
 
+  // --- Agent Cashier Helper Functions ---
+
+  const handleOpenCashier = (store) => {
+    setActiveCashierStore(store);
+    setCashierCart([]);
+    setBarcodeInput('');
+    setSearchProductQuery('');
+    setCashierDiscount(0);
+    setCustomDiscountInput('');
+    setShowPaymentSection(false);
+    // Load integrated payments
+    const stored = localStorage.getItem('payment_integrations');
+    const integrations = stored ? JSON.parse(stored) : ['Naqd', 'Click', 'Payme'];
+    if (integrations.length > 0) {
+      setSelectedPaymentMethod(integrations[0]);
+    } else {
+      setSelectedPaymentMethod('');
+    }
+  };
+
+  const handleAddProductToCart = (product) => {
+    // Determine available quantity
+    const maxQty = product.qty - (product.qty_sold || 0);
+    if (maxQty <= 0) {
+      showAlert(language === 'uz' ? "Ushbu mahsulot qoldig'i tugagan!" : "Этот товар закончился!", 'error');
+      return;
+    }
+
+    setCashierCart(prev => {
+      const existing = prev.find(item => item.productId === product.productId || item.productId === product.id);
+      if (existing) {
+        if (existing.quantity >= maxQty) {
+          showAlert(language === 'uz' ? `Omborda yetarli qoldiq yo'q! Maksimal: ${maxQty} dona` : `Недостаточно остатка на складе! Максимум: ${maxQty} шт`, 'error');
+          return prev;
+        }
+        return prev.map(item => 
+          (item.productId === product.productId || item.productId === product.id)
+            ? { ...item, quantity: item.quantity + 1 }
+            : item
+        );
+      } else {
+        const price = product.price || 0;
+        return [...prev, {
+          productId: product.productId || product.id,
+          productName: product.productName || product.name,
+          barcode: product.barcode || '',
+          price: price,
+          quantity: 1,
+          unit: product.unit || 'dona',
+          maxQty: maxQty
+        }];
+      }
+    });
+  };
+
+  const handleUpdateCartItemQty = (productId, newQty) => {
+    const qty = parseInt(newQty);
+    if (isNaN(qty) || qty <= 0) return;
+
+    setCashierCart(prev => {
+      const existing = prev.find(item => item.productId === productId);
+      if (!existing) return prev;
+
+      if (qty > existing.maxQty) {
+        showAlert(language === 'uz' ? `Omborda yetarli qoldiq yo'q! Maksimal: ${existing.maxQty} dona` : `Недостаточно остатка на складе! Максимум: ${existing.maxQty} шт`, 'error');
+        return prev.map(item => item.productId === productId ? { ...item, quantity: existing.maxQty } : item);
+      }
+      return prev.map(item => item.productId === productId ? { ...item, quantity: qty } : item);
+    });
+  };
+
+  const handleRemoveCartItem = (productId) => {
+    setCashierCart(prev => prev.filter(item => item.productId !== productId));
+  };
+
+  const handleBarcodeSubmit = (e) => {
+    if (e) e.preventDefault();
+    if (!barcodeInput.trim()) return;
+
+    // Find product in agentProducts by barcode
+    const found = agentProducts.find(p => p.barcode === barcodeInput.trim() || p.productBarcode === barcodeInput.trim());
+    if (found) {
+      handleAddProductToCart(found);
+      setBarcodeInput('');
+    } else {
+      showAlert(language === 'uz' ? "Ushbu shtrix-kodga ega mahsulot topilmadi!" : "Товар с таким штрих-кодом не найден!", 'error');
+    }
+  };
+
+  const handleCreateCashierSale = async () => {
+    if (cashierCart.length === 0) {
+      showAlert(language === 'uz' ? "Savatcha bo'sh!" : "Корзина пуста!", 'error');
+      return;
+    }
+
+    if (!selectedPaymentMethod) {
+      showAlert(language === 'uz' ? "Iltimos, to'lov turini tanlang!" : "Пожалуйста, выберите способ оплаты!", 'error');
+      return;
+    }
+
+    try {
+      let pct = 0;
+      if (customDiscountEnabled && customDiscountInput) {
+        pct = parseFloat(customDiscountInput) || 0;
+      } else {
+        pct = cashierDiscount;
+      }
+
+      const items = cashierCart.map(item => {
+        const discountedPrice = Math.round(item.price * (1 - pct / 100));
+        return {
+          product_id: item.productId,
+          quantity: item.quantity,
+          unit_price: discountedPrice
+        };
+      });
+
+      const payload = {
+        store_id: activeCashierStore.id,
+        payment_gateway: selectedPaymentMethod.toLowerCase(),
+        items: items
+      };
+
+      const res = await fetch(`${API_URL}/sales`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Sale failed');
+      }
+
+      showAlert(language === 'uz' ? "Sotuv muvaffaqiyatli yakunlandi!" : "Продажа успешно завершена!", 'success');
+      
+      await loadCloudData(token);
+
+      setActiveCashierStore(null);
+      setCashierCart([]);
+      setShowPaymentSection(false);
+
+    } catch (err) {
+      showAlert(err.message, 'error');
+    }
+  };
+
+
   // Custom Logo Component (Unusual & Sleek Geometric Vector)
   const Logo = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -2761,7 +2927,7 @@ function App() {
                   padding: '12px 16px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: ['settings_profile', 'settings_language', 'settings_discounts'].includes(activeTab) ? 'var(--accent-light)' : 'transparent',
+                  backgroundColor: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments'].includes(activeTab) ? 'var(--accent-light)' : 'transparent',
                   color: ['settings_profile', 'settings_language', 'settings_discounts'].includes(activeTab) ? 'var(--accent-color)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontWeight: '500',
@@ -2841,6 +3007,23 @@ function App() {
                     }}
                   >
                     {t('settings_discounts')}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('settings_payments')}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: activeTab === 'settings_payments' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                      color: activeTab === 'settings_payments' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      textAlign: 'left',
+                      transition: 'all var(--transition-fast)'
+                    }}
+                  >
+                    {language === 'uz' ? "To'lov tizimlari" : 'Платежные системы'}
                   </button>
                   {userRole === 'admin' && (
                     <>
@@ -5027,155 +5210,6 @@ function App() {
                     {/* Lists Grid */}
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', flexGrow: 1 }}>
                       
-                      {/* Products List Box */}
-                      <div style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '12px',
-                        padding: '20px',
-                        display: window.innerWidth > 768 ? 'flex' : 'block',
-                        flexDirection: 'column',
-                        width: '100%',
-                        maxWidth: '100%',
-                        overflowX: window.innerWidth > 768 ? 'visible' : 'auto',
-                        minWidth: 0
-                      }}>
-                        <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? 'Biriktirilgan mahsulotlar (Bugun uchun)' : 'Закрепленные товары (на сегодня)'}</h3>
-                        <div style={{ 
-                          overflowX: userRole === 'agent' ? 'hidden' : 'auto', 
-                          overflowY: 'auto', 
-                          flexGrow: 1, 
-                          width: '100%', 
-                          maxWidth: '100%', 
-                          minWidth: 0, 
-                          display: 'block', 
-                          WebkitOverflowScrolling: 'touch' 
-                        }}>
-                          {agentProducts.length === 0 ? (
-                            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? 'Mahsulotlar biriktirilmagan' : 'Товары не закреплены'}</div>
-                          ) : userRole === 'agent' ? (
-                            /* Agent View: Beautiful div-based list (no tables to prevent horizontal overflow/scroll) */
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', width: '100%' }}>
-                              <div style={{ display: 'flex', gap: '8px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                                <span>{language === 'uz' ? 'Mahsulot va Qoldiq' : 'Товар и Остаток'}</span>
-                              </div>
-                              {agentProducts.map(prod => (
-                                <div 
-                                  key={prod.id}
-                                  onClick={() => {
-                                    setSelectedAssignmentForEdit(prod);
-                                    setEditAssignmentQty(prod.qty.toString());
-                                    setEditAssignmentRemainingQty((prod.remainingQty !== undefined ? prod.remainingQty : prod.qty).toString());
-                                    setShowEditAssignmentModal(true);
-                                  }}
-                                  style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '8px', 
-                                    padding: '14px 0', 
-                                    borderBottom: '1px solid var(--border-color)',
-                                    cursor: 'pointer',
-                                    width: '100%',
-                                    boxSizing: 'border-box'
-                                  }}
-                                  className="hoverable-row-div"
-                                  title={language === 'uz' ? "Tafsilotlarni ko'rish" : 'Посмотреть детали'}
-                                >
-                                  <span style={{ 
-                                    fontWeight: '600', 
-                                    color: 'var(--accent-color)', 
-                                    textDecoration: 'underline',
-                                    fontSize: '13.5px',
-                                    wordBreak: 'break-word',
-                                    lineHeight: '1.3'
-                                  }}>
-                                    {prod.productName}
-                                  </span>
-                                  <span style={{ 
-                                    fontWeight: '700', 
-                                    color: 'var(--success-color)',
-                                    backgroundColor: 'var(--success-light)',
-                                    padding: '2px 8px',
-                                    borderRadius: '6px',
-                                    fontSize: '12px',
-                                    whiteSpace: 'nowrap',
-                                    flexShrink: 0
-                                  }}>
-                                    {prod.remainingQty !== undefined ? prod.remainingQty : prod.qty} {language === 'uz' ? 'dona' : 'шт'}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            /* Admin View: Original full table */
-                            <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
-                              <thead>
-                                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                                  <th style={{ padding: '8px 4px' }}>{language === 'uz' ? 'Mahsulot' : 'Товар'}</th>
-                                  {userRole !== 'agent' && <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? 'Olgan' : 'Получил'}</th>}
-                                  <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? 'Qolgan (Qoldiq)' : 'Остаток'}</th>
-                                  {userRole !== 'agent' && <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? 'Sana' : 'Дата'}</th>}
-                                  {userRole !== 'agent' && <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? "O'chirish" : 'Удалить'}</th>}
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {agentProducts.map(prod => (
-                                  <tr key={prod.id} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '13px' }}>
-                                    <td 
-                                      onClick={() => {
-                                        setSelectedAssignmentForEdit(prod);
-                                        setEditAssignmentQty(prod.qty.toString());
-                                        setEditAssignmentRemainingQty((prod.remainingQty !== undefined ? prod.remainingQty : prod.qty).toString());
-                                        setShowEditAssignmentModal(true);
-                                      }}
-                                      style={{ 
-                                        padding: '10px 4px', 
-                                        fontWeight: '600', 
-                                        color: 'var(--accent-color)', 
-                                        cursor: 'pointer',
-                                        textDecoration: 'underline'
-                                      }}
-                                      title={userRole === 'agent' ? (language === 'uz' ? "Tafsilotlarni ko'rish" : 'Посмотреть детали') : (language === 'uz' ? 'Tahrirlash uchun bosing' : 'Нажмите для редактирования')}
-                                    >
-                                      {prod.productName}
-                                    </td>
-                                    {userRole !== 'agent' && <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '600' }}>{prod.qty} {language === 'uz' ? 'dona' : 'шт'}</td>}
-                                    <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                      {prod.remainingQty !== undefined ? prod.remainingQty : prod.qty} {language === 'uz' ? 'dona' : 'шт'}
-                                    </td>
-                                    {userRole !== 'agent' && <td style={{ padding: '10px 4px', textAlign: 'right', color: 'var(--text-secondary)' }}>{prod.date}</td>}
-                                    {userRole !== 'agent' && (
-                                      <td style={{ padding: '10px 4px', textAlign: 'right' }}>
-                                        <button
-                                          onClick={(e) => {
-                                            e.stopPropagation();
-                                            handleDeleteProductAssignment(prod.id);
-                                          }}
-                                          title={language === 'uz' ? "O'chirish" : "Удалить"}
-                                          style={{
-                                            border: 'none',
-                                            backgroundColor: 'transparent',
-                                            color: 'var(--warning-color)',
-                                            padding: '4px',
-                                            cursor: 'pointer',
-                                            borderRadius: '4px',
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center'
-                                          }}
-                                        >
-                                          <Trash2 size={15} />
-                                        </button>
-                                      </td>
-                                    )}
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          )}
-                        </div>
-                      </div>
-
                       {/* Stores List Box */}
                       <div style={{
                         backgroundColor: 'var(--bg-secondary)',
@@ -5208,6 +5242,7 @@ function App() {
                               {agentStores.map((store, idx) => (
                                 <div 
                                   key={store.id} 
+                                  onClick={() => handleOpenCashier(store)}
                                   style={{ 
                                     display: 'flex', 
                                     alignItems: 'center', 
@@ -5215,8 +5250,10 @@ function App() {
                                     padding: '14px 0', 
                                     borderBottom: '1px solid var(--border-color)',
                                     width: '100%',
-                                    boxSizing: 'border-box'
+                                    boxSizing: 'border-box',
+                                    cursor: 'pointer'
                                   }}
+                                  className="hoverable-row-div"
                                 >
                                   {/* Subtle index number */}
                                   <span style={{ 
@@ -5442,6 +5479,155 @@ function App() {
                                         <Trash2 size={15} />
                                       </button>
                                     </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Products List Box */}
+                      <div style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '12px',
+                        padding: '20px',
+                        display: window.innerWidth > 768 ? 'flex' : 'block',
+                        flexDirection: 'column',
+                        width: '100%',
+                        maxWidth: '100%',
+                        overflowX: window.innerWidth > 768 ? 'visible' : 'auto',
+                        minWidth: 0
+                      }}>
+                        <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? 'Biriktirilgan mahsulotlar (Bugun uchun)' : 'Закрепленные товары (на сегодня)'}</h3>
+                        <div style={{ 
+                          overflowX: userRole === 'agent' ? 'hidden' : 'auto', 
+                          overflowY: 'auto', 
+                          flexGrow: 1, 
+                          width: '100%', 
+                          maxWidth: '100%', 
+                          minWidth: 0, 
+                          display: 'block', 
+                          WebkitOverflowScrolling: 'touch' 
+                        }}>
+                          {agentProducts.length === 0 ? (
+                            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? 'Mahsulotlar biriktirilmagan' : 'Товары не закреплены'}</div>
+                          ) : userRole === 'agent' ? (
+                            /* Agent View: Beautiful div-based list (no tables to prevent horizontal overflow/scroll) */
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', width: '100%' }}>
+                              <div style={{ display: 'flex', gap: '8px', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '11px', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                                <span>{language === 'uz' ? 'Mahsulot va Qoldiq' : 'Товар и Остаток'}</span>
+                              </div>
+                              {agentProducts.map(prod => (
+                                <div 
+                                  key={prod.id}
+                                  onClick={() => {
+                                    setSelectedAssignmentForEdit(prod);
+                                    setEditAssignmentQty(prod.qty.toString());
+                                    setEditAssignmentRemainingQty((prod.remainingQty !== undefined ? prod.remainingQty : prod.qty).toString());
+                                    setShowEditAssignmentModal(true);
+                                  }}
+                                  style={{ 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    gap: '8px', 
+                                    padding: '14px 0', 
+                                    borderBottom: '1px solid var(--border-color)',
+                                    cursor: 'pointer',
+                                    width: '100%',
+                                    boxSizing: 'border-box'
+                                  }}
+                                  className="hoverable-row-div"
+                                  title={language === 'uz' ? "Tafsilotlarni ko'rish" : 'Посмотреть детали'}
+                                >
+                                  <span style={{ 
+                                    fontWeight: '600', 
+                                    color: 'var(--accent-color)', 
+                                    textDecoration: 'underline',
+                                    fontSize: '13.5px',
+                                    wordBreak: 'break-word',
+                                    lineHeight: '1.3'
+                                  }}>
+                                    {prod.productName}
+                                  </span>
+                                  <span style={{ 
+                                    fontWeight: '700', 
+                                    color: 'var(--success-color)',
+                                    backgroundColor: 'var(--success-light)',
+                                    padding: '2px 8px',
+                                    borderRadius: '6px',
+                                    fontSize: '12px',
+                                    whiteSpace: 'nowrap',
+                                    flexShrink: 0
+                                  }}>
+                                    {prod.remainingQty !== undefined ? prod.remainingQty : prod.qty} {language === 'uz' ? 'dona' : 'шт'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            /* Admin View: Original full table */
+                            <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                              <thead>
+                                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                                  <th style={{ padding: '8px 4px' }}>{language === 'uz' ? 'Mahsulot' : 'Товар'}</th>
+                                  {userRole !== 'agent' && <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? 'Olgan' : 'Получил'}</th>}
+                                  <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? 'Qolgan (Qoldiq)' : 'Остаток'}</th>
+                                  {userRole !== 'agent' && <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? 'Sana' : 'Дата'}</th>}
+                                  {userRole !== 'agent' && <th style={{ padding: '8px 4px', textAlign: 'right' }}>{language === 'uz' ? "O'chirish" : 'Удалить'}</th>}
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {agentProducts.map(prod => (
+                                  <tr key={prod.id} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '13px' }}>
+                                    <td 
+                                      onClick={() => {
+                                        setSelectedAssignmentForEdit(prod);
+                                        setEditAssignmentQty(prod.qty.toString());
+                                        setEditAssignmentRemainingQty((prod.remainingQty !== undefined ? prod.remainingQty : prod.qty).toString());
+                                        setShowEditAssignmentModal(true);
+                                      }}
+                                      style={{ 
+                                        padding: '10px 4px', 
+                                        fontWeight: '600', 
+                                        color: 'var(--accent-color)', 
+                                        cursor: 'pointer',
+                                        textDecoration: 'underline'
+                                      }}
+                                      title={userRole === 'agent' ? (language === 'uz' ? "Tafsilotlarni ko'rish" : 'Посмотреть детали') : (language === 'uz' ? 'Tahrirlash uchun bosing' : 'Нажмите для редактирования')}
+                                    >
+                                      {prod.productName}
+                                    </td>
+                                    {userRole !== 'agent' && <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '600' }}>{prod.qty} {language === 'uz' ? 'dona' : 'шт'}</td>}
+                                    <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>
+                                      {prod.remainingQty !== undefined ? prod.remainingQty : prod.qty} {language === 'uz' ? 'dona' : 'шт'}
+                                    </td>
+                                    {userRole !== 'agent' && <td style={{ padding: '10px 4px', textAlign: 'right', color: 'var(--text-secondary)' }}>{prod.date}</td>}
+                                    {userRole !== 'agent' && (
+                                      <td style={{ padding: '10px 4px', textAlign: 'right' }}>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteProductAssignment(prod.id);
+                                          }}
+                                          title={language === 'uz' ? "O'chirish" : "Удалить"}
+                                          style={{
+                                            border: 'none',
+                                            backgroundColor: 'transparent',
+                                            color: 'var(--warning-color)',
+                                            padding: '4px',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                          }}
+                                        >
+                                          <Trash2 size={15} />
+                                        </button>
+                                      </td>
+                                    )}
                                   </tr>
                                 ))}
                               </tbody>
@@ -6805,6 +6991,99 @@ function App() {
             </div>
           )}
 
+          {/* VIEW: PAYMENT INTEGRATION SETTINGS */}
+          {activeTab === 'settings_payments' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                  {language === 'uz' ? "To'lov tizimlari integratsiyasi" : "Интеграция платежных систем"}
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+                  {language === 'uz' 
+                    ? "Agentlar sotuvni amalga oshirish vaqtida mijozlardan qaysi to'lov turlari orqali to'lov qabul qila olishini boshqaring." 
+                    : "Управляйте тем, какие типы оплаты агенты могут принимать от клиентов при продаже."}
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px' }}>
+                  {[
+                    { id: 'Naqd', name: language === 'uz' ? "Naqd pul" : "Наличные", desc: language === 'uz' ? "Kassa orqali naqd pul qabul qilish" : "Прием наличных через кассу", color: '#eab308' },
+                    { id: 'Click', name: "Click", desc: language === 'uz' ? "Click to'lov tizimi integratsiyasi" : "Интеграция платежной системы Click", color: '#0056b3' },
+                    { id: 'Payme', name: "Payme", desc: language === 'uz' ? "Payme to'lov tizimi integratsiyasi" : "Интеграция платежной системы Payme", color: '#00b5bb' },
+                    { id: 'Paynet', name: "Paynet", desc: language === 'uz' ? "Paynet to'lov tizimi integratsiyasi" : "Интеграция платежной системы Paynet", color: '#22c55e' }
+                  ].map(gate => {
+                    const isEnabled = paymentIntegrations.includes(gate.id);
+                    return (
+                      <div 
+                        key={gate.id}
+                        style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          padding: '16px', 
+                          borderRadius: '8px', 
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ 
+                            width: '8px', 
+                            height: '32px', 
+                            borderRadius: '4px', 
+                            backgroundColor: gate.color 
+                          }} />
+                          <div>
+                            <span style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)', display: 'block' }}>{gate.name}</span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{gate.desc}</span>
+                          </div>
+                        </div>
+
+                        {/* Toggle switch */}
+                        <button
+                          onClick={() => {
+                            let newList;
+                            if (isEnabled) {
+                              newList = paymentIntegrations.filter(id => id !== gate.id);
+                            } else {
+                              newList = [...paymentIntegrations, gate.id];
+                            }
+                            setPaymentIntegrations(newList);
+                            localStorage.setItem('payment_integrations', JSON.stringify(newList));
+                            showAlert(language === 'uz' ? "To'lov sozlamalari yangilandi" : "Настройки оплаты обновлены", 'success');
+                          }}
+                          style={{
+                            width: '46px',
+                            height: '24px',
+                            borderRadius: '12px',
+                            border: 'none',
+                            backgroundColor: isEnabled ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)',
+                            cursor: 'pointer',
+                            position: 'relative',
+                            transition: 'all 0.2s ease',
+                            padding: 0
+                          }}
+                        >
+                          <div style={{
+                            width: '20px',
+                            height: '20px',
+                            borderRadius: '50%',
+                            backgroundColor: '#fff',
+                            position: 'absolute',
+                            top: '2px',
+                            left: isEnabled ? '24px' : '2px',
+                            transition: 'all 0.2s ease',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                          }} />
+                        </button>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
+
+
           {/* VIEW: ADMIN MANAGEMENT */}
           {activeTab === 'settings_admins' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -7735,6 +8014,588 @@ function App() {
       })()}
 
       {/* Custom React Toast Notification */}
+            {/* Kassa (POS) Terminal Overlay */}
+      {activeCashierStore && userRole === 'agent' && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'var(--bg-primary)',
+          color: 'var(--text-primary)',
+          zIndex: 10000,
+          display: 'flex',
+          flexDirection: 'column',
+          boxSizing: 'border-box',
+          overflow: 'hidden'
+        }} className="fade-in">
+          {/* Header */}
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '16px 20px',
+            borderBottom: '1px solid var(--border-color)',
+            backgroundColor: 'var(--bg-secondary)',
+            flexShrink: 0
+          }}>
+            <div>
+              <h2 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                {activeCashierStore.storeName}
+              </h2>
+              <p style={{ fontSize: '11px', color: 'var(--text-secondary)', margin: 0 }}>
+                👤 {activeCashierStore.ownerName || 'Tadbirkor'} • 📍 {activeCashierStore.address || 'Manzil kiritilmagan'}
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                showConfirm(
+                  language === 'uz' ? "Kassadan chiqishni xohlaysizmi? Savatcha tozalanadi!" : "Вы действительно хотите выйти из кассы? Корзина будет очищена!",
+                  () => {
+                    setActiveCashierStore(null);
+                    setCashierCart([]);
+                  }
+                );
+              }}
+              style={{
+                border: '1px solid var(--border-color)',
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                color: '#ef4444',
+                padding: '6px 12px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '12px'
+              }}
+            >
+              {language === 'uz' ? "Chiqish" : "Выход"}
+            </button>
+          </div>
+
+          {!showPaymentSection ? (
+            /* ==================== SCREEN 1: CART & PRODUCT ADDITION ==================== */
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flexGrow: 1,
+              overflow: 'hidden',
+              padding: '16px',
+              gap: '16px'
+            }}>
+              {/* Product Search & Barcode Scanner */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
+                {/* Manual Product Search */}
+                <div style={{ position: 'relative', width: '100%' }}>
+                  <input
+                    type="text"
+                    placeholder={language === 'uz' ? "Mahsulot qidirish (nomi bo'yicha)..." : "Поиск товара (по названию)..."}
+                    value={searchProductQuery}
+                    onChange={(e) => setSearchProductQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  {searchProductQuery.trim() !== '' && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '46px',
+                      left: 0,
+                      width: '100%',
+                      backgroundColor: 'var(--bg-secondary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                      maxHeight: '200px',
+                      overflowY: 'auto',
+                      zIndex: 10100
+                    }}>
+                      {agentProducts
+                        .filter(p => {
+                          const query = searchProductQuery.toLowerCase();
+                          const pName = (p.productName || p.name || '').toLowerCase();
+                          return pName.includes(query);
+                        })
+                        .map(prod => {
+                          const available = prod.qty - (prod.qty_sold || 0);
+                          return (
+                            <div
+                              key={prod.id}
+                              onClick={() => {
+                                handleAddProductToCart(prod);
+                                setSearchProductQuery('');
+                              }}
+                              style={{
+                                padding: '10px 12px',
+                                borderBottom: '1px solid var(--border-color)',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                fontSize: '13px'
+                              }}
+                              className="hoverable-row-div"
+                            >
+                              <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{prod.productName}</span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                {language === 'uz' ? `Qoldiq: ${available} ${prod.unit || 'dona'}` : `Ост: ${available} ${prod.unit || 'шт'}`}
+                              </span>
+                            </div>
+                          );
+                        })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Barcode Scanner Input */}
+                <form onSubmit={handleBarcodeSubmit} style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    placeholder={language === 'uz' ? "Shtrix-kodni skanerlang yoki yozing..." : "Сканируйте или введите штрих-код..."}
+                    value={barcodeInput}
+                    onChange={(e) => setBarcodeInput(e.target.value)}
+                    autoFocus
+                    style={{
+                      flexGrow: 1,
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-secondary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                  <button
+                    type="submit"
+                    style={{
+                      padding: '12px 18px',
+                      backgroundColor: 'var(--accent-color)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '13px'
+                    }}
+                  >
+                    {language === 'uz' ? "Qo'shish" : "Добавить"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Shopping Cart List */}
+              <div style={{
+                flexGrow: 1,
+                overflowY: 'auto',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '12px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '8px'
+              }}>
+                <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', margin: '0 0 8px 0', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
+                  {language === 'uz' ? "Sotuv savatchasi" : "Корзина продаж"}
+                </h3>
+                {cashierCart.length === 0 ? (
+                  <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    {language === 'uz' ? "Savatcha bo'sh. Mahsulot qo'shing." : "Корзина пуста. Добавьте товары."}
+                  </div>
+                ) : (
+                  cashierCart.map(item => (
+                    <div
+                      key={item.productId}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 0',
+                        borderBottom: '1px solid var(--border-color)'
+                      }}
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxWidth: '50%' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                          {item.productName}
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          {parseFloat(item.price).toLocaleString('uz-UZ')} so'm
+                        </span>
+                      </div>
+
+                      {/* Quantity Editor */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          onClick={() => {
+                            if (item.quantity > 1) {
+                              handleUpdateCartItemQty(item.productId, item.quantity - 1);
+                            }
+                          }}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          -
+                        </button>
+                        <input
+                          type="number"
+                          value={item.quantity}
+                          onChange={(e) => handleUpdateCartItemQty(item.productId, e.target.value)}
+                          style={{
+                            width: '45px',
+                            textAlign: 'center',
+                            padding: '4px',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '4px',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '13px',
+                            fontWeight: '600'
+                          }}
+                        />
+                        <button
+                          onClick={() => {
+                            handleUpdateCartItemQty(item.productId, item.quantity + 1);
+                          }}
+                          style={{
+                            width: '28px',
+                            height: '28px',
+                            borderRadius: '4px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontWeight: 'bold'
+                          }}
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {/* Subtotal & Delete */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textAlign: 'right', minWidth: '80px' }}>
+                          {(item.price * item.quantity).toLocaleString('uz-UZ')} so'm
+                        </span>
+                        <button
+                          onClick={() => handleRemoveCartItem(item.productId)}
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            padding: '4px'
+                          }}
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              {/* Total display & To'lov button */}
+              <div style={{
+                padding: '16px',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px',
+                backgroundColor: 'var(--bg-secondary)',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexShrink: 0
+              }}>
+                <div>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block' }}>
+                    {language === 'uz' ? "Jami summa" : "Итоговая сумма"}
+                  </span>
+                  <span style={{ fontSize: '20px', fontWeight: '800', color: 'var(--accent-color)' }}>
+                    {cashierCart.reduce((acc, item) => acc + (item.price * item.quantity), 0).toLocaleString('uz-UZ')} so'm
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    if (cashierCart.length === 0) {
+                      showAlert(language === 'uz' ? "Savatcha bo'sh!" : "Корзина пуста!", 'error');
+                      return;
+                    }
+                    setShowPaymentSection(true);
+                  }}
+                  style={{
+                    padding: '14px 28px',
+                    backgroundColor: 'var(--accent-color)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    fontSize: '15px',
+                    transition: 'all 0.2s ease',
+                    boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)'
+                  }}
+                >
+                  {language === 'uz' ? "To'lovga o'tish" : "Перейти к оплате"} →
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* ==================== SCREEN 2: PAYMENT & DISCOUNT SELECTION ==================== */
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              flexGrow: 1,
+              overflowY: 'auto',
+              padding: '16px',
+              gap: '20px'
+            }}>
+              {/* Discount Section */}
+              <div style={{
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '16px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px' }}>
+                  {language === 'uz' ? "Chegirma tanlash" : "Выбор скидки"}
+                </h3>
+                
+                {/* Predefined discount buttons */}
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                  {[0, ...discountsList].map(disc => {
+                    const isSelected = !customDiscountInput && cashierDiscount === disc;
+                    return (
+                      <button
+                        key={disc}
+                        onClick={() => {
+                          setCashierDiscount(disc);
+                          setCustomDiscountInput('');
+                        }}
+                        style={{
+                          padding: '10px 16px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: isSelected ? 'var(--accent-color)' : 'var(--bg-primary)',
+                          color: isSelected ? '#fff' : 'var(--text-primary)',
+                          fontWeight: '600',
+                          fontSize: '13px',
+                          cursor: 'pointer',
+                          transition: 'all 0.2s ease'
+                        }}
+                      >
+                        {disc === 0 ? (language === 'uz' ? "Chegirmasiz" : "Без скидки") : `${disc}%`}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Custom discount input */}
+                {customDiscountEnabled && (
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                      {language === 'uz' ? "Ixtiyoriy chegirma foizi (%)" : "Произвольный процент скидки (%)"}
+                    </label>
+                    <input
+                      type="number"
+                      min="0"
+                      max="99"
+                      placeholder="Masalan: 12"
+                      value={customDiscountInput}
+                      onChange={(e) => {
+                        setCustomDiscountInput(e.target.value);
+                        setCashierDiscount(0);
+                      }}
+                      style={{
+                        width: '100%',
+                        padding: '10px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                        boxSizing: 'border-box'
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Payment Method Section */}
+              <div style={{
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '16px',
+                borderRadius: '8px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px' }}>
+                  {language === 'uz' ? "To'lov turi" : "Способ оплаты"}
+                </h3>
+
+                {paymentIntegrations.length === 0 ? (
+                  <div style={{ padding: '12px', textAlign: 'center', color: 'var(--warning-color)', fontSize: '13px', fontWeight: '600' }}>
+                    {language === 'uz' ? "Xatolik: Hech qanday to'lov turi integratsiya qilinmagan!" : "Ошибка: Способы оплаты не интегрированы!"}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {paymentIntegrations.map(method => {
+                      const isSelected = selectedPaymentMethod === method;
+                      const getColors = () => {
+                        if (method === 'Naqd') return { border: '#eab308', bg: 'rgba(234, 179, 8, 0.08)', text: '#eab308' };
+                        if (method === 'Click') return { border: '#0056b3', bg: 'rgba(0, 86, 179, 0.08)', text: '#0056b3' };
+                        if (method === 'Payme') return { border: '#00b5bb', bg: 'rgba(0, 181, 187, 0.08)', text: '#00b5bb' };
+                        if (method === 'Paynet') return { border: '#22c55e', bg: 'rgba(34, 197, 94, 0.08)', text: '#22c55e' };
+                        return { border: 'var(--accent-color)', bg: 'rgba(13, 148, 136, 0.08)', text: 'var(--accent-color)' };
+                      };
+                      const colors = getColors();
+
+                      return (
+                        <div
+                          key={method}
+                          onClick={() => setSelectedPaymentMethod(method)}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between',
+                            padding: '14px 16px',
+                            borderRadius: '8px',
+                            border: isSelected ? `2px solid ${colors.border}` : '1px solid var(--border-color)',
+                            backgroundColor: isSelected ? colors.bg : 'var(--bg-primary)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}
+                        >
+                          <span style={{ 
+                            fontWeight: '700', 
+                            fontSize: '14px', 
+                            color: isSelected ? colors.text : 'var(--text-primary)' 
+                          }}>
+                            {method === 'Naqd' ? (language === 'uz' ? "Naqd pul" : "Наличные") : method}
+                          </span>
+                          
+                          <div style={{
+                            width: '18px',
+                            height: '18px',
+                            borderRadius: '50%',
+                            border: `2px solid ${isSelected ? colors.border : 'var(--border-color)'}`,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            boxSizing: 'border-box'
+                          }}>
+                            {isSelected && (
+                              <div style={{
+                                width: '10px',
+                                height: '10px',
+                                borderRadius: '50%',
+                                backgroundColor: colors.border
+                              }} />
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+              {/* Order Summary & Confirm */}
+              {(() => {
+                const subtotal = cashierCart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                const discountPercentage = customDiscountEnabled && customDiscountInput ? parseFloat(customDiscountInput) || 0 : cashierDiscount;
+                const discountAmount = Math.round(subtotal * (discountPercentage / 100));
+                const finalTotal = subtotal - discountAmount;
+
+                return (
+                  <div style={{
+                    marginTop: 'auto',
+                    backgroundColor: 'var(--bg-secondary)',
+                    padding: '20px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                      <span>{language === 'uz' ? "Savatcha summasi" : "Сумма корзины"}</span>
+                      <span>{subtotal.toLocaleString('uz-UZ')} so'm</span>
+                    </div>
+                    {discountAmount > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#ef4444' }}>
+                        <span>{language === 'uz' ? `Chegirma (${discountPercentage}%)` : `Скидка (${discountPercentage}%)`}</span>
+                        <span>-{discountAmount.toLocaleString('uz-UZ')} so'm</span>
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                      <span>{language === 'uz' ? "To'lanishi kerak" : "К оплате"}</span>
+                      <span style={{ color: 'var(--accent-color)' }}>{finalTotal.toLocaleString('uz-UZ')} so'm</span>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                      <button
+                        onClick={() => setShowPaymentSection(false)}
+                        style={{
+                          flexGrow: 1,
+                          padding: '14px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)',
+                          color: 'var(--text-primary)',
+                          borderRadius: '8px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          fontSize: '14px'
+                        }}
+                      >
+                        ← {language === 'uz' ? "Ortga" : "Назад"}
+                      </button>
+                      <button
+                        onClick={handleCreateCashierSale}
+                        disabled={paymentIntegrations.length === 0}
+                        style={{
+                          flexGrow: 2,
+                          padding: '14px',
+                          backgroundColor: paymentIntegrations.length === 0 ? 'var(--text-muted)' : 'var(--accent-color)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: '700',
+                          cursor: paymentIntegrations.length === 0 ? 'not-allowed' : 'pointer',
+                          fontSize: '14px',
+                          boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)'
+                        }}
+                      >
+                        ✓ {language === 'uz' ? "Sotuvni yakunlash" : "Завершить продажу"}
+                      </button>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
+          )}
+        </div>
+      )}
+
+
       {toast && (
         <div style={{
           position: 'fixed',
