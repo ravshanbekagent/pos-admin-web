@@ -784,6 +784,19 @@ function App() {
     }
   }, [token]);
 
+  // Global responsive tables handler for mobile WebViews without :has() support
+  useEffect(() => {
+    const tables = document.querySelectorAll('table');
+    tables.forEach(table => {
+      const parent = table.parentElement;
+      if (parent && parent.tagName === 'DIV') {
+        if (!parent.classList.contains('table-responsive-container')) {
+          parent.classList.add('table-responsive-container');
+        }
+      }
+    });
+  });
+
   const [language, setLanguage] = useState(() => localStorage.getItem('lang') || 'uz');
   const [adminName, setAdminName] = useState(() => localStorage.getItem('adminName') || 'Bosh Admin');
   const [adminPhoto, setAdminPhoto] = useState(() => localStorage.getItem('adminPhoto') || '');
