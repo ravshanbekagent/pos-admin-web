@@ -162,6 +162,8 @@ tr.hoverable-row:hover {
     transform: translateX(-100%) !important;
     transition: transform var(--transition-normal) !important;
     box-shadow: var(--shadow-lg) !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
   }
 
   aside.sidebar.open {

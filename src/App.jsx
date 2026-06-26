@@ -2817,7 +2817,8 @@ function App() {
           borderRight: '1px solid var(--border-color)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '24px 16px'
+          padding: '24px 16px',
+          overflowY: 'auto'
         }}
       >
         <div style={{ marginBottom: '40px', paddingLeft: '8px' }}>
