@@ -23,8 +23,10 @@ import {
   Edit,
   Trash2,
   Menu,
-  X
+  X,
+  Camera
 } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import { 
   AreaChart, 
   Area, 
@@ -907,6 +909,10 @@ function App() {
     const stored = localStorage.getItem('payment_integrations');
     return stored ? JSON.parse(stored) : ['Naqd', 'Click', 'Payme'];
   });
+  const [showProductModal, setShowProductModal] = useState(false);
+  const [selectedModalProducts, setSelectedModalProducts] = useState([]);
+  const [showCameraScanner, setShowCameraScanner] = useState(false);
+  const [modalSearchQuery, setModalSearchQuery] = useState('');
 
 
   // Custom alert and confirm states
@@ -2504,6 +2510,110 @@ function App() {
     } catch (err) {
       showAlert(err.message, 'error');
     }
+  };
+
+  // Camera scanner instance ref
+  const scannerRef = React.useRef(null);
+
+  const playBeep = () => {
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(800, audioCtx.currentTime);
+      gainNode.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + 0.08);
+    } catch (e) {
+      console.error('Audio beep failed:', e);
+    }
+  };
+
+  useEffect(() => {
+    let html5QrCode = null;
+    if (showCameraScanner) {
+      const timer = setTimeout(() => {
+        try {
+          html5QrCode = new Html5Qrcode("camera-reader");
+          scannerRef.current = html5QrCode;
+
+          const config = { 
+            fps: 10, 
+            qrbox: (width, height) => {
+              const min = Math.min(width, height);
+              const size = Math.floor(min * 0.65);
+              return { width: size, height: size };
+            }
+          };
+
+          let lastScannedBarcode = '';
+          let lastScanTime = 0;
+
+          html5QrCode.start(
+            { facingMode: "environment" },
+            config,
+            (decodedText) => {
+              const now = Date.now();
+              if (decodedText === lastScannedBarcode && now - lastScanTime < 2000) {
+                return;
+              }
+              lastScannedBarcode = decodedText;
+              lastScanTime = now;
+
+              playBeep();
+
+              const container = document.getElementById('camera-reader-container');
+              if (container) {
+                container.style.boxShadow = '0 0 30px #22c55e';
+                setTimeout(() => { container.style.boxShadow = 'none'; }, 500);
+              }
+
+              const found = agentProducts.find(p => p.barcode === decodedText || p.productBarcode === decodedText);
+              if (found) {
+                handleAddProductToCart(found);
+                showAlert(language === 'uz' ? `Qo'shildi: ${found.productName}` : `Добавлено: ${found.productName}`, 'success');
+              } else {
+                showAlert(language === 'uz' ? `Shtrix-kod topilmadi: ${decodedText}` : `Штрих-код не найден: ${decodedText}`, 'error');
+              }
+            },
+            () => {}
+          ).catch(err => {
+            console.error("Camera start error:", err);
+            showAlert(language === 'uz' ? "Kamerani ishga tushirib bo'lmadi. Ruxsat berilganini tekshiring." : "Не удалось запустить камеру. Проверьте разрешения.", "error");
+          });
+        } catch (e) {
+          console.error("Scanner init error:", e);
+        }
+      }, 300);
+
+      return () => {
+        clearTimeout(timer);
+        if (html5QrCode && html5QrCode.isScanning) {
+          html5QrCode.stop().catch(err => console.error("Scanner stop error:", err));
+        }
+      };
+    }
+  }, [showCameraScanner, agentProducts, language]);
+
+  const handleAddCheckedProducts = () => {
+    if (selectedModalProducts.length === 0) {
+      setShowProductModal(false);
+      return;
+    }
+    
+    selectedModalProducts.forEach(prodId => {
+      const prod = agentProducts.find(p => p.productId === prodId || p.id === prodId);
+      if (prod) {
+        handleAddProductToCart(prod);
+      }
+    });
+    
+    setSelectedModalProducts([]);
+    setShowProductModal(false);
+    showAlert(language === 'uz' ? "Mahsulotlar muvaffaqiyatli qo'shildi!" : "Товары успешно добавлены!", 'success');
   };
 
 
@@ -8015,7 +8125,7 @@ function App() {
 
       {/* Custom React Toast Notification */}
             {/* Kassa (POS) Terminal Overlay */}
-      {activeCashierStore && userRole === 'agent' && (
+            {activeCashierStore && userRole === 'agent' && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -8083,111 +8193,94 @@ function App() {
               padding: '16px',
               gap: '16px'
             }}>
-              {/* Product Search & Barcode Scanner */}
+              {/* Barcode & Search Trigger Inputs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
-                {/* Manual Product Search */}
-                <div style={{ position: 'relative', width: '100%' }}>
-                  <input
-                    type="text"
-                    placeholder={language === 'uz' ? "Mahsulot qidirish (nomi bo'yicha)..." : "Поиск товара (по названию)..."}
-                    value={searchProductQuery}
-                    onChange={(e) => setSearchProductQuery(e.target.value)}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-secondary)',
-                      color: 'var(--text-primary)',
-                      fontSize: '13px',
-                      boxSizing: 'border-box'
-                    }}
-                  />
-                  {searchProductQuery.trim() !== '' && (
-                    <div style={{
-                      position: 'absolute',
-                      top: '46px',
-                      left: 0,
-                      width: '100%',
-                      backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '8px',
-                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-                      maxHeight: '200px',
-                      overflowY: 'auto',
-                      zIndex: 10100
-                    }}>
-                      {agentProducts
-                        .filter(p => {
-                          const query = searchProductQuery.toLowerCase();
-                          const pName = (p.productName || p.name || '').toLowerCase();
-                          return pName.includes(query);
-                        })
-                        .map(prod => {
-                          const available = prod.qty - (prod.qty_sold || 0);
-                          return (
-                            <div
-                              key={prod.id}
-                              onClick={() => {
-                                handleAddProductToCart(prod);
-                                setSearchProductQuery('');
-                              }}
-                              style={{
-                                padding: '10px 12px',
-                                borderBottom: '1px solid var(--border-color)',
-                                cursor: 'pointer',
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                fontSize: '13px'
-                              }}
-                              className="hoverable-row-div"
-                            >
-                              <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{prod.productName}</span>
-                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                                {language === 'uz' ? `Qoldiq: ${available} ${prod.unit || 'dona'}` : `Ост: ${available} ${prod.unit || 'шт'}`}
-                              </span>
-                            </div>
-                          );
-                        })}
-                    </div>
-                  )}
-                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  {/* Barcode Input Form */}
+                  <form onSubmit={handleBarcodeSubmit} style={{ display: 'flex', gap: '8px', flexGrow: 1 }}>
+                    <input
+                      type="text"
+                      placeholder={language === 'uz' ? "Shtrix-kod..." : "Штрих-код..."}
+                      value={barcodeInput}
+                      onChange={(e) => setBarcodeInput(e.target.value)}
+                      autoFocus
+                      style={{
+                        flexGrow: 1,
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-secondary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                        boxSizing: 'border-box',
+                        minWidth: 0
+                      }}
+                    />
+                    <button
+                      type="submit"
+                      style={{
+                        padding: '12px 16px',
+                        backgroundColor: 'var(--accent-color)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {language === 'uz' ? "Qo'shish" : "Добавить"}
+                    </button>
+                  </form>
 
-                {/* Barcode Scanner Input */}
-                <form onSubmit={handleBarcodeSubmit} style={{ display: 'flex', gap: '8px' }}>
-                  <input
-                    type="text"
-                    placeholder={language === 'uz' ? "Shtrix-kodni skanerlang yoki yozing..." : "Сканируйте или введите штрих-код..."}
-                    value={barcodeInput}
-                    onChange={(e) => setBarcodeInput(e.target.value)}
-                    autoFocus
+                  {/* Camera Scanner Trigger */}
+                  <button
+                    type="button"
+                    onClick={() => setShowCameraScanner(true)}
                     style={{
-                      flexGrow: 1,
-                      padding: '12px',
+                      width: '42px',
+                      height: '42px',
                       borderRadius: '8px',
                       border: '1px solid var(--border-color)',
                       backgroundColor: 'var(--bg-secondary)',
                       color: 'var(--text-primary)',
-                      fontSize: '13px',
-                      boxSizing: 'border-box'
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      flexShrink: 0
                     }}
-                  />
+                    title={language === 'uz' ? "Kamera orqali skanerlash" : "Сканировать камерой"}
+                  >
+                    <Camera size={20} />
+                  </button>
+
+                  {/* Product Selector Trigger (+) */}
                   <button
-                    type="submit"
+                    type="button"
+                    onClick={() => setShowProductModal(true)}
                     style={{
-                      padding: '12px 18px',
+                      width: '42px',
+                      height: '42px',
+                      borderRadius: '8px',
+                      border: 'none',
                       backgroundColor: 'var(--accent-color)',
                       color: '#fff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: '600',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       cursor: 'pointer',
-                      fontSize: '13px'
+                      flexShrink: 0,
+                      fontSize: '22px',
+                      fontWeight: 'bold',
+                      lineHeight: '42px'
                     }}
+                    title={language === 'uz' ? "Mahsulot qo'shish" : "Добавить товар"}
                   >
-                    {language === 'uz' ? "Qo'shish" : "Добавить"}
+                    +
                   </button>
-                </form>
+                </div>
               </div>
 
               {/* Shopping Cart List */}
@@ -8225,9 +8318,21 @@ function App() {
                         <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                           {item.productName}
                         </span>
-                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                          {parseFloat(item.price).toLocaleString('uz-UZ')} so'm
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                            {parseFloat(item.price).toLocaleString('uz-UZ')} so'm
+                          </span>
+                          <span style={{ 
+                            fontSize: '10px', 
+                            fontWeight: '600', 
+                            color: 'var(--success-color)', 
+                            backgroundColor: 'var(--success-light)',
+                            padding: '1px 6px',
+                            borderRadius: '4px'
+                          }}>
+                            {language === 'uz' ? `Qoldiq: ${item.maxQty - item.quantity} ${item.unit || 'dona'}` : `Ост: ${item.maxQty - item.quantity} ${item.unit || 'шт'}`}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Quantity Editor */}
@@ -8592,6 +8697,337 @@ function App() {
               })()}
             </div>
           )}
+
+          {/* CAMERA SCANNER MODAL */}
+          {showCameraScanner && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 11000,
+              padding: '20px',
+              boxSizing: 'border-box'
+            }} className="fade-in">
+              <div 
+                id="camera-reader-container"
+                style={{
+                  width: '100%',
+                  maxWidth: '400px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  padding: '16px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px',
+                  position: 'relative',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+                  transition: 'box-shadow 0.3s ease'
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: '700', margin: 0, color: 'var(--text-primary)' }}>
+                    {language === 'uz' ? "Kamera orqali skanerlash" : "Сканирование камерой"}
+                  </h3>
+                  <button 
+                    onClick={() => setShowCameraScanner(false)}
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '20px',
+                      lineHeight: 1
+                    }}
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                {/* Scanner Frame */}
+                <div style={{ 
+                  position: 'relative', 
+                  width: '100%', 
+                  paddingTop: '100%', 
+                  overflow: 'hidden', 
+                  borderRadius: '8px',
+                  backgroundColor: '#000'
+                }}>
+                  <div 
+                    id="camera-reader" 
+                    style={{ 
+                      position: 'absolute', 
+                      top: 0, 
+                      left: 0, 
+                      width: '100%', 
+                      height: '100%' 
+                    }} 
+                  />
+                  <div style={{
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: '3px',
+                    backgroundColor: 'var(--accent-color)',
+                    boxShadow: '0 0 10px var(--accent-color)',
+                    animation: 'scanAnimation 2s linear infinite',
+                    zIndex: 10
+                  }} />
+                </div>
+
+                <p style={{ fontSize: '11px', color: 'var(--text-secondary)', textAlign: 'center', margin: 0 }}>
+                  {language === 'uz' ? "Mahsulot shtrix-kodini kamera markaziga qarating." : "Направьте штрих-код товара в центр камеры."}
+                </p>
+
+                <button
+                  onClick={() => setShowCameraScanner(false)}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.2)',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  {language === 'uz' ? "Yopish" : "Закрыть"}
+                </button>
+              </div>
+              <style dangerouslySetInnerHTML={{__html: `
+                @keyframes scanAnimation {
+                  0% { top: 0%; }
+                  50% { top: 100%; }
+                  100% { top: 0%; }
+                }
+              `}} />
+            </div>
+          )}
+
+
+          {/* PRODUCT SELECTION MODAL */}
+          {showProductModal && (
+            <div style={{
+              position: 'fixed',
+              top: 0,
+              left: 0,
+              width: '100vw',
+              height: '100vh',
+              backgroundColor: 'rgba(15, 23, 42, 0.85)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 11000,
+              padding: '16px',
+              boxSizing: 'border-box'
+            }} className="fade-in">
+              <div style={{
+                width: '100%',
+                maxWidth: '450px',
+                maxHeight: '85vh',
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                overflow: 'hidden',
+                boxShadow: 'var(--shadow-xl)'
+              }}>
+                <div style={{
+                  padding: '16px 20px',
+                  borderBottom: '1px solid var(--border-color)',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexShrink: 0
+                }}>
+                  <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                    {language === 'uz' ? "Mahsulotlarni tanlash" : "Выбор товаров"}
+                  </h3>
+                  <button
+                    onClick={() => {
+                      setSelectedModalProducts([]);
+                      setShowProductModal(false);
+                    }}
+                    style={{
+                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '22px',
+                      lineHeight: 1
+                    }}
+                  >
+                    &times;
+                  </button>
+                </div>
+
+                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
+                  <input
+                    type="text"
+                    placeholder={language === 'uz' ? "Qidirish..." : "Поиск..."}
+                    value={modalSearchQuery}
+                    onChange={(e) => setModalSearchQuery(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '13px',
+                      boxSizing: 'border-box'
+                    }}
+                  />
+                </div>
+
+                <div style={{
+                  padding: '12px 16px',
+                  overflowY: 'auto',
+                  flexGrow: 1,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '8px'
+                }}>
+                  {agentProducts
+                    .filter(p => {
+                      const name = (p.productName || p.name || '').toLowerCase();
+                      return name.includes(modalSearchQuery.toLowerCase());
+                    })
+                    .map(prod => {
+                      const cartItem = cashierCart.find(item => item.productId === prod.productId || item.productId === prod.id);
+                      const inCartQty = cartItem ? cartItem.quantity : 0;
+                      const liveRemaining = (prod.remainingQty !== undefined ? prod.remainingQty : prod.qty) - inCartQty;
+                      
+                      const isChecked = selectedModalProducts.includes(prod.productId || prod.id);
+                      const isOutOfStock = liveRemaining <= 0;
+
+                      return (
+                        <div
+                          key={prod.id || prod.productId}
+                          onClick={() => {
+                            if (isOutOfStock) return;
+                            const pId = prod.productId || prod.id;
+                            if (isChecked) {
+                              setSelectedModalProducts(prev => prev.filter(id => id !== pId));
+                            } else {
+                              setSelectedModalProducts(prev => [...prev, pId]);
+                            }
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: isChecked ? 'rgba(13, 148, 136, 0.05)' : 'var(--bg-secondary)',
+                            cursor: isOutOfStock ? 'not-allowed' : 'pointer',
+                            opacity: isOutOfStock ? 0.5 : 1,
+                            transition: 'all 0.2s ease',
+                            textAlign: 'left'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            disabled={isOutOfStock}
+                            onChange={() => {}}
+                            style={{
+                              width: '18px',
+                              height: '18px',
+                              accentColor: 'var(--accent-color)',
+                              cursor: isOutOfStock ? 'not-allowed' : 'pointer'
+                            }}
+                          />
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1 }}>
+                            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                              {prod.productName}
+                            </span>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                {parseFloat(prod.price || 0).toLocaleString('uz-UZ')} so'm
+                              </span>
+                              <span style={{ 
+                                fontSize: '10px', 
+                                fontWeight: '700', 
+                                color: isOutOfStock ? 'var(--danger-color)' : 'var(--success-color)',
+                                backgroundColor: isOutOfStock ? 'rgba(239, 68, 68, 0.1)' : 'var(--success-light)',
+                                padding: '1px 6px',
+                                borderRadius: '4px'
+                              }}>
+                                {isOutOfStock 
+                                  ? (language === 'uz' ? "Qoldiq tugadi" : "Нет на складе")
+                                  : (language === 'uz' ? `Qoldiq: ${liveRemaining} ${prod.unit || 'dona'}` : `Ост: ${liveRemaining} ${prod.unit || 'шт'}`)
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                </div>
+
+                <div style={{
+                  padding: '16px 20px',
+                  borderTop: '1px solid var(--border-color)',
+                  display: 'flex',
+                  gap: '10px',
+                  flexShrink: 0,
+                  backgroundColor: 'var(--bg-secondary)'
+                }}>
+                  <button
+                    onClick={() => {
+                      setSelectedModalProducts([]);
+                      setShowProductModal(false);
+                    }}
+                    style={{
+                      flexGrow: 1,
+                      padding: '12px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '13px'
+                    }}
+                  >
+                    {language === 'uz' ? "Bekor qilish" : "Отмена"}
+                  </button>
+                  <button
+                    onClick={handleAddCheckedProducts}
+                    style={{
+                      flexGrow: 2,
+                      padding: '12px',
+                      backgroundColor: 'var(--accent-color)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)'
+                    }}
+                  >
+                    ✓ {language === 'uz' ? `Qo'shish (${selectedModalProducts.length})` : `Добавить (${selectedModalProducts.length})`}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
         </div>
       )}
 
