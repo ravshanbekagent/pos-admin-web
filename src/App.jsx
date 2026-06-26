@@ -913,6 +913,18 @@ function App() {
   const [selectedModalProducts, setSelectedModalProducts] = useState([]);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [modalSearchQuery, setModalSearchQuery] = useState('');
+  // Selected Agent and their assigned Products/Stores for everywhere in the App (reactive)
+  const activeAgent = userRole === 'agent' 
+    ? { id: parseInt(currentUserId || localStorage.getItem('currentUserId') || '0'), login: adminName, username: adminName } 
+    : agents.find(a => a.id === selectedAgentId);
+
+  const agentProducts = activeAgent 
+    ? assignments.filter(ass => ass.agentId === activeAgent.id) 
+    : [];
+
+  const agentStores = activeAgent 
+    ? storeAssignments.filter(ass => ass.agentId === activeAgent.id).sort((a, b) => (a.order || 0) - (b.order || 0)) 
+    : [];
 
 
   // Custom alert and confirm states
@@ -5237,10 +5249,7 @@ function App() {
                 }
 
                 // Filter assignments for this agent by agentId (highly secure and works for empty names)
-                const agentProducts = assignments.filter(ass => ass.agentId === selectedAgent.id);
-                const agentStores = storeAssignments
-                  .filter(ass => ass.agentId === selectedAgent.id)
-                  .sort((a, b) => (a.order || 0) - (b.order || 0));
+                // (Now using top-level reactive variables: agentProducts and agentStores)
 
                 return (
                   <div style={{ flexGrow: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
