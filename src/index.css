@@ -325,3 +325,90 @@ tr.hoverable-row:hover {
     min-width: 600px !important; /* Ensure table remains readable but scrollable horizontally */
   }
 }
+
+/* ==========================================
+   Mobile-First Cashier UI & Flexbox Fixes
+   ========================================== */
+.flex-nowrap-mobile {
+  flex-wrap: nowrap !important;
+}
+
+/* Ensure the cashier terminal header and content scale beautifully */
+@media (max-width: 480px) {
+  /* Cashier main wrapper */
+  .cashier-screen-container {
+    padding: 10px !important;
+    gap: 10px !important;
+  }
+
+  /* Compact header details */
+  .cashier-header h2 {
+    font-size: 14px !important;
+  }
+  
+  /* Input row scaling */
+  .cashier-input-row {
+    gap: 6px !important;
+    flex-wrap: nowrap !important;
+  }
+  
+  .cashier-input-row input {
+    padding: 10px !important;
+    font-size: 12px !important;
+  }
+
+  .cashier-input-row button {
+    padding: 10px 12px !important;
+    font-size: 12px !important;
+  }
+
+  /* Cart item row scaling */
+  .cart-item-row {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    padding: 8px 0 !important;
+  }
+
+  .cart-item-info {
+    max-width: 42% !important;
+  }
+
+  .cart-item-info span {
+    font-size: 12px !important;
+    font-weight: 600 !important;
+  }
+
+  .cart-item-qty-container {
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+  }
+
+  .cart-item-qty-btn {
+    width: 24px !important;
+    height: 24px !important;
+    font-size: 12px !important;
+  }
+
+  .cart-item-qty-input {
+    width: 36px !important;
+    padding: 2px !important;
+    font-size: 12px !important;
+  }
+
+  .cart-item-subtotal {
+    font-size: 12px !important;
+    min-width: 65px !important;
+  }
+
+  /* Payment buttons */
+  .payment-btn-group {
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+  }
+
+  .payment-btn-group button {
+    padding: 12px !important;
+    font-size: 13px !important;
+  }
+}
+

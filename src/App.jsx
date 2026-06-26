@@ -8210,9 +8210,9 @@ function App() {
             }}>
               {/* Barcode & Search Trigger Inputs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <div className="cashier-input-row flex-nowrap-mobile" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   {/* Barcode Input Form */}
-                  <form onSubmit={handleBarcodeSubmit} style={{ display: 'flex', gap: '8px', flexGrow: 1 }}>
+                  <form onSubmit={handleBarcodeSubmit} className="flex-nowrap-mobile" style={{ display: 'flex', gap: '8px', flexGrow: 1 }}>
                     <input
                       type="text"
                       placeholder={language === 'uz' ? "Shtrix-kod..." : "Штрих-код..."}
@@ -8321,6 +8321,7 @@ function App() {
                   cashierCart.map(item => (
                     <div
                       key={item.productId}
+                      className="cart-item-row flex-nowrap-mobile"
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -8329,7 +8330,7 @@ function App() {
                         borderBottom: '1px solid var(--border-color)'
                       }}
                     >
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxWidth: '50%' }}>
+                      <div className="cart-item-info" style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxWidth: '50%' }}>
                         <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
                           {item.productName}
                         </span>
@@ -8351,8 +8352,9 @@ function App() {
                       </div>
 
                       {/* Quantity Editor */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div className="cart-item-qty-container flex-nowrap-mobile" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <button
+                          className="cart-item-qty-btn"
                           onClick={() => {
                             if (item.quantity > 1) {
                               handleUpdateCartItemQty(item.productId, item.quantity - 1);
@@ -8376,6 +8378,7 @@ function App() {
                         </button>
                         <input
                           type="number"
+                          className="cart-item-qty-input"
                           value={item.quantity}
                           onChange={(e) => handleUpdateCartItemQty(item.productId, e.target.value)}
                           style={{
@@ -8391,6 +8394,7 @@ function App() {
                           }}
                         />
                         <button
+                          className="cart-item-qty-btn"
                           onClick={() => {
                             handleUpdateCartItemQty(item.productId, item.quantity + 1);
                           }}
@@ -8414,7 +8418,7 @@ function App() {
 
                       {/* Subtotal & Delete */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textAlign: 'right', minWidth: '80px' }}>
+                        <span className="cart-item-subtotal" style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textAlign: 'right', minWidth: '80px' }}>
                           {(item.price * item.quantity).toLocaleString('uz-UZ')} so'm
                         </span>
                         <button
