@@ -2817,7 +2817,7 @@ function App() {
           borderRight: '1px solid var(--border-color)',
           display: 'flex',
           flexDirection: 'column',
-          padding: '24px 16px',
+          padding: '24px 16px 48px 16px', // Increased bottom padding for mobile safety
           overflowY: 'auto'
         }}
       >
@@ -3196,6 +3196,32 @@ function App() {
               )}
             </div>
           )}
+          
+          {/* Menu-level Logout item (guarantees visibility on all screen sizes) */}
+          <button 
+            onClick={handleLogout}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              width: '100%',
+              padding: '12px 16px',
+              borderRadius: '8px',
+              border: 'none',
+              backgroundColor: 'transparent',
+              color: 'var(--danger-color)',
+              cursor: 'pointer',
+              fontWeight: '600',
+              textAlign: 'left',
+              marginTop: '24px',
+              borderTop: '1px dashed rgba(239, 68, 68, 0.15)',
+              paddingTop: '16px',
+              transition: 'all var(--transition-fast)'
+            }}
+          >
+            <LogOut size={18} />
+            <span>{t('logout')}</span>
+          </button>
         </nav>
 
         {/* User Info & Logout */}

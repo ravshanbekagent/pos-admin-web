@@ -157,13 +157,14 @@ tr.hoverable-row:hover {
     top: 0 !important;
     left: 0 !important;
     bottom: 0 !important;
-    height: 100vh !important;
+    height: 100dvh !important; /* Use dynamic viewport height for mobile browsers */
     z-index: 9999 !important;
     transform: translateX(-100%) !important;
     transition: transform var(--transition-normal) !important;
     box-shadow: var(--shadow-lg) !important;
     overflow-y: auto !important;
     -webkit-overflow-scrolling: touch !important;
+    padding-bottom: 60px !important; /* Extra bottom padding for mobile navigation bars */
   }
 
   aside.sidebar.open {
