@@ -799,6 +799,9 @@ function App() {
               agentName: (mappedAgents.find(a => a.id === item.agent_id) || { name: 'Agent' }).name,
               productId: item.product_id,
               productName: item.product ? item.product.name : 'Noma\'lum',
+              price: item.product ? item.product.price : 0,
+              barcode: item.product ? item.product.barcode : '',
+              unit: item.product ? item.product.unit : 'dona',
               qty: item.qty_given,
               remainingQty: item.qty_given - item.qty_sold - item.qty_returned,
               date: item.date
@@ -869,6 +872,9 @@ function App() {
               agentName: (agents.find(a => a.id === item.agent_id) || { name: 'Agent' }).name,
               productId: item.product_id,
               productName: item.product ? item.product.name : 'Noma\'lum',
+              price: item.product ? item.product.price : 0,
+              barcode: item.product ? item.product.barcode : '',
+              unit: item.product ? item.product.unit : 'dona',
               qty: item.qty_given,
               remainingQty: item.qty_given - item.qty_sold - item.qty_returned,
               date: item.date
