@@ -919,6 +919,13 @@ function App() {
   const [selectedModalProducts, setSelectedModalProducts] = useState([]);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [modalSearchQuery, setModalSearchQuery] = useState('');
+
+  // Company Branding States (Persisted in localStorage)
+  const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('companyLogo') || null);
+  const [companyName, setCompanyName] = useState(() => localStorage.getItem('companyName') || 'AGENT POS');
+  const [companyNameColor, setCompanyNameColor] = useState(() => localStorage.getItem('companyNameColor') || '#f8fafc');
+  const [companyBio, setCompanyBio] = useState(() => localStorage.getItem('companyBio') || 'MANAGEMENT');
+  const [companyBioColor, setCompanyBioColor] = useState(() => localStorage.getItem('companyBioColor') || '#0d9488');
   // Selected Agent and their assigned Products/Stores for everywhere in the App (reactive)
   const activeAgent = userRole === 'agent' 
     ? { id: parseInt(currentUserId || localStorage.getItem('currentUserId') || '0'), login: adminName, username: adminName } 
@@ -2635,19 +2642,27 @@ function App() {
   };
 
 
-  // Custom Logo Component (Unusual & Sleek Geometric Vector)
+  // Custom Logo Component (Dynamically editable)
   const Logo = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" stroke="var(--accent-color)" strokeWidth="8" strokeLinejoin="round" fill="none" />
-        <circle cx="50" cy="50" r="14" fill="var(--accent-color)" />
-        <line x1="50" y1="10" x2="50" y2="36" stroke="var(--accent-color)" strokeWidth="6" />
-        <line x1="10" y1="70" x2="38" y2="58" stroke="var(--accent-color)" strokeWidth="6" />
-        <line x1="90" y1="70" x2="62" y2="58" stroke="var(--accent-color)" strokeWidth="6" />
-      </svg>
+      {companyLogo ? (
+        <img 
+          src={companyLogo} 
+          style={{ width: '40px', height: '40px', borderRadius: '8px', objectFit: 'contain' }} 
+          alt="Logo" 
+        />
+      ) : (
+        <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="50,10 90,30 90,70 50,90 10,70 10,30" stroke="var(--accent-color)" strokeWidth="8" strokeLinejoin="round" fill="none" />
+          <circle cx="50" cy="50" r="14" fill="var(--accent-color)" />
+          <line x1="50" y1="10" x2="50" y2="36" stroke="var(--accent-color)" strokeWidth="6" />
+          <line x1="10" y1="70" x2="38" y2="58" stroke="var(--accent-color)" strokeWidth="6" />
+          <line x1="90" y1="70" x2="62" y2="58" stroke="var(--accent-color)" strokeWidth="6" />
+        </svg>
+      )}
       <div>
-        <h3 style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '1px', color: 'var(--text-primary)' }}>AGENT POS</h3>
-        <span style={{ fontSize: '10px', color: 'var(--accent-color)', fontWeight: '600', letterSpacing: '2px', display: 'block', marginTop: '-3px' }}>MANAGEMENT</span>
+        <h3 style={{ fontSize: '18px', fontWeight: '800', letterSpacing: '1px', color: companyNameColor }}>{companyName}</h3>
+        <span style={{ fontSize: '10px', color: companyBioColor, fontWeight: '600', letterSpacing: '2px', display: 'block', marginTop: '-3px' }}>{companyBio}</span>
       </div>
     </div>
   );
@@ -3056,8 +3071,8 @@ function App() {
                   padding: '12px 16px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments'].includes(activeTab) ? 'var(--accent-light)' : 'transparent',
-                  color: ['settings_profile', 'settings_language', 'settings_discounts'].includes(activeTab) ? 'var(--accent-color)' : 'var(--text-secondary)',
+                  backgroundColor: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_company', 'settings_agents', 'settings_admins'].includes(activeTab) ? 'var(--accent-light)' : 'transparent',
+                  color: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_company', 'settings_agents', 'settings_admins'].includes(activeTab) ? 'var(--accent-color)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontWeight: '500',
                   textAlign: 'left',
@@ -3156,6 +3171,23 @@ function App() {
                   </button>
                   {userRole === 'admin' && (
                     <>
+                      <button
+                        onClick={() => setActiveTab('settings_company')}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'settings_company' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                          color: activeTab === 'settings_company' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          textAlign: 'left',
+                          transition: 'all var(--transition-fast)'
+                        }}
+                      >
+                        {language === 'uz' ? 'Firma Sozlamalari' : 'Настройки фирмы'}
+                      </button>
                       <button
                         onClick={() => setActiveTab('settings_agents')}
                         style={{
@@ -7258,6 +7290,218 @@ function App() {
                       </div>
                     );
                   })}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: COMPANY LOGO & NAME SETTINGS */}
+          {activeTab === 'settings_company' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', maxWidth: '600px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                  {language === 'uz' ? "Firma sozlamalari" : "Настройки фирмы"}
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+                  {language === 'uz' 
+                    ? "Sidebar panelidagi logotip, firma nomi, sarlavha va ranglarini sozlang." 
+                    : "Настройте логотип, название фирмы, подзаголовок и их цвета в боковой панели."}
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  
+                  {/* Logo Upload */}
+                  <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '20px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
+                      {language === 'uz' ? "Firma Logotipi" : "Логотип фирмы"}
+                    </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                      <div style={{ 
+                        width: '64px', 
+                        height: '64px', 
+                        borderRadius: '12px', 
+                        border: '2px dashed var(--border-light)', 
+                        backgroundColor: 'var(--bg-primary)', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'center',
+                        overflow: 'hidden'
+                      }}>
+                        {companyLogo ? (
+                          <img src={companyLogo} style={{ width: '100%', height: '100%', objectFit: 'contain' }} alt="Preview" />
+                        ) : (
+                          <div style={{ fontSize: '20px', fontWeight: 'bold', color: 'var(--text-muted)' }}>POS</div>
+                        )}
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <input 
+                          type="file" 
+                          id="company-logo-upload"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={(e) => {
+                            const file = e.target.files[0];
+                            if (file) {
+                              const reader = new FileReader();
+                              reader.onloadend = () => {
+                                setCompanyLogo(reader.result);
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => document.getElementById('company-logo-upload').click()}
+                          style={{
+                            padding: '8px 16px',
+                            backgroundColor: 'var(--accent-color)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: '600',
+                            fontSize: '12px',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {language === 'uz' ? "Logo yuklash" : "Загрузить лого"}
+                        </button>
+                        {companyLogo && (
+                          <button
+                            type="button"
+                            onClick={() => setCompanyLogo(null)}
+                            style={{
+                              padding: '6px 12px',
+                              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                              color: 'var(--danger-color)',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              fontSize: '11px',
+                              cursor: 'pointer'
+                            }}
+                          >
+                            {language === 'uz' ? "Yuklangan logoni o'chirish" : "Сбросить логотип"}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Company Name */}
+                  <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '20px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
+                      {language === 'uz' ? "Firma Nomi" : "Название фирмы"}
+                    </label>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <input 
+                        type="text"
+                        value={companyName}
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        placeholder="Masalan: AGENT POS"
+                        style={{ 
+                          flexGrow: 1, 
+                          padding: '10px 12px', 
+                          borderRadius: '8px', 
+                          border: '1px solid var(--border-color)', 
+                          backgroundColor: 'var(--bg-primary)', 
+                          color: 'var(--text-primary)', 
+                          fontSize: '13px', 
+                          fontWeight: '600' 
+                        }}
+                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input 
+                          type="color"
+                          value={companyNameColor}
+                          onChange={(e) => setCompanyNameColor(e.target.value)}
+                          style={{
+                            width: '40px',
+                            height: '38px',
+                            padding: '2px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'transparent',
+                            cursor: 'pointer'
+                          }}
+                        />
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Rang" : "Цвет"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Company Bio */}
+                  <div style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '20px' }}>
+                    <label style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', display: 'block', marginBottom: '8px' }}>
+                      {language === 'uz' ? "Firma Sarlavhasi (Bio)" : "Подзаголовок фирмы (Био)"}
+                    </label>
+                    <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                      <input 
+                        type="text"
+                        value={companyBio}
+                        onChange={(e) => setCompanyBio(e.target.value)}
+                        placeholder="Masalan: MANAGEMENT"
+                        style={{ 
+                          flexGrow: 1, 
+                          padding: '10px 12px', 
+                          borderRadius: '8px', 
+                          border: '1px solid var(--border-color)', 
+                          backgroundColor: 'var(--bg-primary)', 
+                          color: 'var(--text-primary)', 
+                          fontSize: '13px', 
+                          fontWeight: '600' 
+                        }}
+                      />
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <input 
+                          type="color"
+                          value={companyBioColor}
+                          onChange={(e) => setCompanyBioColor(e.target.value)}
+                          style={{
+                            width: '40px',
+                            height: '38px',
+                            padding: '2px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'transparent',
+                            cursor: 'pointer'
+                          }}
+                        />
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Rang" : "Цвет"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('companyLogo', companyLogo || '');
+                      localStorage.setItem('companyName', companyName);
+                      localStorage.setItem('companyNameColor', companyNameColor);
+                      localStorage.setItem('companyBio', companyBio);
+                      localStorage.setItem('companyBioColor', companyBioColor);
+                      showAlert(language === 'uz' ? "Firma sozlamalari saqlandi!" : "Настройки фирмы сохранены!", 'success');
+                    }}
+                    style={{
+                      padding: '12px',
+                      backgroundColor: 'var(--accent-color)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      width: '100%',
+                      marginTop: '8px'
+                    }}
+                  >
+                    {language === 'uz' ? "Sozlamalarni saqlash" : "Сохранить настройки"}
+                  </button>
+
                 </div>
               </div>
             </div>
