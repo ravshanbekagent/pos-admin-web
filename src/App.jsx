@@ -3246,7 +3246,7 @@ function App() {
             </button>
           )}
 
-          {userRole === 'admin' && (
+          {['admin', 'agent'].includes(userRole) && (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <button 
                 onClick={() => setSettingsOpen(!settingsOpen)}
