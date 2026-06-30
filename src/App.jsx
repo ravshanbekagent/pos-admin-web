@@ -24,7 +24,10 @@ import {
   Trash2,
   Menu,
   X,
-  Camera
+  Camera,
+  CheckCircle,
+  CreditCard,
+  Loader
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { 
@@ -919,6 +922,18 @@ function App() {
   const [selectedModalProducts, setSelectedModalProducts] = useState([]);
   const [showCameraScanner, setShowCameraScanner] = useState(false);
   const [modalSearchQuery, setModalSearchQuery] = useState('');
+
+  // Tinda Terminal Settings States
+  const [tindaTerminalIp, setTindaTerminalIp] = useState(() => localStorage.getItem('tinda_terminal_ip') || '192.168.1.100:8080');
+  const [tindaTerminalLogin, setTindaTerminalLogin] = useState(() => localStorage.getItem('tinda_terminal_login') || '');
+  const [tindaTerminalPin, setTindaTerminalPin] = useState(() => localStorage.getItem('tinda_terminal_pin') || '');
+  const [tindaDefaultMxik, setTindaDefaultMxik] = useState(() => localStorage.getItem('tinda_default_mxik') || '09901001001000000');
+  const [tindaDefaultPackage, setTindaDefaultPackage] = useState(() => localStorage.getItem('tinda_default_package') || '242030');
+
+  // Tinda Transaction Live States
+  const [tindaPaymentStatus, setTindaPaymentStatus] = useState(null); // 'connecting', 'logging_in', 'waiting_card', 'success', 'error'
+  const [tindaErrorMessage, setTindaErrorMessage] = useState('');
+  const [tindaSocket, setTindaSocket] = useState(null);
 
   // Company Branding States (Persisted in localStorage)
   const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('companyLogo') || null);
@@ -2537,6 +2552,177 @@ function App() {
     }
   };
 
+  const handleTindaPayment = (subtotal, discountAmount, finalTotal) => {
+    if (!tindaTerminalIp) {
+      showAlert(language === 'uz' ? "Terminal IP manzili sozlanmagan!" : "IP-адрес терминала не настроен!", 'error');
+      return;
+    }
+
+    setTindaPaymentStatus('connecting');
+    setTindaErrorMessage('');
+
+    const wsUrl = `ws://${tindaTerminalIp}`;
+    const socket = new WebSocket(wsUrl);
+    setTindaSocket(socket);
+
+    // Timeout if cannot connect in 7 seconds
+    const connectionTimeout = setTimeout(() => {
+      if (socket.readyState !== WebSocket.OPEN) {
+        socket.close();
+        setTindaPaymentStatus('error');
+        setTindaErrorMessage(language === 'uz' ? "Terminal bilan bog'lanib bo'lmadi! IP manzil va Wi-Fi ulanishini tekshiring." : "Не удалось подключиться к терминалу! Проверьте IP-адрес и подключение Wi-Fi.");
+      }
+    }, 7000);
+
+    socket.onopen = () => {
+      clearTimeout(connectionTimeout);
+      
+      // Step 2: Send Login Command
+      setTindaPaymentStatus('logging_in');
+      const loginRequest = {
+        id: "login_" + Date.now(),
+        command: "Login",
+        data: {
+          login: tindaTerminalLogin || "Admin",
+          password: tindaTerminalPin || "1111"
+        }
+      };
+      socket.send(JSON.stringify(loginRequest));
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const response = JSON.parse(event.data);
+        console.log("Tinda Terminal Response:", response);
+
+        if (response.command === "Login") {
+          if (response.status === "Success" || response.error === "UserAlreadyLogined") {
+            // Step 3: Send Sale Command
+            setTindaPaymentStatus('waiting_card');
+            
+            const productsListForTinda = cashierCart.map(item => {
+              return {
+                id: String(item.productId),
+                name: item.productName || "Mahsulot",
+                barcode: item.barcode || null,
+                units: item.unit || "dona",
+                price: Math.round(item.price * 100),
+                vat: 0.0,
+                amount: parseFloat(item.quantity),
+                isDecimalUnits: item.unit !== 'dona',
+                psid: tindaDefaultMxik,
+                packageCode: parseInt(tindaDefaultPackage),
+                sellerType: 0
+              };
+            });
+
+            const saleRequest = {
+              id: "sale_" + Date.now(),
+              command: "Sale",
+              data: {
+                payments: [
+                  {
+                    amount: Math.round(finalTotal * 100),
+                    paymentType: "Card"
+                  }
+                ],
+                amount: Math.round(subtotal * 100),
+                discountAmount: Math.round(discountAmount * 100),
+                totalAmount: Math.round(finalTotal * 100),
+                saleType: "Sale",
+                products: productsListForTinda,
+                shouldPrintReceipt: true
+              }
+            };
+            socket.send(JSON.stringify(saleRequest));
+          } else {
+            socket.close();
+            setTindaPaymentStatus('error');
+            setTindaErrorMessage(`${language === 'uz' ? 'Terminalga kirish xatosi' : 'Ошибка авторизации на терминале'}: ${response.error || 'Noma\'lum xato'}`);
+          }
+        } else if (response.command === "Sale") {
+          socket.close();
+          if (response.status === "Success") {
+            setTindaPaymentStatus('success');
+            setTimeout(() => {
+              handleCompleteLocalSaleAfterTindaPayment(finalTotal, response.payload?.saleId);
+            }, 1500);
+          } else {
+            setTindaPaymentStatus('error');
+            setTindaErrorMessage(`${language === 'uz' ? 'To\'lov xatosi' : 'Ошибка оплаты'}: ${response.error || 'Noma\'lum xato'}`);
+          }
+        }
+      } catch (err) {
+        console.error("Error parsing socket message:", err);
+      }
+    };
+
+    socket.onerror = (err) => {
+      clearTimeout(connectionTimeout);
+      socket.close();
+      setTindaPaymentStatus('error');
+      setTindaErrorMessage(language === 'uz' ? "Tarmoq xatosi yuz berdi!" : "Произошла ошибка сети!");
+    };
+
+    socket.onclose = () => {
+      console.log("Tinda Terminal Socket Closed.");
+    };
+  };
+
+  const handleCompleteLocalSaleAfterTindaPayment = async (finalTotal, tindaSaleId) => {
+    try {
+      let pct = 0;
+      if (customDiscountEnabled && customDiscountInput) {
+        pct = parseFloat(customDiscountInput) || 0;
+      } else {
+        pct = cashierDiscount;
+      }
+
+      const items = cashierCart.map(item => {
+        const discountedPrice = Math.round(item.price * (1 - pct / 100));
+        return {
+          product_id: item.productId,
+          quantity: item.quantity,
+          unit_price: discountedPrice
+        };
+      });
+
+      const payload = {
+        store_id: activeCashierStore.id,
+        payment_gateway: 'tinda',
+        items: items
+      };
+
+      const res = await fetch(`${API_URL}/sales`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Sale failed');
+      }
+
+      showAlert(language === 'uz' ? "Sotuv muvaffaqiyatli yakunlandi!" : "Продажа успешно завершена!", 'success');
+      
+      await loadCloudData(token);
+
+      setActiveCashierStore(null);
+      setCashierCart([]);
+      setShowPaymentSection(false);
+      setTindaPaymentStatus(null);
+
+    } catch (err) {
+      showAlert(err.message, 'error');
+      setTindaPaymentStatus('error');
+      setTindaErrorMessage(language === 'uz' ? "To'lov o'tdi, lekin bazaga saqlashda xatolik." : "Оплата прошла, но ошибка сохранения в БД.");
+    }
+  };
+
   // Camera scanner instance ref
   const scannerRef = React.useRef(null);
 
@@ -3167,7 +3353,7 @@ function App() {
                       transition: 'all var(--transition-fast)'
                     }}
                   >
-                    {language === 'uz' ? "To'lov tizimlari" : 'Платежные системы'}
+                    {language === 'uz' ? "Terminal Sozlamalari" : 'Настройки терминала'}
                   </button>
                   {userRole === 'admin' && (
                     <>
@@ -7206,90 +7392,118 @@ function App() {
           {/* VIEW: PAYMENT INTEGRATION SETTINGS */}
           {activeTab === 'settings_payments' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', maxWidth: '600px' }}>
                 <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
-                  {language === 'uz' ? "To'lov tizimlari integratsiyasi" : "Интеграция платежных систем"}
+                  {language === 'uz' ? "Tinda Terminal Sozlamalari" : "Настройки терминала Tinda"}
                 </h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
                   {language === 'uz' 
-                    ? "Agentlar sotuvni amalga oshirish vaqtida mijozlardan qaysi to'lov turlari orqali to'lov qabul qila olishini boshqaring." 
-                    : "Управляйте тем, какие типы оплаты агенты могут принимать от клиентов при продаже."}
+                    ? "Kassada to'lovni amalga oshirishda foydalaniladigan Tinda smart-terminalining ulanish parametrlarini sozlang." 
+                    : "Настройте параметры подключения смарт-терминала Tinda, используемого для оплаты на кассе."}
                 </p>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', maxWidth: '500px' }}>
-                  {[
-                    { id: 'Naqd', name: language === 'uz' ? "Naqd pul" : "Наличные", desc: language === 'uz' ? "Kassa orqali naqd pul qabul qilish" : "Прием наличных через кассу", color: '#eab308' },
-                    { id: 'Click', name: "Click", desc: language === 'uz' ? "Click to'lov tizimi integratsiyasi" : "Интеграция платежной системы Click", color: '#0056b3' },
-                    { id: 'Payme', name: "Payme", desc: language === 'uz' ? "Payme to'lov tizimi integratsiyasi" : "Интеграция платежной системы Payme", color: '#00b5bb' },
-                    { id: 'Paynet', name: "Paynet", desc: language === 'uz' ? "Paynet to'lov tizimi integratsiyasi" : "Интеграция платежной системы Paynet", color: '#22c55e' }
-                  ].map(gate => {
-                    const isEnabled = paymentIntegrations.includes(gate.id);
-                    return (
-                      <div 
-                        key={gate.id}
-                        style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          justifyContent: 'space-between', 
-                          padding: '16px', 
-                          borderRadius: '8px', 
-                          border: '1px solid var(--border-color)',
-                          backgroundColor: 'var(--bg-primary)'
-                        }}
-                      >
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ 
-                            width: '8px', 
-                            height: '32px', 
-                            borderRadius: '4px', 
-                            backgroundColor: gate.color 
-                          }} />
-                          <div>
-                            <span style={{ fontWeight: '600', fontSize: '14px', color: 'var(--text-primary)', display: 'block' }}>{gate.name}</span>
-                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{gate.desc}</span>
-                          </div>
-                        </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  
+                  {/* IP Address */}
+                  <div>
+                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                      {language === 'uz' ? "Terminal IP manzili va Port (Host:Port)" : "IP-адрес и порт терминала (Host:Port)"}
+                    </label>
+                    <input 
+                      type="text" 
+                      value={tindaTerminalIp}
+                      onChange={(e) => setTindaTerminalIp(e.target.value)}
+                      placeholder="Masalan: 192.168.1.100:8080"
+                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                    />
+                  </div>
 
-                        {/* Toggle switch */}
-                        <button
-                          onClick={() => {
-                            let newList;
-                            if (isEnabled) {
-                              newList = paymentIntegrations.filter(id => id !== gate.id);
-                            } else {
-                              newList = [...paymentIntegrations, gate.id];
-                            }
-                            setPaymentIntegrations(newList);
-                            localStorage.setItem('payment_integrations', JSON.stringify(newList));
-                            showAlert(language === 'uz' ? "To'lov sozlamalari yangilandi" : "Настройки оплаты обновлены", 'success');
-                          }}
-                          style={{
-                            width: '46px',
-                            height: '24px',
-                            borderRadius: '12px',
-                            border: 'none',
-                            backgroundColor: isEnabled ? 'var(--accent-color)' : 'rgba(255,255,255,0.1)',
-                            cursor: 'pointer',
-                            position: 'relative',
-                            transition: 'all 0.2s ease',
-                            padding: 0
-                          }}
-                        >
-                          <div style={{
-                            width: '20px',
-                            height: '20px',
-                            borderRadius: '50%',
-                            backgroundColor: '#fff',
-                            position: 'absolute',
-                            top: '2px',
-                            left: isEnabled ? '24px' : '2px',
-                            transition: 'all 0.2s ease',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
-                          }} />
-                        </button>
-                      </div>
-                    );
-                  })}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                    {/* User Name */}
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                        {language === 'uz' ? "Terminal Xodim Logini" : "Логин сотрудника на терминале"}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tindaTerminalLogin}
+                        onChange={(e) => setTindaTerminalLogin(e.target.value)}
+                        placeholder="Masalan: Test Administrator"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                      />
+                    </div>
+
+                    {/* PIN Code */}
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                        {language === 'uz' ? "Terminal PIN kodi" : "ПИН-код терминала"}
+                      </label>
+                      <input 
+                        type="password" 
+                        value={tindaTerminalPin}
+                        onChange={(e) => setTindaTerminalPin(e.target.value)}
+                        placeholder="Masalan: 1111"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                      />
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px' }}>
+                    {/* Default MXIK */}
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                        {language === 'uz' ? "Birlamchi MXIK (IKPU) kodi" : "Основной код ИКПУ (МХИК)"}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tindaDefaultMxik}
+                        onChange={(e) => setTindaDefaultMxik(e.target.value)}
+                        placeholder="Masalan: 09901001001000000"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                      />
+                    </div>
+
+                    {/* Default Package Code */}
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                        {language === 'uz' ? "Birlamchi Qadoq kodi" : "Основной код упаковки"}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tindaDefaultPackage}
+                        onChange={(e) => setTindaDefaultPackage(e.target.value)}
+                        placeholder="Masalan: 242030"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Save Button */}
+                  <button
+                    onClick={() => {
+                      localStorage.setItem('tinda_terminal_ip', tindaTerminalIp);
+                      localStorage.setItem('tinda_terminal_login', tindaTerminalLogin);
+                      localStorage.setItem('tinda_terminal_pin', tindaTerminalPin);
+                      localStorage.setItem('tinda_default_mxik', tindaDefaultMxik);
+                      localStorage.setItem('tinda_default_package', tindaDefaultPackage);
+                      showAlert(language === 'uz' ? "Tinda terminal sozlamalari saqlandi!" : "Настройки терминала Tinda сохранены!", 'success');
+                    }}
+                    style={{
+                      padding: '12px',
+                      backgroundColor: 'var(--accent-color)',
+                      color: '#fff',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontWeight: '600',
+                      fontSize: '14px',
+                      cursor: 'pointer',
+                      width: '100%',
+                      marginTop: '10px'
+                    }}
+                  >
+                    {language === 'uz' ? "Sozlamalarni saqlash" : "Сохранить настройки"}
+                  </button>
+
                 </div>
               </div>
             </div>
@@ -8873,72 +9087,25 @@ function App() {
                 <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px' }}>
                   {language === 'uz' ? "To'lov turi" : "Способ оплаты"}
                 </h3>
-
-                {paymentIntegrations.length === 0 ? (
-                  <div style={{ padding: '12px', textAlign: 'center', color: 'var(--warning-color)', fontSize: '13px', fontWeight: '600' }}>
-                    {language === 'uz' ? "Xatolik: Hech qanday to'lov turi integratsiya qilinmagan!" : "Ошибка: Способы оплаты не интегрированы!"}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '12px', 
+                  padding: '14px 16px', 
+                  borderRadius: '8px', 
+                  border: '2px solid var(--accent-color)', 
+                  backgroundColor: 'rgba(13, 148, 136, 0.08)' 
+                }}>
+                  <CreditCard size={20} style={{ color: 'var(--accent-color)' }} />
+                  <div>
+                    <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)', display: 'block' }}>
+                      Tinda Terminal Payment
+                    </span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                      {language === 'uz' ? "To'lov avtomatik ravishda smart-terminal orqali qabul qilinadi." : "Оплата автоматически принимается через смарт-терминал."}
+                    </span>
                   </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {paymentIntegrations.map(method => {
-                      const isSelected = selectedPaymentMethod === method;
-                      const getColors = () => {
-                        if (method === 'Naqd') return { border: '#eab308', bg: 'rgba(234, 179, 8, 0.08)', text: '#eab308' };
-                        if (method === 'Click') return { border: '#0056b3', bg: 'rgba(0, 86, 179, 0.08)', text: '#0056b3' };
-                        if (method === 'Payme') return { border: '#00b5bb', bg: 'rgba(0, 181, 187, 0.08)', text: '#00b5bb' };
-                        if (method === 'Paynet') return { border: '#22c55e', bg: 'rgba(34, 197, 94, 0.08)', text: '#22c55e' };
-                        return { border: 'var(--accent-color)', bg: 'rgba(13, 148, 136, 0.08)', text: 'var(--accent-color)' };
-                      };
-                      const colors = getColors();
-
-                      return (
-                        <div
-                          key={method}
-                          onClick={() => setSelectedPaymentMethod(method)}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            padding: '14px 16px',
-                            borderRadius: '8px',
-                            border: isSelected ? `2px solid ${colors.border}` : '1px solid var(--border-color)',
-                            backgroundColor: isSelected ? colors.bg : 'var(--bg-primary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease'
-                          }}
-                        >
-                          <span style={{ 
-                            fontWeight: '700', 
-                            fontSize: '14px', 
-                            color: isSelected ? colors.text : 'var(--text-primary)' 
-                          }}>
-                            {method === 'Naqd' ? (language === 'uz' ? "Naqd pul" : "Наличные") : method}
-                          </span>
-                          
-                          <div style={{
-                            width: '18px',
-                            height: '18px',
-                            borderRadius: '50%',
-                            border: `2px solid ${isSelected ? colors.border : 'var(--border-color)'}`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxSizing: 'border-box'
-                          }}>
-                            {isSelected && (
-                              <div style={{
-                                width: '10px',
-                                height: '10px',
-                                borderRadius: '50%',
-                                backgroundColor: colors.border
-                              }} />
-                            )}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
+                </div>
               </div>
 
               {/* Order Summary & Confirm */}
@@ -8992,22 +9159,24 @@ function App() {
                         ← {language === 'uz' ? "Ortga" : "Назад"}
                       </button>
                       <button
-                        onClick={handleCreateCashierSale}
-                        disabled={paymentIntegrations.length === 0}
+                        onClick={() => {
+                          handleTindaPayment(subtotal, discountAmount, finalTotal);
+                        }}
+                        disabled={!tindaTerminalIp}
                         style={{
                           flexGrow: 2,
                           padding: '14px',
-                          backgroundColor: paymentIntegrations.length === 0 ? 'var(--text-muted)' : 'var(--accent-color)',
+                          backgroundColor: !tindaTerminalIp ? 'var(--text-muted)' : 'var(--accent-color)',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '8px',
                           fontWeight: '700',
-                          cursor: paymentIntegrations.length === 0 ? 'not-allowed' : 'pointer',
+                          cursor: !tindaTerminalIp ? 'not-allowed' : 'pointer',
                           fontSize: '14px',
                           boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)'
                         }}
                       >
-                        ✓ {language === 'uz' ? "Sotuvni yakunlash" : "Завершить продажу"}
+                        ✓ {language === 'uz' ? "Tinda orqali to'lash" : "Оплатить через Tinda"}
                       </button>
                     </div>
                   </div>
@@ -9384,6 +9553,138 @@ function App() {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Tinda Terminal Payment Overlay Modal */}
+      {tindaPaymentStatus && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          backdropFilter: 'blur(6px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999
+        }} className="fade-in">
+          <div style={{
+            width: '90%',
+            maxWidth: '440px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '32px 24px',
+            boxShadow: 'var(--shadow-xl)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            textAlign: 'center',
+            gap: '24px',
+            position: 'relative'
+          }}>
+            {/* Status Icon & Loader */}
+            <div style={{ position: 'relative', width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {['connecting', 'logging_in', 'waiting_card'].includes(tindaPaymentStatus) && (
+                <div className="tinda-pulse-ring" style={{
+                  position: 'absolute',
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: '50%',
+                  border: '3px solid var(--accent-color)',
+                  animation: 'pulse 1.5s infinite ease-in-out'
+                }} />
+              )}
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                backgroundColor: tindaPaymentStatus === 'success' ? 'rgba(34, 197, 94, 0.15)' : tindaPaymentStatus === 'error' ? 'rgba(239, 68, 68, 0.15)' : 'rgba(13, 148, 136, 0.15)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: tindaPaymentStatus === 'success' ? '#22c55e' : tindaPaymentStatus === 'error' ? '#ef4444' : 'var(--accent-color)',
+                zIndex: 1
+              }}>
+                {tindaPaymentStatus === 'success' && <CheckCircle size={32} />}
+                {tindaPaymentStatus === 'error' && <AlertCircle size={32} />}
+                {['connecting', 'logging_in'].includes(tindaPaymentStatus) && <Loader size={32} className="animate-spin" />}
+                {tindaPaymentStatus === 'waiting_card' && <CreditCard size={32} />}
+              </div>
+            </div>
+
+            {/* Texts */}
+            <div>
+              <h4 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                {tindaPaymentStatus === 'connecting' && (language === 'uz' ? "Terminalga ulanish..." : "Подключение к терминалу...")}
+                {tindaPaymentStatus === 'logging_in' && (language === 'uz' ? "Tizimga kirish..." : "Авторизация...")}
+                {tindaPaymentStatus === 'waiting_card' && (language === 'uz' ? "Karta kutilmoqda..." : "Ожидание карты...")}
+                {tindaPaymentStatus === 'success' && (language === 'uz' ? "To'lov muvaffaqiyatli o'tdi!" : "Оплата успешно прошла!")}
+                {tindaPaymentStatus === 'error' && (language === 'uz' ? "To'lovda xatolik!" : "Ошибка оплаты!")}
+              </h4>
+              <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                {tindaPaymentStatus === 'connecting' && (language === 'uz' ? "Terminal bilan aloqa o'rnatilmoqda, iltimos kuting." : "Устанавливается связь с терминалом, пожалуйста, подождите.")}
+                {tindaPaymentStatus === 'logging_in' && (language === 'uz' ? "Terminalda xodim smenasi tekshirilmoqda." : "Проверяется смена сотрудника на терминале.")}
+                {tindaPaymentStatus === 'waiting_card' && (language === 'uz' ? "Iltimos, kartani terminalga kiriting yoki tekkizing." : "Пожалуйста, вставьте или приложите карту к терминалу.")}
+                {tindaPaymentStatus === 'success' && (language === 'uz' ? "Fiskal chek chop etilmoqda va sotuv yozilmoqda." : "Печатается фискальный чек и записывается продажа.")}
+                {tindaPaymentStatus === 'error' && (tindaErrorMessage || (language === 'uz' ? "Noma'lum xatolik yuz berdi." : "Произошла неизвестная ошибка."))}
+              </p>
+            </div>
+
+            {/* Sum details */}
+            <div style={{
+              width: '100%',
+              backgroundColor: 'var(--bg-primary)',
+              borderRadius: '8px',
+              padding: '12px 16px',
+              border: '1px solid var(--border-color)',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                {language === 'uz' ? "To'lov summasi" : "Сумма оплаты"}
+              </span>
+              <span style={{ fontSize: '16px', fontWeight: '800', color: 'var(--accent-color)' }}>
+                {(() => {
+                  const subtotal = cashierCart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                  const discountPercentage = customDiscountEnabled && customDiscountInput ? parseFloat(customDiscountInput) || 0 : cashierDiscount;
+                  const discountAmount = Math.round(subtotal * (discountPercentage / 100));
+                  const finalTotal = subtotal - discountAmount;
+                  return finalTotal.toLocaleString('uz-UZ');
+                })()} so'm
+              </span>
+            </div>
+
+            {/* Action Button */}
+            <button
+              onClick={() => {
+                if (tindaSocket) {
+                  tindaSocket.close();
+                }
+                setTindaPaymentStatus(null);
+              }}
+              style={{
+                width: '100%',
+                padding: '12px',
+                borderRadius: '8px',
+                backgroundColor: tindaPaymentStatus === 'error' ? 'var(--danger-color)' : 'transparent',
+                color: tindaPaymentStatus === 'error' ? '#fff' : 'var(--text-secondary)',
+                fontWeight: '600',
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                border: tindaPaymentStatus === 'error' ? 'none' : '1px solid var(--border-color)'
+              }}
+            >
+              {tindaPaymentStatus === 'error' 
+                ? (language === 'uz' ? "Yopish va qayta urinish" : "Закрыть и повторить") 
+                : (language === 'uz' ? "Bekor qilish" : "Отмена")}
+            </button>
+          </div>
         </div>
       )}
 
