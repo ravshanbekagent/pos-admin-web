@@ -3322,23 +3322,25 @@ function App() {
                   >
                     {t('language_settings')}
                   </button>
-                  <button
-                    onClick={() => setActiveTab('settings_discounts')}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      backgroundColor: activeTab === 'settings_discounts' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
-                      color: activeTab === 'settings_discounts' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      textAlign: 'left',
-                      transition: 'all var(--transition-fast)'
-                    }}
-                  >
-                    {t('settings_discounts')}
-                  </button>
+{userRole === 'admin' && (
+                    <button
+                      onClick={() => setActiveTab('settings_discounts')}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: activeTab === 'settings_discounts' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                        color: activeTab === 'settings_discounts' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        textAlign: 'left',
+                        transition: 'all var(--transition-fast)'
+                      }}
+                    >
+                      {t('settings_discounts')}
+                    </button>
+                  )}
                   <button
                     onClick={() => setActiveTab('settings_payments')}
                     style={{
