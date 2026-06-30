@@ -934,6 +934,7 @@ function App() {
   const [tindaPaymentStatus, setTindaPaymentStatus] = useState(null); // 'connecting', 'logging_in', 'waiting_card', 'success', 'error'
   const [tindaErrorMessage, setTindaErrorMessage] = useState('');
   const [tindaSocket, setTindaSocket] = useState(null);
+  const [showCashierTerminalConfig, setShowCashierTerminalConfig] = useState(false);
 
   // Company Branding States (Persisted in localStorage)
   const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('companyLogo') || null);
@@ -9553,6 +9554,122 @@ function App() {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Cashier-specific Terminal Config Modal */}
+      {showCashierTerminalConfig && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 20000
+        }} className="fade-in">
+          <div style={{
+            width: '90%',
+            maxWidth: '380px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+              {language === 'uz' ? "Terminal Sozlamalari" : "Настройки терминала"}
+            </h4>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div>
+                <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                  {language === 'uz' ? "Terminal IP manzili (Host:Port)" : "IP-адрес терминала (Host:Port)"}
+                </label>
+                <input 
+                  type="text" 
+                  value={tindaTerminalIp}
+                  onChange={(e) => setTindaTerminalIp(e.target.value)}
+                  placeholder="Masalan: 192.168.1.100:8080"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                  {language === 'uz' ? "Xodim ismi (Terminaldagi login)" : "Имя сотрудника (Логин на терминале)"}
+                </label>
+                <input 
+                  type="text" 
+                  value={tindaTerminalLogin}
+                  onChange={(e) => setTindaTerminalLogin(e.target.value)}
+                  placeholder="Masalan: Xodim Nomi"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600', boxSizing: 'border-box' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                  {language === 'uz' ? "Terminal PIN kodi" : "ПИН-код терминала"}
+                </label>
+                <input 
+                  type="password" 
+                  value={tindaTerminalPin}
+                  onChange={(e) => setTindaTerminalPin(e.target.value)}
+                  placeholder="Masalan: 1111"
+                  style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600', boxSizing: 'border-box' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
+              <button
+                onClick={() => setShowCashierTerminalConfig(false)}
+                style={{
+                  flexGrow: 1,
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                {language === 'uz' ? "Yopish" : "Закрыть"}
+              </button>
+              <button
+                onClick={() => {
+                  localStorage.setItem('tinda_terminal_ip', tindaTerminalIp);
+                  localStorage.setItem('tinda_terminal_login', tindaTerminalLogin);
+                  localStorage.setItem('tinda_terminal_pin', tindaTerminalPin);
+                  setShowCashierTerminalConfig(false);
+                  showAlert(language === 'uz' ? "Terminal sozlamalari saqlandi!" : "Настройки терминала сохранены!", 'success');
+                }}
+                style={{
+                  flexGrow: 1,
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: 'var(--accent-color)',
+                  color: '#fff',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                {language === 'uz' ? "Saqlash" : "Сохранить"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
