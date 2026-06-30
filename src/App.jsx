@@ -3288,23 +3288,25 @@ function App() {
                   paddingLeft: '28px', 
                   marginTop: '4px'
                 }}>
-                  <button
-                    onClick={() => setActiveTab('settings_profile')}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      backgroundColor: activeTab === 'settings_profile' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
-                      color: activeTab === 'settings_profile' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      textAlign: 'left',
-                      transition: 'all var(--transition-fast)'
-                    }}
-                  >
-                    {t('profile_settings')}
-                  </button>
+                  {userRole === 'admin' && (
+                    <button
+                      onClick={() => setActiveTab('settings_profile')}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: 'none',
+                        backgroundColor: activeTab === 'settings_profile' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                        color: activeTab === 'settings_profile' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '500',
+                        textAlign: 'left',
+                        transition: 'all var(--transition-fast)'
+                      }}
+                    >
+                      {t('profile_settings')}
+                    </button>
+                  )}
                   <button
                     onClick={() => setActiveTab('settings_language')}
                     style={{
