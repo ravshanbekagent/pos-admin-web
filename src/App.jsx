@@ -3446,33 +3446,7 @@ function App() {
             </div>
           )}
           
-          {/* Menu-level Logout item (for non-admins, guarantees visibility on all screen sizes) */}
-          {userRole !== 'admin' && (
-            <button 
-              onClick={handleLogout}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '12px',
-                width: '100%',
-                padding: '12px 16px',
-                borderRadius: '8px',
-                border: 'none',
-                backgroundColor: 'transparent',
-                color: 'var(--danger-color)',
-                cursor: 'pointer',
-                fontWeight: '600',
-                textAlign: 'left',
-                marginTop: '24px',
-                borderTop: '1px dashed rgba(239, 68, 68, 0.15)',
-                paddingTop: '16px',
-                transition: 'all var(--transition-fast)'
-              }}
-            >
-              <LogOut size={18} />
-              <span>{t('logout')}</span>
-            </button>
-          )}
+
         </nav>
 
         {/* User Info & Logout */}
@@ -3515,27 +3489,7 @@ function App() {
             </div>
           </div>
 
-          <button 
-            onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '10px',
-              width: '100%',
-              padding: '10px',
-              borderRadius: '6px',
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: 'var(--danger-color)',
-              cursor: 'pointer',
-              fontSize: '13px',
-              fontWeight: '500',
-              textAlign: 'left'
-            }}
-          >
-            <LogOut size={16} />
-            <span>{t('logout')}</span>
-          </button>
+
         </div>
       </aside>
 
