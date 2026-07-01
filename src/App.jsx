@@ -8696,6 +8696,7 @@ function App() {
                 }).map(store => (
                   <div 
                     key={store.id}
+                    onClick={() => handleAddSelfStoreAssignment(store)}
                     style={{
                       display: 'flex',
                       justifyContent: 'space-between',
@@ -8703,7 +8704,18 @@ function App() {
                       padding: '12px',
                       borderRadius: '8px',
                       border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)'
+                      backgroundColor: 'var(--bg-primary)',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s ease',
+                      boxShadow: 'var(--shadow-sm)'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--accent-color)';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = 'var(--border-color)';
+                      e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
                     }}
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1, marginRight: '12px', textAlign: 'left' }}>
@@ -8715,7 +8727,10 @@ function App() {
                       </span>
                     </div>
                     <button
-                      onClick={() => handleAddSelfStoreAssignment(store)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleAddSelfStoreAssignment(store);
+                      }}
                       style={{
                         border: 'none',
                         backgroundColor: 'var(--accent-color)',
