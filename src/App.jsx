@@ -955,6 +955,7 @@ function App() {
   const [companyBioColor, setCompanyBioColor] = useState(() => localStorage.getItem('companyBioColor') || '#0d9488');
   const isAssignmentActive = (assignDateStr, durationDays = 1) => {
     if (!assignDateStr) return false;
+    if (durationDays === 9999 || durationDays === 0) return true;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -1098,8 +1099,8 @@ function App() {
   const [editingStore, setEditingStore] = useState(null);
   const [showEditStoreModal, setShowEditStoreModal] = useState(false);
   const [selectedStoreIds, setSelectedStoreIds] = useState([]);
-  const [newAssignment, setNewAssignment] = useState({ agentId: '', productId: '', qty: '', durationDays: '1' });
-  const [newStoreAssignment, setNewStoreAssignment] = useState({ agentId: '', storeId: '', durationDays: '1' });
+  const [newAssignment, setNewAssignment] = useState({ agentId: '', productId: '', qty: '', durationDays: '1', isPermanent: false });
+  const [newStoreAssignment, setNewStoreAssignment] = useState({ agentId: '', storeId: '', durationDays: '1', isPermanent: false });
 
   const [newAgent, setNewAgent] = useState({
     login: 'AGENT-FG-R3',
@@ -2015,7 +2016,7 @@ function App() {
       body: JSON.stringify({
         agent_id: agent.id,
         date: new Date().toISOString().split('T')[0],
-        duration_days: parseInt(newAssignment.durationDays || '1'),
+        duration_days: newAssignment.isPermanent ? 9999 : parseInt(newAssignment.durationDays || '1'),
         products: [
           {
             product_id: product.id,
@@ -2049,7 +2050,7 @@ function App() {
       showAlert(language === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка', 'error');
     });
 
-    setNewAssignment({ agentId: '', productId: '', qty: '', durationDays: '1' });
+    setNewAssignment({ agentId: '', productId: '', qty: '', durationDays: '1', isPermanent: false });
     setShowAssignProductModal(false);
   };
 
@@ -2163,7 +2164,7 @@ function App() {
         location_lng: String(store.longitude || store.location_lng || ''),
         agent_id: agent.id,
         assigned_date: new Date().toISOString().split('T')[0],
-        duration_days: parseInt(newStoreAssignment.durationDays || '1'),
+        duration_days: newStoreAssignment.isPermanent ? 9999 : parseInt(newStoreAssignment.durationDays || '1'),
         order: nextOrder
       })
     })
@@ -2184,7 +2185,7 @@ function App() {
       showAlert(err.message, 'error');
     });
 
-    setNewStoreAssignment({ agentId: '', storeId: '', durationDays: '1' });
+    setNewStoreAssignment({ agentId: '', storeId: '', durationDays: '1', isPermanent: false });
     setShowAssignStoreModal(false);
   };
 
@@ -6019,15 +6020,17 @@ function App() {
                                   </span>
                                   <span style={{ 
                                     fontWeight: '700', 
-                                    color: 'var(--success-color)',
-                                    backgroundColor: 'var(--success-light)',
+                                    color: (prod.remainingQty !== undefined ? prod.remainingQty : prod.qty) <= 0 ? 'var(--text-muted)' : 'var(--success-color)',
+                                    backgroundColor: (prod.remainingQty !== undefined ? prod.remainingQty : prod.qty) <= 0 ? 'var(--bg-tertiary)' : 'var(--success-light)',
                                     padding: '2px 8px',
                                     borderRadius: '6px',
                                     fontSize: '12px',
                                     whiteSpace: 'nowrap',
                                     flexShrink: 0
                                   }}>
-                                    {prod.remainingQty !== undefined ? prod.remainingQty : prod.qty} {language === 'uz' ? 'dona' : 'шт'}
+                                    {(prod.remainingQty !== undefined ? prod.remainingQty : prod.qty) <= 0 
+                                      ? (language === 'uz' ? 'Sotib bo\'lingan' : 'Продано') 
+                                      : `${prod.remainingQty !== undefined ? prod.remainingQty : prod.qty} ${language === 'uz' ? 'dona' : 'шт'}`}
                                   </span>
                                 </div>
                               ))}
@@ -6066,8 +6069,8 @@ function App() {
                                       {prod.productName}
                                     </td>
                                     {userRole !== 'agent' && <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '600' }}>{prod.qty} {language === 'uz' ? 'dona' : 'шт'}</td>}
-                                    <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>
-                                      {prod.remainingQty !== undefined ? prod.remainingQty : prod.qty} {language === 'uz' ? 'dona' : 'шт'}
+                                    <td style={{ padding: '10px 4px', textAlign: 'right', fontWeight: '700', color: (prod.remainingQty !== undefined ? prod.remainingQty : prod.qty) <= 0 ? 'var(--text-muted)' : 'var(--success-color)' }}>
+                                      {(prod.remainingQty !== undefined ? prod.remainingQty : prod.qty) <= 0 ? (language === 'uz' ? 'Sotib bo\'lingan' : 'Продано') : (prod.remainingQty !== undefined ? prod.remainingQty : prod.qty) + ' ' + (language === 'uz' ? 'dona' : 'шт')}
                                     </td>
                                     {userRole !== 'agent' && <td style={{ padding: '10px 4px', textAlign: 'right', color: 'var(--text-secondary)' }}>{prod.date}</td>}
                                     {userRole !== 'agent' && (
@@ -8148,21 +8151,42 @@ function App() {
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  {language === 'uz' ? "Amal qilish muddati" : "Срок действия"}
-                </label>
-                <select
-                  value={newAssignment.durationDays}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {language === 'uz' ? "Amal qilish muddati (kun)" : "Срок действия (дней)"}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={newAssignment.isPermanent}
+                      onChange={(e) => setNewAssignment({ 
+                        ...newAssignment, 
+                        isPermanent: e.target.checked,
+                        durationDays: e.target.checked ? '9999' : '1'
+                      })}
+                      style={{ width: '14px', height: '14px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                    />
+                    {language === 'uz' ? "Doimiy" : "Постоянно"}
+                  </label>
+                </div>
+                <input 
+                  type="number"
+                  min="1"
+                  disabled={newAssignment.isPermanent}
+                  value={newAssignment.isPermanent ? '' : newAssignment.durationDays}
                   onChange={(e) => setNewAssignment({ ...newAssignment, durationDays: e.target.value })}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', cursor: 'pointer' }}
-                >
-                  <option value="1">1 {language === 'uz' ? "kun (24 soat)" : "день (24 часа)"}</option>
-                  <option value="3">3 {language === 'uz' ? "kun" : "дня"}</option>
-                  <option value="7">7 {language === 'uz' ? "kun" : "дней"}</option>
-                  <option value="10">10 {language === 'uz' ? "kun" : "дней"}</option>
-                  <option value="15">15 {language === 'uz' ? "kun" : "дней"}</option>
-                  <option value="30">30 {language === 'uz' ? "kun" : "дней"}</option>
-                </select>
+                  placeholder={language === 'uz' ? "Kunlar soni..." : "Количество дней..."}
+                  style={{ 
+                    width: '100%', 
+                    padding: '11px 14px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border-color)', 
+                    backgroundColor: newAssignment.isPermanent ? 'var(--bg-tertiary)' : 'var(--bg-primary)', 
+                    color: newAssignment.isPermanent ? 'var(--text-muted)' : 'var(--text-primary)', 
+                    fontSize: '14px',
+                    opacity: newAssignment.isPermanent ? 0.7 : 1
+                  }}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
@@ -8243,21 +8267,42 @@ function App() {
               </div>
 
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  {language === 'uz' ? "Amal qilish muddati" : "Срок действия"}
-                </label>
-                <select
-                  value={newStoreAssignment.durationDays}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <label style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {language === 'uz' ? "Amal qilish muddati (kun)" : "Срок действия (дней)"}
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={newStoreAssignment.isPermanent}
+                      onChange={(e) => setNewStoreAssignment({ 
+                        ...newStoreAssignment, 
+                        isPermanent: e.target.checked,
+                        durationDays: e.target.checked ? '9999' : '1'
+                      })}
+                      style={{ width: '14px', height: '14px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                    />
+                    {language === 'uz' ? "Doimiy" : "Постоянно"}
+                  </label>
+                </div>
+                <input 
+                  type="number"
+                  min="1"
+                  disabled={newStoreAssignment.isPermanent}
+                  value={newStoreAssignment.isPermanent ? '' : newStoreAssignment.durationDays}
                   onChange={(e) => setNewStoreAssignment({ ...newStoreAssignment, durationDays: e.target.value })}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', cursor: 'pointer' }}
-                >
-                  <option value="1">1 {language === 'uz' ? "kun (24 soat)" : "день (24 часа)"}</option>
-                  <option value="3">3 {language === 'uz' ? "kun" : "дня"}</option>
-                  <option value="7">7 {language === 'uz' ? "kun" : "дней"}</option>
-                  <option value="10">10 {language === 'uz' ? "kun" : "дней"}</option>
-                  <option value="15">15 {language === 'uz' ? "kun" : "дней"}</option>
-                  <option value="30">30 {language === 'uz' ? "kun" : "дней"}</option>
-                </select>
+                  placeholder={language === 'uz' ? "Kunlar soni..." : "Количество дней..."}
+                  style={{ 
+                    width: '100%', 
+                    padding: '11px 14px', 
+                    borderRadius: '8px', 
+                    border: '1px solid var(--border-color)', 
+                    backgroundColor: newStoreAssignment.isPermanent ? 'var(--bg-tertiary)' : 'var(--bg-primary)', 
+                    color: newStoreAssignment.isPermanent ? 'var(--text-muted)' : 'var(--text-primary)', 
+                    fontSize: '14px',
+                    opacity: newStoreAssignment.isPermanent ? 0.7 : 1
+                  }}
+                />
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
@@ -9641,7 +9686,7 @@ function App() {
                                 borderRadius: '4px'
                               }}>
                                 {isOutOfStock 
-                                  ? (language === 'uz' ? "Qoldiq tugadi" : "Нет на складе")
+                                  ? (language === 'uz' ? "Tugagan" : "Закончился")
                                   : (language === 'uz' ? `Qoldiq: ${liveRemaining} ${prod.unit || 'dona'}` : `Ост: ${liveRemaining} ${prod.unit || 'шт'}`)
                                 }
                               </span>
