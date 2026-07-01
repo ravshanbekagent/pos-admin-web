@@ -8255,6 +8255,82 @@ function App() {
                     </label>
                   </div>
 
+                  {/* Webhook Configuration Guide Card */}
+                  <div style={{
+                    marginTop: '16px',
+                    padding: '16px',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(13, 148, 136, 0.05)',
+                    border: '1px solid rgba(13, 148, 136, 0.2)',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px'
+                  }}>
+                    <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--accent-color)', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      ℹ️ {language === 'uz' ? "Tinda Integratsiyasi Qo'llanmasi" : "Руководство по интеграции Tinda"}
+                    </h4>
+                    
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4', margin: 0 }}>
+                      {language === 'uz'
+                        ? "Avtomatik terminal to'lovlarini qabul qilish uchun Tinda Merchant kabinetingiz sozlamalariga kirib, SALE (Sotuv) callback maydoniga quyidagi manzilni kiriting:"
+                        : "Для приема автоматических оплат с терминала зайдите в настройки личного кабинета Tinda Merchant и введите следующий адрес в поле callback для SALE:"}
+                    </p>
+
+                    {/* Copy Box */}
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '6px',
+                      padding: '6px 10px',
+                      justifyContent: 'space-between',
+                      gap: '8px'
+                    }}>
+                      <code style={{
+                        fontSize: '11px',
+                        color: 'var(--text-primary)',
+                        fontFamily: 'monospace',
+                        wordBreak: 'break-all',
+                        userSelect: 'all'
+                      }}>
+                        https://posagent.onrender.com/api/tinda/callback
+                      </code>
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText('https://posagent.onrender.com/api/tinda/callback');
+                          showAlert(language === 'uz' ? "Manzil buferga nusxalandi!" : "Адрес скопирован в буфер!", 'success');
+                        }}
+                        style={{
+                          backgroundColor: 'var(--accent-color)',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '4px',
+                          padding: '4px 10px',
+                          fontSize: '11px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                          whiteSpace: 'nowrap',
+                          transition: 'background-color 0.2s'
+                        }}
+                      >
+                        {language === 'uz' ? "Nusxa olish" : "Копировать"}
+                      </button>
+                    </div>
+
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div>
+                        1. {language === 'uz' ? "merchant.tinda.uz shaxsiy kabinetiga kiring." : "Войдите в личный кабинет merchant.tinda.uz."}
+                      </div>
+                      <div>
+                        2. {language === 'uz' ? "Settings (Sozlamalar) -> Callbacks bo'limiga o'ting." : "Перейдите в раздел Settings -> Callbacks."}
+                      </div>
+                      <div>
+                        3. {language === 'uz' ? "SALE qatoriga ushbu URLni qo'yib, plyus (+) tugmasini bosing." : "Вставьте этот URL в строку SALE и нажмите кнопку плюс (+)."}
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </div>
             </div>
