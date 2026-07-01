@@ -5774,6 +5774,27 @@ function App() {
                           >
                             <Plus size={14} /> {language === 'uz' ? 'Do\'kon biriktirish' : 'Закрепить магазин'}
                           </button>
+                          <button 
+                            onClick={() => {
+                              setSelectedRouteToAssign('');
+                              setShowAssignListModal(true);
+                            }}
+                            style={{
+                              padding: '10px 18px',
+                              borderRadius: '8px',
+                              border: 'none',
+                              backgroundColor: 'var(--accent-color)',
+                              color: '#fff',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px'
+                            }}
+                          >
+                            <Plus size={14} /> {language === 'uz' ? 'Ro\'yxat biriktirish' : 'Закрепить список'}
+                          </button>
                         </div>
                       )}
                     </div>
