@@ -8272,53 +8272,104 @@ function App() {
                     
                     <p style={{ fontSize: '12px', color: 'var(--text-secondary)', lineHeight: '1.4', margin: 0 }}>
                       {language === 'uz'
-                        ? "Avtomatik terminal to'lovlarini qabul qilish uchun Tinda Merchant kabinetingiz sozlamalariga kirib, SALE (Sotuv) callback maydoniga quyidagi manzilni kiriting:"
-                        : "Для приема автоматических оплат с терминала зайдите в настройки личного кабинета Tinda Merchant и введите следующий адрес в поле callback для SALE:"}
+                        ? "Avtomatik terminal to'lovlarini sinxronizatsiya qilish uchun Tinda Merchant kabinetingiz sozlamalariga kirib, tegishli callback maydonlariga quyidagi manzillarni kiriting:"
+                        : "Для синхронизации оплат с терминала зайдите в настройки личного кабинета Tinda Merchant и введите следующие адреса в соответствующие поля callback:"}
                     </p>
 
-                    {/* Copy Box */}
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      backgroundColor: 'var(--bg-primary)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '6px',
-                      padding: '6px 10px',
-                      justifyContent: 'space-between',
-                      gap: '8px'
-                    }}>
-                      <code style={{
-                        fontSize: '11px',
-                        color: 'var(--text-primary)',
-                        fontFamily: 'monospace',
-                        wordBreak: 'break-all',
-                        userSelect: 'all'
+                    {/* SALE Copy Box */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>SALE (Sotuv):</span>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        justifyContent: 'space-between',
+                        gap: '8px'
                       }}>
-                        https://posagent.onrender.com/api/tinda/callback
-                      </code>
-                      <button
-                        onClick={() => {
-                          navigator.clipboard.writeText('https://posagent.onrender.com/api/tinda/callback');
-                          showAlert(language === 'uz' ? "Manzil buferga nusxalandi!" : "Адрес скопирован в буфер!", 'success');
-                        }}
-                        style={{
-                          backgroundColor: 'var(--accent-color)',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          padding: '4px 10px',
-                          fontSize: '11px',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          whiteSpace: 'nowrap',
-                          transition: 'background-color 0.2s'
-                        }}
-                      >
-                        {language === 'uz' ? "Nusxa olish" : "Копировать"}
-                      </button>
+                        <code style={{ fontSize: '11px', color: 'var(--text-primary)', fontFamily: 'monospace', wordBreak: 'break-all', userSelect: 'all' }}>
+                          https://posagent.onrender.com/api/tinda/callback
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('https://posagent.onrender.com/api/tinda/callback');
+                            showAlert(language === 'uz' ? "SALE manzili nusxalandi!" : "SALE адрес скопирован!", 'success');
+                          }}
+                          style={{
+                            backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '4px',
+                            padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {language === 'uz' ? "Nusxa olish" : "Копировать"}
+                        </button>
+                      </div>
                     </div>
 
-                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    {/* REFUND Copy Box */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>REFUND (Qaytarish):</span>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        justifyContent: 'space-between',
+                        gap: '8px'
+                      }}>
+                        <code style={{ fontSize: '11px', color: 'var(--text-primary)', fontFamily: 'monospace', wordBreak: 'break-all', userSelect: 'all' }}>
+                          https://posagent.onrender.com/api/tinda/refund
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('https://posagent.onrender.com/api/tinda/refund');
+                            showAlert(language === 'uz' ? "REFUND manzili nusxalandi!" : "REFUND адрес скопирован!", 'success');
+                          }}
+                          style={{
+                            backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '4px',
+                            padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {language === 'uz' ? "Nusxa olish" : "Копировать"}
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Z_REPORT Copy Box */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-primary)' }}>Z_REPORT (Kunlik hisobot):</span>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        padding: '6px 10px',
+                        justifyContent: 'space-between',
+                        gap: '8px'
+                      }}>
+                        <code style={{ fontSize: '11px', color: 'var(--text-primary)', fontFamily: 'monospace', wordBreak: 'break-all', userSelect: 'all' }}>
+                          https://posagent.onrender.com/api/tinda/zreport
+                        </code>
+                        <button
+                          onClick={() => {
+                            navigator.clipboard.writeText('https://posagent.onrender.com/api/tinda/zreport');
+                            showAlert(language === 'uz' ? "Z_REPORT manzili nusxalandi!" : "Z_REPORT адрес скопирован!", 'success');
+                          }}
+                          style={{
+                            backgroundColor: 'var(--accent-color)', color: '#fff', border: 'none', borderRadius: '4px',
+                            padding: '4px 10px', fontSize: '11px', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap'
+                          }}
+                        >
+                          {language === 'uz' ? "Nusxa olish" : "Копировать"}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                       <div>
                         1. {language === 'uz' ? "merchant.tinda.uz shaxsiy kabinetiga kiring." : "Войдите в личный кабинет merchant.tinda.uz."}
                       </div>
@@ -8326,7 +8377,7 @@ function App() {
                         2. {language === 'uz' ? "Settings (Sozlamalar) -> Callbacks bo'limiga o'ting." : "Перейдите в раздел Settings -> Callbacks."}
                       </div>
                       <div>
-                        3. {language === 'uz' ? "SALE qatoriga ushbu URLni qo'yib, plyus (+) tugmasini bosing." : "Вставьте этот URL в строку SALE и нажмите кнопку плюс (+)."}
+                        3. {language === 'uz' ? "Tegishli qatorlarga (SALE, REFUND, Z_REPORT) mos URLlarni qo'yib, plyus (+) tugmasini bosing." : "Вставьте соответствующие URL-адреса в строки (SALE, REFUND, Z_REPORT) и нажмите кнопку плюс (+)."}
                       </div>
                     </div>
                   </div>
