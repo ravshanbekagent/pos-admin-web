@@ -27,7 +27,8 @@ import {
   Camera,
   CheckCircle,
   CreditCard,
-  Loader
+  Loader,
+  Clock
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { 
@@ -935,6 +936,12 @@ function App() {
   const [tindaErrorMessage, setTindaErrorMessage] = useState('');
   const [tindaSocket, setTindaSocket] = useState(null);
   const [showCashierTerminalConfig, setShowCashierTerminalConfig] = useState(false);
+  const [visitedStores, setVisitedStores] = useState(() => {
+    const stored = localStorage.getItem('visited_stores');
+    return stored ? JSON.parse(stored) : [];
+  });
+  const [showExitQuestionnaire, setShowExitQuestionnaire] = useState(false);
+  const [exitReason, setExitReason] = useState('');
 
   // Company Branding States (Persisted in localStorage)
   const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('companyLogo') || null);
@@ -954,6 +961,11 @@ function App() {
   const agentStores = activeAgent 
     ? storeAssignments.filter(ass => ass.agentId === activeAgent.id).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
+
+  const activeAgentStores = agentStores.filter(store => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    return !visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
+  });
 
 
   // Custom alert and confirm states
@@ -978,6 +990,42 @@ function App() {
         setConfirmDialog(null);
       }
     });
+  };
+
+  const recordSoldVisit = (store, cart) => {
+    if (!store) return;
+    const newVisit = {
+      storeId: store.id,
+      storeName: store.storeName,
+      status: 'sold',
+      reason: '',
+      items: cart.map(item => ({
+        productName: item.productName || "Mahsulot",
+        qty: item.quantity,
+        price: item.price
+      })),
+      date: new Date().toISOString().split('T')[0],
+      time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+    };
+    setVisitedStores(prev => {
+      const updated = [newVisit, ...prev];
+      localStorage.setItem('visited_stores', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const handleExitCashier = () => {
+    if (userRole === 'agent') {
+      setShowExitQuestionnaire(true);
+    } else {
+      showConfirm(
+        language === 'uz' ? "Kassadan chiqishni xohlaysizmi? Savatcha tozalanadi!" : "Вы действительно хотите выйти из кассы? Корзина будет очищена!",
+        () => {
+          setActiveCashierStore(null);
+          setCashierCart([]);
+        }
+      );
+    }
   };
 
   const getAgentLoginByName = (agentName) => {
@@ -2544,6 +2592,7 @@ function App() {
       
       await loadCloudData(token);
 
+      recordSoldVisit(activeCashierStore, cashierCart);
       setActiveCashierStore(null);
       setCashierCart([]);
       setShowPaymentSection(false);
@@ -2712,6 +2761,7 @@ function App() {
       
       await loadCloudData(token);
 
+      recordSoldVisit(activeCashierStore, cashierCart);
       setActiveCashierStore(null);
       setCashierCart([]);
       setShowPaymentSection(false);
@@ -3222,6 +3272,30 @@ function App() {
             <span>{userRole === 'agent' ? t('my_tasks') : t('assignments')}</span>
           </button>
 
+          {userRole === 'agent' && (
+            <button 
+              onClick={() => setActiveTab('agent_history')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'agent_history' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'agent_history' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontWeight: '500',
+                textAlign: 'left',
+                transition: 'all var(--transition-fast)'
+              }}
+            >
+              <Clock size={18} />
+              <span>{language === 'uz' ? "Tarix" : "История"}</span>
+            </button>
+          )}
+
           {userRole !== 'agent' && (
             <button 
               onClick={() => setActiveTab('sales')}
@@ -3538,6 +3612,7 @@ function App() {
             {(activeTab === 'agents' || activeTab === 'settings_agents') && (language === 'uz' ? 'Agentlar Boshqaruvi' : 'Управление агентами')}
             {activeTab === 'settings_admins' && (language === 'uz' ? 'Adminlar Boshqaruvi' : 'Управление администраторами')}
             {activeTab === 'assignments' && (userRole === 'agent' ? t('my_tasks') : t('agent_assignments'))}
+            {activeTab === 'agent_history' && (language === 'uz' ? 'Tarix' : 'История')}
             {activeTab === 'sales' && t('sales_history_title')}
             {activeTab === 'tahlil_umumiy' && t('general_analytics')}
             {activeTab === 'tahlil_dokon' && t('store_analytics')}
@@ -5591,255 +5666,268 @@ function App() {
                           display: 'block', 
                           WebkitOverflowScrolling: 'touch' 
                         }}>
-                          {agentStores.length === 0 ? (
-                            <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? "Do'konlar biriktirilmagan" : 'Магазины не закреплены'}</div>
-                          ) : userRole === 'agent' ? (
-                            /* Agent View: Beautiful div-based list (no tables to prevent horizontal overflow/scroll) */
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0', width: '100%' }}>
-                              {agentStores.map((store, idx) => (
-                                <div 
-                                  key={store.id} 
-                                  onClick={() => handleOpenCashier(store)}
-                                  style={{ 
-                                    display: 'flex', 
-                                    alignItems: 'center', 
-                                    gap: '10px', 
-                                    padding: '14px 0', 
-                                    borderBottom: '1px solid var(--border-color)',
-                                    width: '100%',
-                                    boxSizing: 'border-box',
-                                    cursor: 'pointer'
-                                  }}
-                                  className="hoverable-row-div"
-                                >
-                                  {/* Subtle index number */}
-                                  <span style={{ 
-                                    fontSize: '11px', 
-                                    color: 'var(--text-muted)', 
-                                    fontWeight: '600',
-                                    minWidth: '16px',
-                                    textAlign: 'center',
-                                    flexShrink: 0
-                                  }}>
-                                    {idx + 1}.
-                                  </span>
-
-                                  {/* Map Link / Map Pin button */}
-                                  {store.map_link || (store.latitude && store.longitude) ? (
-                                    <a
-                                      href={store.map_link || `https://maps.google.com/?q=${store.latitude},${store.longitude}`}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      style={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        width: '26px',
-                                        height: '26px',
-                                        borderRadius: '50%',
-                                        backgroundColor: 'var(--accent-light)',
-                                        color: 'var(--accent-color)',
-                                        transition: 'all 0.2s ease',
-                                        cursor: 'pointer',
-                                        border: 'none',
-                                        flexShrink: 0
-                                      }}
-                                      className="map-pin-btn"
-                                      title={language === 'uz' ? "Xaritada ko'rish" : "Посмотреть на карте"}
-                                      onClick={(e) => e.stopPropagation()}
-                                    >
-                                      <MapPin size={13} />
-                                    </a>
-                                  ) : (
-                                    <span style={{ color: 'var(--text-muted)', fontSize: '11px', minWidth: '26px', textAlign: 'center', flexShrink: 0 }}>—</span>
-                                  )}
-
-                                  {/* Store name - small font, wraps to 2 lines max */}
-                                  <span style={{ 
-                                    fontSize: '10px', 
-                                    fontWeight: '600', 
-                                    color: 'var(--text-primary)',
-                                    lineHeight: '1.3',
-                                    wordBreak: 'break-word',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 2,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis',
-                                    flexGrow: 1
-                                  }}>
-                                    {store.storeName}
-                                  </span>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            /* Admin View: Original drag-and-drop table layout */
-                            <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
-                              <thead>
-                                <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '12px' }}>
-                                  <th style={{ padding: '8px 4px', width: '36px' }}>№</th>
-                                  <th style={{ padding: '8px 4px' }}>{language === 'uz' ? "Do'kon / Rahbar / Manzil" : 'Магазин / Руководитель / Адрес'}</th>
-                                  <th style={{ padding: '8px 4px', textAlign: 'center', width: '70px' }}>{language === 'uz' ? 'Lokatsiya' : 'Локация'}</th>
-                                  <th style={{ padding: '8px 4px', textAlign: 'right', width: '60px' }}>{language === 'uz' ? "O'chirish" : 'Удалить'}</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {agentStores.map((store, idx) => (
-                                  <tr 
+                          {userRole === 'agent' ? (
+                            activeAgentStores.length === 0 ? (
+                              <div style={{ padding: '32px', textAlign: 'center', color: '#10b981', fontSize: '14px', fontWeight: '600' }}>
+                                🎉 {language === 'uz' ? "Bugungi barcha vazifalar muvaffaqiyatli bajarildi!" : "Все сегодняшние задачи успешно выполнены!"}
+                              </div>
+                            ) : (
+                              /* Agent View: Beautiful div-based list */
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0', width: '100%' }}>
+                                {activeAgentStores.map((store, idx) => (
+                                  <div 
                                     key={store.id} 
-                                    draggable={window.innerWidth > 768}
-                                    onDragStart={(e) => handleStoreDragStart(e, idx)}
-                                    onDragOver={handleStoreDragOver}
-                                    onDrop={(e) => handleStoreDrop(e, idx)}
+                                    onClick={() => handleOpenCashier(store)}
                                     style={{ 
-                                      borderBottom: '1px solid var(--border-color)', 
-                                      fontSize: '13px', 
-                                      cursor: window.innerWidth > 768 ? 'grab' : 'default',
-                                      backgroundColor: draggedStoreIndex === idx ? 'var(--bg-primary)' : 'transparent',
-                                      opacity: draggedStoreIndex === idx ? 0.5 : 1
+                                      display: 'flex', 
+                                      alignItems: 'center', 
+                                      gap: '10px', 
+                                      padding: '14px 0', 
+                                      borderBottom: '1px solid var(--border-color)',
+                                      width: '100%',
+                                      boxSizing: 'border-box',
+                                      cursor: 'pointer'
                                     }}
-                                    className="hoverable-row"
+                                    className="hoverable-row-div"
                                   >
-                                    <td style={{ padding: '10px 4px' }}>
-                                      <div style={{
-                                        width: '22px',
-                                        height: '22px',
-                                        borderRadius: '50%',
-                                        backgroundColor: 'var(--accent-color)',
-                                        color: '#fff',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontSize: '11px',
-                                        fontWeight: '700'
-                                      }}>
-                                        {idx + 1}
-                                      </div>
-                                    </td>
-                                    <td style={{ padding: '10px 4px' }}>
-                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                        {/* Drag handle for desktop */}
-                                        <span style={{ color: 'var(--text-muted)', fontSize: '14px', cursor: 'grab', userSelect: 'none' }}>☰</span>
-                                        
-                                        {/* Up/Down buttons for mobile & easy desktop sorting */}
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleMoveStore(idx, -1);
-                                            }}
-                                            disabled={idx === 0}
-                                            style={{
-                                              border: 'none',
-                                              backgroundColor: 'transparent',
-                                              color: idx === 0 ? 'var(--text-muted)' : 'var(--accent-color)',
-                                              padding: '1px 3px',
-                                              cursor: idx === 0 ? 'not-allowed' : 'pointer',
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              fontSize: '9px',
-                                              lineHeight: '1',
-                                              fontWeight: 'bold'
-                                            }}
-                                            title={language === 'uz' ? "Tepaga ko'tarish" : "Поднять вверх"}
-                                          >
-                                            ▲
-                                          </button>
-                                          <button
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              handleMoveStore(idx, 1);
-                                            }}
-                                            disabled={idx === agentStores.length - 1}
-                                            style={{
-                                              border: 'none',
-                                              backgroundColor: 'transparent',
-                                              color: idx === agentStores.length - 1 ? 'var(--text-muted)' : 'var(--accent-color)',
-                                              padding: '1px 3px',
-                                              cursor: idx === agentStores.length - 1 ? 'not-allowed' : 'pointer',
-                                              display: 'inline-flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              fontSize: '9px',
-                                              lineHeight: '1',
-                                              fontWeight: 'bold'
-                                            }}
-                                            title={language === 'uz' ? "Pastga tushirish" : "Опустить вниз"}
-                                          >
-                                            ▼
-                                          </button>
-                                        </div>
+                                    {/* Subtle index number */}
+                                    <span style={{ 
+                                      fontSize: '11px', 
+                                      color: 'var(--text-muted)', 
+                                      fontWeight: '600',
+                                      minWidth: '16px',
+                                      textAlign: 'center',
+                                      flexShrink: 0
+                                    }}>
+                                      {idx + 1}.
+                                    </span>
 
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
-                                          <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>{store.storeName}</span>
-                                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                            👤 {store.ownerName || 'Tadbirkor'} • 📞 {store.phone || "Telefon yo'q"}
-                                          </span>
-                                          {store.address && (
-                                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
-                                              📍 {store.address}
-                                            </span>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'center' }}>
-                                      {store.map_link || (store.latitude && store.longitude) ? (
-                                        <a
-                                          href={store.map_link || `https://maps.google.com/?q=${store.latitude},${store.longitude}`}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          style={{
-                                            display: 'inline-flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            width: '32px',
-                                            height: '32px',
-                                            borderRadius: '50%',
-                                            backgroundColor: 'var(--accent-light)',
-                                            color: 'var(--accent-color)',
-                                            transition: 'all 0.2s ease',
-                                            cursor: 'pointer',
-                                            border: 'none'
-                                          }}
-                                          className="map-pin-btn"
-                                          title={language === 'uz' ? "Xaritada ko'rish" : "Посмотреть на карте"}
-                                          onClick={(e) => e.stopPropagation()}
-                                        >
-                                          <MapPin size={16} />
-                                        </a>
-                                      ) : (
-                                        <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>
-                                      )}
-                                    </td>
-                                    <td style={{ padding: '10px 4px', textAlign: 'right' }}>
-                                      <button
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          handleDeleteStoreAssignment(store.id);
-                                        }}
-                                        title={language === 'uz' ? "O'chirish" : "Удалить"}
+                                    {/* Map Link / Map Pin button */}
+                                    {store.map_link || (store.latitude && store.longitude) ? (
+                                      <a
+                                        href={store.map_link || `https://maps.google.com/?q=${store.latitude},${store.longitude}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
                                         style={{
-                                          border: 'none',
-                                          backgroundColor: 'transparent',
-                                          color: 'var(--warning-color)',
-                                          padding: '4px',
-                                          cursor: 'pointer',
-                                          borderRadius: '4px',
                                           display: 'inline-flex',
                                           alignItems: 'center',
-                                          justifyContent: 'center'
+                                          justifyContent: 'center',
+                                          width: '26px',
+                                          height: '26px',
+                                          borderRadius: '50%',
+                                          backgroundColor: 'var(--accent-light)',
+                                          color: 'var(--accent-color)',
+                                          transition: 'all 0.2s ease',
+                                          cursor: 'pointer',
+                                          border: 'none',
+                                          flexShrink: 0
                                         }}
+                                        className="map-pin-btn"
+                                        title={language === 'uz' ? "Xaritada ko'rish" : "Посмотреть на карте"}
+                                        onClick={(e) => e.stopPropagation()}
                                       >
-                                        <Trash2 size={15} />
-                                      </button>
-                                    </td>
-                                  </tr>
+                                        <MapPin size={13} />
+                                      </a>
+                                    ) : (
+                                      <span style={{ color: 'var(--text-muted)', fontSize: '11px', minWidth: '26px', textAlign: 'center', flexShrink: 0 }}>—</span>
+                                    )}
+
+                                    {/* Store name - small font, wraps to 2 lines max */}
+                                    <span style={{ 
+                                      fontSize: '12px', 
+                                      fontWeight: '600', 
+                                      color: 'var(--text-primary)',
+                                      lineHeight: '1.3',
+                                      wordBreak: 'break-word',
+                                      display: '-webkit-box',
+                                      WebkitLineClamp: 2,
+                                      WebkitBoxOrient: 'vertical',
+                                      overflow: 'hidden',
+                                      textOverflow: 'ellipsis',
+                                      flexGrow: 1
+                                    }}>
+                                      {store.storeName}
+                                    </span>
+
+                                    {/* Chevron icon indicator */}
+                                    <span style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: '600', flexShrink: 0, paddingRight: '8px' }}>
+                                      {language === 'uz' ? "Kassa ➔" : "Касса ➔"}
+                                    </span>
+                                  </div>
                                 ))}
-                              </tbody>
-                            </table>
+                              </div>
+                            )
+                          ) : (
+                            /* Admin View: Original drag-and-drop table layout */
+                            agentStores.length === 0 ? (
+                              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? "Do'konlar biriktirilmagan" : 'Магазины не закреплены'}</div>
+                            ) : (
+                              <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                                <thead>
+                                  <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                                    <th style={{ padding: '8px 4px', width: '36px' }}>№</th>
+                                    <th style={{ padding: '8px 4px' }}>{language === 'uz' ? "Do'kon / Rahbar / Manzil" : 'Магазин / Руководитель / Адрес'}</th>
+                                    <th style={{ padding: '8px 4px', textAlign: 'center', width: '70px' }}>{language === 'uz' ? 'Lokatsiya' : 'Локация'}</th>
+                                    <th style={{ padding: '8px 4px', textAlign: 'right', width: '60px' }}>{language === 'uz' ? "O'chirish" : 'Удалить'}</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {agentStores.map((store, idx) => (
+                                    <tr 
+                                      key={store.id} 
+                                      draggable={window.innerWidth > 768}
+                                      onDragStart={(e) => handleStoreDragStart(e, idx)}
+                                      onDragOver={handleStoreDragOver}
+                                      onDrop={(e) => handleStoreDrop(e, idx)}
+                                      style={{ 
+                                        borderBottom: '1px solid var(--border-color)', 
+                                        fontSize: '13px', 
+                                        cursor: window.innerWidth > 768 ? 'grab' : 'default',
+                                        backgroundColor: draggedStoreIndex === idx ? 'var(--bg-primary)' : 'transparent',
+                                        opacity: draggedStoreIndex === idx ? 0.5 : 1
+                                      }}
+                                      className="hoverable-row"
+                                    >
+                                      <td style={{ padding: '10px 4px' }}>
+                                        <div style={{
+                                          width: '22px',
+                                          height: '22px',
+                                          borderRadius: '50%',
+                                          backgroundColor: 'var(--accent-color)',
+                                          color: '#fff',
+                                          display: 'flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center',
+                                          fontSize: '11px',
+                                          fontWeight: '700'
+                                        }}>
+                                          {idx + 1}
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: '10px 4px' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                          {/* Drag handle for desktop */}
+                                          <span style={{ color: 'var(--text-muted)', fontSize: '14px', cursor: 'grab', userSelect: 'none' }}>☰</span>
+                                          
+                                          {/* Up/Down buttons for mobile & easy desktop sorting */}
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', alignItems: 'center' }}>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleMoveStore(idx, -1);
+                                              }}
+                                              disabled={idx === 0}
+                                              style={{
+                                                border: 'none',
+                                                backgroundColor: 'transparent',
+                                                color: idx === 0 ? 'var(--text-muted)' : 'var(--accent-color)',
+                                                padding: '1px 3px',
+                                                cursor: idx === 0 ? 'not-allowed' : 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '9px',
+                                                lineHeight: '1',
+                                                fontWeight: 'bold'
+                                              }}
+                                              title={language === 'uz' ? "Tepaga ko'tarish" : "Поднять вверх"}
+                                            >
+                                              ▲
+                                            </button>
+                                            <button
+                                              onClick={(e) => {
+                                                e.stopPropagation();
+                                                handleMoveStore(idx, 1);
+                                              }}
+                                              disabled={idx === agentStores.length - 1}
+                                              style={{
+                                                border: 'none',
+                                                backgroundColor: 'transparent',
+                                                color: idx === agentStores.length - 1 ? 'var(--text-muted)' : 'var(--accent-color)',
+                                                padding: '1px 3px',
+                                                cursor: idx === agentStores.length - 1 ? 'not-allowed' : 'pointer',
+                                                display: 'inline-flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                fontSize: '9px',
+                                                lineHeight: '1',
+                                                fontWeight: 'bold'
+                                              }}
+                                              title={language === 'uz' ? "Pastga tushirish" : "Опустить вниз"}
+                                            >
+                                              ▼
+                                            </button>
+                                          </div>
+
+                                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                                            <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>{store.storeName}</span>
+                                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                              👤 {store.ownerName || 'Tadbirkor'} • 📞 {store.phone || "Telefon yo'q"}
+                                            </span>
+                                            {store.address && (
+                                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                                                📍 {store.address}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </td>
+                                      <td style={{ padding: '10px 4px', textAlign: 'center' }}>
+                                        {store.map_link || (store.latitude && store.longitude) ? (
+                                          <a
+                                            href={store.map_link || `https://maps.google.com/?q=${store.latitude},${store.longitude}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            style={{
+                                              display: 'inline-flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              width: '32px',
+                                              height: '32px',
+                                              borderRadius: '50%',
+                                              backgroundColor: 'var(--accent-light)',
+                                              color: 'var(--accent-color)',
+                                              transition: 'all 0.2s ease',
+                                              cursor: 'pointer',
+                                              border: 'none'
+                                            }}
+                                            className="map-pin-btn"
+                                            title={language === 'uz' ? "Xaritada ko'rish" : "Посмотреть на карте"}
+                                            onClick={(e) => e.stopPropagation()}
+                                          >
+                                            <MapPin size={16} />
+                                          </a>
+                                        ) : (
+                                          <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>
+                                        )}
+                                      </td>
+                                      <td style={{ padding: '10px 4px', textAlign: 'right' }}>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleDeleteStoreAssignment(store.id);
+                                          }}
+                                          title={language === 'uz' ? "O'chirish" : "Удалить"}
+                                          style={{
+                                            border: 'none',
+                                            backgroundColor: 'transparent',
+                                            color: 'var(--warning-color)',
+                                            padding: '4px',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                          }}
+                                        >
+                                          <Trash2 size={15} />
+                                        </button>
+                                      </td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )
                           )}
                         </div>
                       </div>
@@ -5998,6 +6086,96 @@ function App() {
                   </div>
                 );
               })()}
+            </div>
+          )}
+
+          {/* VIEW: AGENT HISTORY */}
+          {activeTab === 'agent_history' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                  {language === 'uz' ? "Sotuvlar va Tashriflar Tarixi" : "История продаж и визитов"}
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  {language === 'uz' ? "Bugun tashrif buyurilgan va savdo qilingan do'konlar ro'yxati" : "Список магазинов, которые вы посетили сегодня"}
+                </p>
+
+                {visitedStores.filter(v => v.date === new Date().toISOString().split('T')[0]).length === 0 ? (
+                  <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                    {language === 'uz' ? "Bugun hali hech qaysi do'konga tashrif buyurilmadi." : "Сегодня вы еще не посетили ни один магазин."}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {visitedStores.filter(v => v.date === new Date().toISOString().split('T')[0]).map((visit, index) => (
+                      <div key={index} style={{
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        padding: '16px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '12px'
+                      }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                          <div>
+                            <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>
+                              {visit.storeName}
+                            </span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                              🕒 {visit.time}
+                            </span>
+                          </div>
+                          <div>
+                            {visit.status === 'sold' ? (
+                              <span style={{
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                color: '#10b981',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontSize: '11px',
+                                fontWeight: '600'
+                              }}>
+                                {language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена"}
+                              </span>
+                            ) : (
+                              <span style={{
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                color: '#f59e0b',
+                                padding: '4px 10px',
+                                borderRadius: '20px',
+                                fontSize: '11px',
+                                fontWeight: '600'
+                              }}>
+                                {language === 'uz' ? `Sotuvsiz (Sabab: ${visit.reason})` : `Без продажи (Причина: ${visit.reason})`}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        {visit.status === 'sold' && visit.items && visit.items.length > 0 && (
+                          <div style={{
+                            borderTop: '1px dashed var(--border-color)',
+                            paddingTop: '8px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px'
+                          }}>
+                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                              {language === 'uz' ? "Sotilgan mahsulotlar:" : "Проданные товары:"}
+                            </span>
+                            {visit.items.map((item, itemIdx) => (
+                              <div key={itemIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                <span>• {item.productName} ({item.qty} dona)</span>
+                                <span>{(item.qty * item.price).toLocaleString()} UZS</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -8646,15 +8824,7 @@ function App() {
               </p>
             </div>
             <button
-              onClick={() => {
-                showConfirm(
-                  language === 'uz' ? "Kassadan chiqishni xohlaysizmi? Savatcha tozalanadi!" : "Вы действительно хотите выйти из кассы? Корзина будет очищена!",
-                  () => {
-                    setActiveCashierStore(null);
-                    setCashierCart([]);
-                  }
-                );
-              }}
+              onClick={handleExitCashier}
               style={{
                 border: '1px solid var(--border-color)',
                 backgroundColor: 'rgba(239, 68, 68, 0.1)',
@@ -9512,6 +9682,142 @@ function App() {
           >
             ×
           </button>
+        </div>
+      )}
+
+      {/* Exit Questionnaire Modal */}
+      {showExitQuestionnaire && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 20000
+        }} className="fade-in">
+          <div style={{
+            width: '90%',
+            maxWidth: '380px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px'
+          }}>
+            <h4 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0, textAlign: 'center' }}>
+              {language === 'uz' ? "Sotuvsiz chiqish sababi" : "Причина выхода без продажи"}
+            </h4>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', margin: 0 }}>
+              {language === 'uz' ? "Nima sababdan do'kondan hech narsa sotmasdan chiqib ketyapsiz?" : "Укажите причину, по которой вы выходите без продажи?"}
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '8px' }}>
+              <button
+                onClick={() => setExitReason('closed')}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '2px solid ' + (exitReason === 'closed' ? 'var(--accent-color)' : 'var(--border-color)'),
+                  backgroundColor: exitReason === 'closed' ? 'rgba(13, 148, 136, 0.08)' : 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s'
+                }}
+              >
+                🚪 {language === 'uz' ? "Do'kon yopiq" : "Магазин закрыт"}
+              </button>
+
+              <button
+                onClick={() => setExitReason('no_buy')}
+                style={{
+                  padding: '12px 16px',
+                  borderRadius: '8px',
+                  border: '2px solid ' + (exitReason === 'no_buy' ? 'var(--accent-color)' : 'var(--border-color)'),
+                  backgroundColor: exitReason === 'no_buy' ? 'rgba(13, 148, 136, 0.08)' : 'transparent',
+                  color: 'var(--text-primary)',
+                  fontSize: '13px',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  transition: 'all 0.2s'
+                }}
+              >
+                📦 {language === 'uz' ? "Mahsulot olmadi" : "Товар не куплен"}
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+              <button
+                onClick={() => {
+                  setShowExitQuestionnaire(false);
+                  setExitReason('');
+                }}
+                style={{
+                  flexGrow: 1,
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                {language === 'uz' ? "Orqaga" : "Назад"}
+              </button>
+              <button
+                disabled={!exitReason}
+                onClick={() => {
+                  const newVisit = {
+                    storeId: activeCashierStore.id,
+                    storeName: activeCashierStore.storeName,
+                    status: 'empty',
+                    reason: exitReason === 'closed' ? (language === 'uz' ? "Do'kon yopiq" : "Магазин закрыт") : (language === 'uz' ? "Mahsulot olmadi" : "Товар не куплен"),
+                    items: [],
+                    date: new Date().toISOString().split('T')[0],
+                    time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
+                  };
+                  setVisitedStores(prev => {
+                    const updated = [newVisit, ...prev];
+                    localStorage.setItem('visited_stores', JSON.stringify(updated));
+                    return updated;
+                  });
+
+                  // Reset cashier states and close
+                  setActiveCashierStore(null);
+                  setCashierCart([]);
+                  setExitReason('');
+                  setShowExitQuestionnaire(false);
+                  showAlert(language === 'uz' ? "Hisobot saqlandi va kassa yopildi!" : "Отчет сохранен и касса закрыта!", 'success');
+                }}
+                style={{
+                  flexGrow: 1,
+                  padding: '10px',
+                  borderRadius: '6px',
+                  border: 'none',
+                  backgroundColor: exitReason ? 'var(--accent-color)' : 'var(--bg-tertiary)',
+                  color: exitReason ? '#fff' : 'var(--text-muted)',
+                  fontWeight: '600',
+                  cursor: exitReason ? 'pointer' : 'not-allowed',
+                  fontSize: '13px'
+                }}
+              >
+                {language === 'uz' ? "Tasdiqlash" : "Подтвердить"}
+              </button>
+            </div>
+          </div>
         </div>
       )}
 
