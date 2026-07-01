@@ -5779,7 +5779,7 @@ function App() {
                     </div>
 
                     {/* Lists Grid */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px', flexGrow: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: window.innerWidth > 1024 ? '1.2fr 0.8fr' : '1fr', gap: '24px', flexGrow: 1 }}>
                       
                       {/* Stores List Box */}
                       <div style={{
@@ -5938,7 +5938,8 @@ function App() {
                                     <th style={{ padding: '8px 4px', width: '36px' }}>№</th>
                                     <th style={{ padding: '8px 4px' }}>{language === 'uz' ? "Do'kon / Rahbar / Manzil" : 'Магазин / Руководитель / Адрес'}</th>
                                     <th style={{ padding: '8px 4px', textAlign: 'center', width: '70px' }}>{language === 'uz' ? 'Lokatsiya' : 'Локация'}</th>
-                                    <th style={{ padding: '8px 4px', textAlign: 'right', width: '60px' }}>{language === 'uz' ? "O'chirish" : 'Удалить'}</th>
+                                                                         <th style={{ padding: '8px 4px', textAlign: 'center', width: '120px' }}>{language === 'uz' ? 'Bugun faol' : 'Активен сегодня'}</th>
+<th style={{ padding: '8px 4px', textAlign: 'right', width: '60px' }}>{language === 'uz' ? "O'chirish" : 'Удалить'}</th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -6071,7 +6072,43 @@ function App() {
                                           <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>
                                         )}
                                       </td>
-                                      <td style={{ padding: '10px 4px', textAlign: 'right' }}>
+                                                                            <td style={{ padding: '10px 4px', textAlign: 'center' }}>
+                                        <button
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleStoreActiveToday(store);
+                                          }}
+                                          style={{
+                                            border: 'none',
+                                            borderRadius: '20px',
+                                            padding: '6px 12px',
+                                            fontSize: '11px',
+                                            fontWeight: '600',
+                                            cursor: 'pointer',
+                                            backgroundColor: isAssignmentActive(store.date, store.durationDays || 1) 
+                                              ? 'rgba(16, 185, 129, 0.15)' 
+                                              : 'rgba(107, 114, 128, 0.15)',
+                                            color: isAssignmentActive(store.date, store.durationDays || 1) 
+                                              ? '#10b981' 
+                                              : '#6b7280',
+                                            transition: 'all 0.2s ease',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '4px'
+                                          }}
+                                        >
+                                          <span style={{
+                                            width: '6px',
+                                            height: '6px',
+                                            borderRadius: '50%',
+                                            backgroundColor: isAssignmentActive(store.date, store.durationDays || 1) ? '#10b981' : '#6b7280'
+                                          }}></span>
+                                          {isAssignmentActive(store.date, store.durationDays || 1) 
+                                            ? (language === 'uz' ? 'Bugun Faol' : 'Активен сегодня') 
+                                            : (language === 'uz' ? 'Nofaol' : 'Неактивен')}
+                                        </button>
+                                      </td>
+<td style={{ padding: '10px 4px', textAlign: 'right' }}>
                                         <button
                                           onClick={(e) => {
                                             e.stopPropagation();
@@ -6102,7 +6139,87 @@ function App() {
                         </div>
                       </div>
 
-                      {/* Products List Box */}
+                      {/* Right Column: Yo'nalishlar & Products */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', minWidth: 0 }}>
+                        
+                        {/* Yo'nalishlar (Ro'yxat) Box */}
+                        <div style={{
+                          backgroundColor: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '12px',
+                          padding: '20px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          width: '100%',
+                          minWidth: 0
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                            <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                              {language === 'uz' ? "Biriktirilgan yo'nalishlar (Ro'yxat)" : 'Закрепленные направления (Список)'}
+                            </h3>
+                          </div>
+                          
+                          {/* Routes list content */}
+                          {(() => {
+                            const assignedRoutes = [...new Set(agentStores.map(s => s.route).filter(Boolean))].sort();
+                            if (assignedRoutes.length === 0) {
+                              return (
+                                <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                                  {language === 'uz' ? "Yo'nalishlar biriktirilmagan" : 'Направления не закреплены'}
+                                </div>
+                              );
+                            }
+                            return (
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                {assignedRoutes.map(route => {
+                                  const routeStoreCount = agentStores.filter(s => s.route === route).length;
+                                  return (
+                                    <div
+                                      key={route}
+                                      style={{
+                                        display: 'flex',
+                                        justifyContent: 'space-between',
+                                        alignItems: 'center',
+                                        padding: '12px 16px',
+                                        borderRadius: '8px',
+                                        backgroundColor: 'var(--bg-primary)',
+                                        border: '1px solid var(--border-color)'
+                                      }}
+                                    >
+                                      <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                                          {route}
+                                        </span>
+                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                                          {routeStoreCount} {language === 'uz' ? "ta do'kon biriktirilgan" : "магазинов закреплено"}
+                                        </span>
+                                      </div>
+                                      <button
+                                        onClick={() => handleRemoveRouteAssignment(route)}
+                                        title={language === 'uz' ? "Yo'nalishni o'chirish" : "Удалить направление"}
+                                        style={{
+                                          border: 'none',
+                                          backgroundColor: 'transparent',
+                                          color: 'var(--warning-color)',
+                                          padding: '6px',
+                                          cursor: 'pointer',
+                                          borderRadius: '4px',
+                                          display: 'inline-flex',
+                                          alignItems: 'center',
+                                          justifyContent: 'center'
+                                        }}
+                                      >
+                                        <Trash2 size={15} />
+                                      </button>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            );
+                          })()}
+                        </div>
+
+                        {/* Products List Box */}
                       <div style={{
                         backgroundColor: 'var(--bg-secondary)',
                         border: '1px solid var(--border-color)',
@@ -6251,6 +6368,7 @@ function App() {
                             </table>
                           )}
                         </div>
+                      </div>
                       </div>
 
 
