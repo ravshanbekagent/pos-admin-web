@@ -1107,7 +1107,7 @@ function App() {
   const [showEditStoreModal, setShowEditStoreModal] = useState(false);
   const [selectedStoreIds, setSelectedStoreIds] = useState([]);
   const [newAssignment, setNewAssignment] = useState({ agentId: '', productId: '', qty: '', durationDays: '1', isPermanent: false });
-  const [newStoreAssignment, setNewStoreAssignment] = useState({ agentId: '', storeId: '', durationDays: '1', isPermanent: false });
+  const [newStoreAssignment, setNewStoreAssignment] = useState({ agentId: '', storeId: '', durationDays: '1', isPermanent: false, isActiveToday: true });
 
   const [newAgent, setNewAgent] = useState({
     login: 'AGENT-FG-R3',
@@ -2178,7 +2178,7 @@ function App() {
           location_lat: String(store.latitude || store.location_lat || ''),
           location_lng: String(store.longitude || store.location_lng || ''),
           agent_id: agent.id,
-          assigned_date: new Date().toISOString().split('T')[0],
+          assigned_date: newStoreAssignment.isActiveToday ? new Date().toISOString().split('T')[0] : '2000-01-01',
           duration_days: newStoreAssignment.isPermanent ? 9999 : parseInt(newStoreAssignment.durationDays || '1'),
           order: nextOrder + index
         })
@@ -2201,7 +2201,7 @@ function App() {
         setIsLoading(false);
       });
 
-    setNewStoreAssignment({ agentId: '', storeId: '', durationDays: '1', isPermanent: false });
+    setNewStoreAssignment({ agentId: '', storeId: '', durationDays: '1', isPermanent: false, isActiveToday: true });
     setSelectedAssignStoreIds([]);
     setAssignStoreSearchQuery('');
     setShowAssignStoreModal(false);
@@ -8440,6 +8440,19 @@ function App() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', marginTop: '4px' }}>
+                <input
+                  type="checkbox"
+                  id="assign-store-active-today"
+                  checked={newStoreAssignment.isActiveToday}
+                  onChange={(e) => setNewStoreAssignment({ ...newStoreAssignment, isActiveToday: e.target.checked })}
+                  style={{ width: '15px', height: '15px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                />
+                <label htmlFor="assign-store-active-today" style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '600', cursor: 'pointer' }}>
+                  {language === 'uz' ? "Bugungi faol vazifalarga qo'shish" : "Добавить в сегодняшние активные задачи"}
+                </label>
               </div>
 
               <div>
