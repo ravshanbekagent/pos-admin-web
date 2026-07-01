@@ -1075,6 +1075,8 @@ function App() {
   const [showAddStoreModal, setShowAddStoreModal] = useState(false);
   const [showAssignProductModal, setShowAssignProductModal] = useState(false);
   const [showAssignStoreModal, setShowAssignStoreModal] = useState(false);
+  const [selectedAssignStoreIds, setSelectedAssignStoreIds] = useState([]);
+  const [assignStoreSearchQuery, setAssignStoreSearchQuery] = useState('');
   const [showAddSelfStoreModal, setShowAddSelfStoreModal] = useState(false);
   const [selfStoreSearchQuery, setSelfStoreSearchQuery] = useState('');
   const [showEditAssignmentModal, setShowEditAssignmentModal] = useState(false);
@@ -2143,54 +2145,65 @@ function App() {
 
   const handleAddStoreAssignment = (e) => {
     e.preventDefault();
-    if (!newStoreAssignment.storeId) return;
+    if (selectedAssignStoreIds.length === 0) {
+      showAlert(
+        language === 'uz' ? 'Iltimos, kamida bitta do\'konni tanlang' : 'Пожалуйста, выберите хотя бы один магазин',
+        'error'
+      );
+      return;
+    }
 
     const agent = agents.find(a => a.id === selectedAgentId);
-    const store = stores.find(s => s.id === parseInt(newStoreAssignment.storeId));
-
-    if (!agent || !store) return;
+    if (!agent) return;
 
     const nextOrder = storeAssignments.filter(ass => ass.agentId === agent.id).length + 1;
 
-    // Send PUT request to save the assignment in the database
-    fetch(`${API_URL}/stores/${store.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify({
-        name: store.name,
-        owner_name: store.ownerName || store.owner_name,
-        phone: store.phone,
-        address: store.address,
-        map_link: store.map_link,
-        location_lat: String(store.latitude || store.location_lat || ''),
-        location_lng: String(store.longitude || store.location_lng || ''),
-        agent_id: agent.id,
-        assigned_date: new Date().toISOString().split('T')[0],
-        duration_days: newStoreAssignment.isPermanent ? 9999 : parseInt(newStoreAssignment.durationDays || '1'),
-        order: nextOrder
-      })
-    })
-    .then(res => {
-      if (!res.ok) throw new Error('Do\'konni biriktirishda xatolik');
-      return res.json();
-    })
-    .then(() => {
-      showAlert(
-        language === 'uz' ? 'Do\'kon muvaffaqiyatli biriktirildi' : 'Магазин успешно закреплен',
-        'success'
-      );
-      // Reload all data to refresh state
-      loadCloudData(token);
-    })
-    .catch(err => {
-      console.error(err);
-      showAlert(err.message, 'error');
+    setIsLoading(true);
+    const promises = selectedAssignStoreIds.map((storeId, index) => {
+      const store = stores.find(s => s.id === storeId);
+      if (!store) return Promise.resolve();
+
+      return fetch(`${API_URL}/stores/${store.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: store.name,
+          owner_name: store.owner_name,
+          phone: store.phone,
+          address: store.address,
+          map_link: store.map_link,
+          location_lat: String(store.latitude || store.location_lat || ''),
+          location_lng: String(store.longitude || store.location_lng || ''),
+          agent_id: agent.id,
+          assigned_date: new Date().toISOString().split('T')[0],
+          duration_days: newStoreAssignment.isPermanent ? 9999 : parseInt(newStoreAssignment.durationDays || '1'),
+          order: nextOrder + index
+        })
+      });
     });
 
+    Promise.all(promises)
+      .then(() => {
+        showAlert(
+          language === 'uz' ? 'Do\'konlar muvaffaqiyatli biriktirildi' : 'Магазины успешно закреплены',
+          'success'
+        );
+        loadCloudData(token);
+      })
+      .catch(err => {
+        console.error(err);
+        showAlert(err.message, 'error');
+      })
+      .finally(() => {
+        setIsLoading(false);
+      });
+
     setNewStoreAssignment({ agentId: '', storeId: '', durationDays: '1', isPermanent: false });
+    setSelectedAssignStoreIds([]);
+    setAssignStoreSearchQuery('');
     setShowAssignStoreModal(false);
   };
 
@@ -8329,18 +8342,104 @@ function App() {
             <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px' }}>{t('assign_store_title')}</h3>
             <form onSubmit={handleAddStoreAssignment} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
-                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>{t('select_store_label')}</label>
-                <select 
-                  required
-                  value={newStoreAssignment.storeId}
-                  onChange={(e) => setNewStoreAssignment({ ...newStoreAssignment, storeId: e.target.value })}
-                  style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', cursor: 'pointer' }}
-                >
-                  <option value="">{t('select_store_label')}...</option>
-                  {stores.map(store => (
-                    <option key={store.id} value={store.id}>{store.name}</option>
-                  ))}
-                </select>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  {language === 'uz' ? "Do'konlarni tanlang" : "Выберите магазины"}
+                </label>
+                <input
+                  type="text"
+                  placeholder={language === 'uz' ? "Do'kon nomi bo'yicha qidirish..." : "Поиск по названию магазина..."}
+                  value={assignStoreSearchQuery}
+                  onChange={(e) => setAssignStoreSearchQuery(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '13px',
+                    marginBottom: '8px',
+                    boxSizing: 'border-box'
+                  }}
+                />
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid var(--border-color)' }}>
+                  <input
+                    type="checkbox"
+                    id="select-all-assign-stores"
+                    checked={
+                      stores.length > 0 &&
+                      stores.every(store => selectedAssignStoreIds.includes(store.id))
+                    }
+                    onChange={(e) => {
+                      if (e.target.checked) {
+                        setSelectedAssignStoreIds(stores.map(s => s.id));
+                      } else {
+                        setSelectedAssignStoreIds([]);
+                      }
+                    }}
+                    style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                  />
+                  <label htmlFor="select-all-assign-stores" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '600', cursor: 'pointer' }}>
+                    {language === 'uz' ? "Barchasini tanlash" : "Выбрать все"}
+                  </label>
+                </div>
+
+                <div style={{
+                  maxHeight: '180px',
+                  overflowY: 'auto',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  backgroundColor: 'var(--bg-primary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  {stores
+                    .filter(store => (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase()))
+                    .map(store => {
+                      const isChecked = selectedAssignStoreIds.includes(store.id);
+                      return (
+                        <label 
+                          key={store.id} 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            fontSize: '13px', 
+                            color: 'var(--text-primary)', 
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            backgroundColor: isChecked ? 'rgba(13, 148, 136, 0.05)' : 'transparent'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setSelectedAssignStoreIds(prev => prev.filter(id => id !== store.id));
+                              } else {
+                                setSelectedAssignStoreIds(prev => [...prev, store.id]);
+                              }
+                            }}
+                            style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                            <span style={{ fontWeight: '500' }}>{store.name}</span>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>📍 {store.address || 'Manzilsiz'}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  {stores.filter(store => (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())).length === 0 && (
+                    <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                      {language === 'uz' ? "Do'kon topilmadi" : "Магазины не найдены"}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div>
