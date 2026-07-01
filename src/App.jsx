@@ -934,6 +934,7 @@ function App() {
   const [tindaTerminalPin, setTindaTerminalPin] = useState(() => localStorage.getItem('tinda_terminal_pin') || '');
   const [tindaDefaultMxik, setTindaDefaultMxik] = useState(() => localStorage.getItem('tinda_default_mxik') || '09901001001000000');
   const [tindaDefaultPackage, setTindaDefaultPackage] = useState(() => localStorage.getItem('tinda_default_package') || '242030');
+  const [tindaTestMode, setTindaTestMode] = useState(() => localStorage.getItem('tinda_test_mode') === 'true');
 
   // Tinda Transaction Live States
   const [tindaPaymentStatus, setTindaPaymentStatus] = useState(null); // 'connecting', 'logging_in', 'waiting_card', 'success', 'error'
@@ -2714,6 +2715,28 @@ function App() {
     } catch (err) {
       showAlert(err.message, 'error');
     }
+  };
+
+  const handleTindaTestPayment = (subtotal, discountAmount, finalTotal) => {
+    setTindaPaymentStatus('connecting');
+    setTindaErrorMessage('');
+
+    setTimeout(() => {
+      setTindaPaymentStatus('logging_in');
+      
+      setTimeout(() => {
+        setTindaPaymentStatus('waiting_card');
+        
+        setTimeout(() => {
+          setTindaPaymentStatus('success');
+          
+          setTimeout(async () => {
+            await handleCompleteLocalSaleAfterTindaPayment(finalTotal, 'TEST_SALE_' + Date.now());
+            setTindaPaymentStatus(null);
+          }, 1500);
+        }, 1500);
+      }, 1000);
+    }, 1000);
   };
 
   const handleTindaPayment = (subtotal, discountAmount, finalTotal) => {
@@ -7762,6 +7785,20 @@ function App() {
                     </div>
                   </div>
 
+                  {/* Test Demo Mode Toggle */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                    <input 
+                      type="checkbox" 
+                      id="tinda-test-mode"
+                      checked={tindaTestMode}
+                      onChange={(e) => setTindaTestMode(e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                    />
+                    <label htmlFor="tinda-test-mode" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}>
+                      {language === 'uz' ? "Test Demo rejimini yoqish (Simulyatsiya)" : "Включить тестовый демо-режим (Симуляция)"}
+                    </label>
+                  </div>
+
                   {/* Save Button */}
                   <button
                     onClick={() => {
@@ -7770,6 +7807,7 @@ function App() {
                       localStorage.setItem('tinda_terminal_pin', tindaTerminalPin);
                       localStorage.setItem('tinda_default_mxik', tindaDefaultMxik);
                       localStorage.setItem('tinda_default_package', tindaDefaultPackage);
+                      localStorage.setItem('tinda_test_mode', tindaTestMode ? 'true' : 'false');
                       showAlert(language === 'uz' ? "Tinda terminal sozlamalari saqlandi!" : "Настройки терминала Tinda сохранены!", 'success');
                     }}
                     style={{
@@ -9764,6 +9802,33 @@ function App() {
                         ✓ {language === 'uz' ? "Tinda orqali to'lash" : "Оплатить через Tinda"}
                       </button>
                     </div>
+
+                    {tindaTestMode && (
+                      <button
+                        onClick={() => {
+                          handleTindaTestPayment(subtotal, discountAmount, finalTotal);
+                        }}
+                        style={{
+                          width: '100%',
+                          padding: '14px',
+                          backgroundColor: '#eab308',
+                          color: '#1e293b',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: '700',
+                          cursor: 'pointer',
+                          fontSize: '14px',
+                          marginTop: '8px',
+                          boxShadow: '0 4px 10px rgba(234, 179, 8, 0.3)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '8px'
+                        }}
+                      >
+                        🧪 {language === 'uz' ? "Test to'lov (Simulyatsiya)" : "Тестовая оплата (Симуляция)"}
+                      </button>
+                    )}
                   </div>
                 );
               })()}
@@ -10347,6 +10412,18 @@ function App() {
                   style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600', boxSizing: 'border-box' }}
                 />
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px' }}>
+                <input 
+                  type="checkbox" 
+                  id="cashier-tinda-test-mode"
+                  checked={tindaTestMode}
+                  onChange={(e) => setTindaTestMode(e.target.checked)}
+                  style={{ width: '16px', height: '16px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                />
+                <label htmlFor="cashier-tinda-test-mode" style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}>
+                  {language === 'uz' ? "Test Demo rejimi" : "Тестовый демо-режим"}
+                </label>
+              </div>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '8px' }}>
@@ -10371,6 +10448,7 @@ function App() {
                   localStorage.setItem('tinda_terminal_ip', tindaTerminalIp);
                   localStorage.setItem('tinda_terminal_login', tindaTerminalLogin);
                   localStorage.setItem('tinda_terminal_pin', tindaTerminalPin);
+                  localStorage.setItem('tinda_test_mode', tindaTestMode ? 'true' : 'false');
                   setShowCashierTerminalConfig(false);
                   showAlert(language === 'uz' ? "Terminal sozlamalari saqlandi!" : "Настройки терминала сохранены!", 'success');
                 }}
