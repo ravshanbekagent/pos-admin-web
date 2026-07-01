@@ -1308,8 +1308,11 @@ function App() {
         is_active: product.is_active !== undefined ? product.is_active : true
       })
     })
-    .then(res => {
-      if (!res.ok) throw new Error('Zaxirani yangilashda xatolik yuz berdi');
+    .then(async res => {
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || 'Zaxirani yangilashda xatolik yuz berdi');
+      }
       return res.json();
     })
     .catch(err => {
