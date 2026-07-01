@@ -483,7 +483,9 @@ const initialAgents = [
 const getTodayDateString = (offsetDays = 0) => {
   const d = new Date();
   d.setDate(d.getDate() - offsetDays);
-  return d.toISOString().split('T')[0];
+  const offset = d.getTimezoneOffset();
+  const localDate = new Date(d.getTime() - (offset * 60 * 1000));
+  return localDate.toISOString().split('T')[0];
 };
 
 const initialSales = [
@@ -609,15 +611,15 @@ function App() {
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   const [sales, setSales] = useState(initialSales);
   const [assignments, setAssignments] = useState([
-    { id: 1, agentId: 2, agentName: "Sherzod Alimov", productName: "IQOS Iluma One (Pebble Grey)", qty: 50, remainingQty: 50, date: new Date().toISOString().split('T')[0] },
-    { id: 2, agentId: 2, agentName: "Sherzod Alimov", productName: "Heets Amber Selection", qty: 200, remainingQty: 200, date: new Date().toISOString().split('T')[0] },
-    { id: 3, agentId: 3, agentName: "Malika Qodirova", productName: "IQOS Terea Silver", qty: 150, remainingQty: 150, date: new Date().toISOString().split('T')[0] },
+    { id: 1, agentId: 2, agentName: "Sherzod Alimov", productName: "IQOS Iluma One (Pebble Grey)", qty: 50, remainingQty: 50, date: getTodayDateString() },
+    { id: 2, agentId: 2, agentName: "Sherzod Alimov", productName: "Heets Amber Selection", qty: 200, remainingQty: 200, date: getTodayDateString() },
+    { id: 3, agentId: 3, agentName: "Malika Qodirova", productName: "IQOS Terea Silver", qty: 150, remainingQty: 150, date: getTodayDateString() },
   ]);
 
   const [storeAssignments, setStoreAssignments] = useState([
-    { id: 1, agentId: 2, agentName: "Sherzod Alimov", storeName: "Premium Smoke Shop", ownerName: "Davronbek", phone: "+998 93 543 21 09", address: "Toshkent sh., Amir Temur ko'chasi 12", date: new Date().toISOString().split('T')[0], order: 1 },
-    { id: 2, agentId: 2, agentName: "Sherzod Alimov", storeName: "24/7 Baza Do'kon", ownerName: "Azamat", phone: "+998 99 999 88 77", address: "Toshkent sh., Yunusobod 11-kvartal", date: new Date().toISOString().split('T')[0], order: 2 },
-    { id: 3, agentId: 3, agentName: "Malika Qodirova", storeName: "G'ofur Ota Mini Market", ownerName: "G'ofurjon akam", phone: "+998 90 123 45 67", address: "Toshkent sh., Chilonzor 6-daha", date: new Date().toISOString().split('T')[0], order: 1 },
+    { id: 1, agentId: 2, agentName: "Sherzod Alimov", storeName: "Premium Smoke Shop", ownerName: "Davronbek", phone: "+998 93 543 21 09", address: "Toshkent sh., Amir Temur ko'chasi 12", date: getTodayDateString(), order: 1 },
+    { id: 2, agentId: 2, agentName: "Sherzod Alimov", storeName: "24/7 Baza Do'kon", ownerName: "Azamat", phone: "+998 99 999 88 77", address: "Toshkent sh., Yunusobod 11-kvartal", date: getTodayDateString(), order: 2 },
+    { id: 3, agentId: 3, agentName: "Malika Qodirova", storeName: "G'ofur Ota Mini Market", ownerName: "G'ofurjon akam", phone: "+998 90 123 45 67", address: "Toshkent sh., Chilonzor 6-daha", date: getTodayDateString(), order: 1 },
   ]);
 
   const [selectedAgentId, setSelectedAgentId] = useState(2); // Defaults to Sherzod Alimov (id: 2)
@@ -780,7 +782,7 @@ function App() {
             map_link: s.map_link,
             latitude: s.latitude,
             longitude: s.longitude,
-            date: s.assigned_date || new Date().toISOString().split('T')[0],
+            date: s.assigned_date || getTodayDateString(),
             durationDays: s.duration_days || 1,
             order: s.order || 1
           };
@@ -975,19 +977,19 @@ function App() {
     : agents.find(a => a.id === selectedAgentId);
 
   const agentProducts = activeAgent 
-    ? assignments.filter(ass => ass.agentId === activeAgent.id && isAssignmentActive(ass.date, ass.durationDays || 1)) 
+    ? assignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id) && isAssignmentActive(ass.date, ass.durationDays || 1)) 
     : [];
 
   const agentStores = activeAgent 
-    ? storeAssignments.filter(ass => ass.agentId === activeAgent.id && isAssignmentActive(ass.date, ass.durationDays || 1)).sort((a, b) => (a.order || 0) - (b.order || 0)) 
+    ? storeAssignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id) && isAssignmentActive(ass.date, ass.durationDays || 1)).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
   const activeAgentStores = agentStores.filter(store => {
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = getTodayDateString();
     return !visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
   });
 
   const inactiveAgentStores = activeAgent 
-    ? stores.filter(s => s.agentId === activeAgent.id && !isAssignmentActive(s.assigned_date, s.duration_days || 1))
+    ? stores.filter(s => s.agentId !== null && s.agentId !== undefined && String(s.agentId) === String(activeAgent.id) && !isAssignmentActive(s.assigned_date, s.duration_days || 1))
     : [];
 
 
@@ -1027,7 +1029,7 @@ function App() {
         qty: item.quantity,
         price: item.price
       })),
-      date: new Date().toISOString().split('T')[0],
+      date: getTodayDateString(),
       time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
     };
     setVisitedStores(prev => {
@@ -2056,7 +2058,7 @@ function App() {
       },
       body: JSON.stringify({
         agent_id: agent.id,
-        date: new Date().toISOString().split('T')[0],
+        date: getTodayDateString(),
         duration_days: newAssignment.isPermanent ? 9999 : parseInt(newAssignment.durationDays || '1'),
         products: [
           {
@@ -2212,7 +2214,7 @@ function App() {
           location_lat: String(store.latitude || store.location_lat || ''),
           location_lng: String(store.longitude || store.location_lng || ''),
           agent_id: agent.id,
-          assigned_date: newStoreAssignment.isActiveToday ? new Date().toISOString().split('T')[0] : '2000-01-01',
+          assigned_date: newStoreAssignment.isActiveToday ? getTodayDateString() : '2000-01-01',
           duration_days: newStoreAssignment.isPermanent ? 9999 : parseInt(newStoreAssignment.durationDays || '1'),
           order: nextOrder + index
         })
@@ -2256,10 +2258,10 @@ function App() {
         phone: store.phone,
         address: store.address,
         map_link: store.map_link,
-        location_lat: String(store.latitude || ''),
-        location_lng: String(store.longitude || ''),
+        location_lat: String(store.latitude || store.location_lat || ''),
+        location_lng: String(store.longitude || store.location_lng || ''),
         agent_id: activeAgent.id,
-        assigned_date: new Date().toISOString().split('T')[0],
+        assigned_date: getTodayDateString(),
         duration_days: 1, // default 1 day for today
         order: store.order || 1
       })
@@ -6270,13 +6272,13 @@ function App() {
                   {language === 'uz' ? "Bugun tashrif buyurilgan va savdo qilingan do'konlar ro'yxati" : "Список магазинов, которые вы посетили сегодня"}
                 </p>
 
-                {visitedStores.filter(v => v.date === new Date().toISOString().split('T')[0]).length === 0 ? (
+                {visitedStores.filter(v => v.date === getTodayDateString()).length === 0 ? (
                   <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
                     {language === 'uz' ? "Bugun hali hech qaysi do'konga tashrif buyurilmadi." : "Сегодня вы еще не посетили ни один магазин."}
                   </div>
                 ) : (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {visitedStores.filter(v => v.date === new Date().toISOString().split('T')[0]).map((visit, index) => (
+                    {visitedStores.filter(v => v.date === getTodayDateString()).map((visit, index) => (
                       <div key={index} style={{
                         backgroundColor: 'var(--bg-primary)',
                         border: '1px solid var(--border-color)',
@@ -10307,7 +10309,7 @@ function App() {
                     status: 'empty',
                     reason: exitReason === 'closed' ? (language === 'uz' ? "Do'kon yopiq" : "Магазин закрыт") : (language === 'uz' ? "Mahsulot olmadi" : "Товар не куплен"),
                     items: [],
-                    date: new Date().toISOString().split('T')[0],
+                    date: getTodayDateString(),
                     time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
                   };
                   setVisitedStores(prev => {
