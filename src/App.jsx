@@ -980,11 +980,14 @@ function App() {
   const agentStores = activeAgent 
     ? storeAssignments.filter(ass => ass.agentId === activeAgent.id && isAssignmentActive(ass.date, ass.durationDays || 1)).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
-
   const activeAgentStores = agentStores.filter(store => {
     const todayStr = new Date().toISOString().split('T')[0];
     return !visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
   });
+
+  const inactiveAgentStores = activeAgent 
+    ? stores.filter(s => s.agentId === activeAgent.id && !isAssignmentActive(s.assigned_date, s.duration_days || 1))
+    : [];
 
 
   // Custom alert and confirm states
@@ -1072,6 +1075,8 @@ function App() {
   const [showAddStoreModal, setShowAddStoreModal] = useState(false);
   const [showAssignProductModal, setShowAssignProductModal] = useState(false);
   const [showAssignStoreModal, setShowAssignStoreModal] = useState(false);
+  const [showAddSelfStoreModal, setShowAddSelfStoreModal] = useState(false);
+  const [selfStoreSearchQuery, setSelfStoreSearchQuery] = useState('');
   const [showEditAssignmentModal, setShowEditAssignmentModal] = useState(false);
   const [selectedAssignmentForEdit, setSelectedAssignmentForEdit] = useState(null);
   const [editAssignmentQty, setEditAssignmentQty] = useState('');
@@ -2187,6 +2192,47 @@ function App() {
 
     setNewStoreAssignment({ agentId: '', storeId: '', durationDays: '1', isPermanent: false });
     setShowAssignStoreModal(false);
+  };
+
+  const handleAddSelfStoreAssignment = (store) => {
+    if (!store) return;
+    
+    fetch(`${API_URL}/stores/${store.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        name: store.name,
+        owner_name: store.owner_name,
+        phone: store.phone,
+        address: store.address,
+        map_link: store.map_link,
+        location_lat: String(store.latitude || ''),
+        location_lng: String(store.longitude || ''),
+        agent_id: activeAgent.id,
+        assigned_date: new Date().toISOString().split('T')[0],
+        duration_days: 1, // default 1 day for today
+        order: store.order || 1
+      })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Do\'konni faollashtirishda xatolik');
+      return res.json();
+    })
+    .then(() => {
+      showAlert(
+        language === 'uz' ? 'Do\'kon vazifalar ro\'yxatiga qo\'shildi' : 'Магазин добавлен в список задач',
+        'success'
+      );
+      loadCloudData(token);
+      setShowAddSelfStoreModal(false);
+    })
+    .catch(err => {
+      console.error(err);
+      showAlert(err.message, 'error');
+    });
   };
 
   const [draggedStoreIndex, setDraggedStoreIndex] = useState(null);
@@ -5677,7 +5723,38 @@ function App() {
                         overflowX: window.innerWidth > 768 ? 'visible' : 'auto',
                         minWidth: 0
                       }}>
-                        <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>{language === 'uz' ? "Biriktirilgan do'konlar (Kanal)" : 'Закрепленные магазины (Канал)'}</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                          <h3 style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                            {language === 'uz' ? "Biriktirilgan do'konlar (Kanal)" : 'Закрепленные магазины (Канал)'}
+                          </h3>
+                          {userRole === 'agent' && (
+                            <button
+                              onClick={() => {
+                                setSelfStoreSearchQuery('');
+                                setShowAddSelfStoreModal(true);
+                              }}
+                              style={{
+                                border: 'none',
+                                backgroundColor: 'var(--accent-color)',
+                                color: '#ffffff',
+                                borderRadius: '50%',
+                                width: '28px',
+                                height: '28px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                cursor: 'pointer',
+                                boxShadow: 'var(--shadow-sm)',
+                                transition: 'transform 0.2s',
+                                padding: 0
+                              }}
+                              title={language === 'uz' ? "Do'kon qo'shish" : "Добавить магазин"}
+                              className="add-self-store-btn"
+                            >
+                              <Plus size={16} />
+                            </button>
+                          )}
+                        </div>
                         <div style={{ 
                           overflowX: userRole === 'agent' ? 'hidden' : 'auto', 
                           overflowY: 'auto', 
@@ -8339,6 +8416,138 @@ function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Add Self Store */}
+      {showAddSelfStoreModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }} className="fade-in">
+          <div style={{
+            width: '450px',
+            maxWidth: '90vw',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '24px',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            maxHeight: '80vh'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                {language === 'uz' ? "Mening do'konlarim ro'yxati" : "Мой список магазинов"}
+              </h3>
+              <button 
+                onClick={() => setShowAddSelfStoreModal(false)}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '24px',
+                  lineHeight: '1',
+                  padding: 0
+                }}
+              >
+                &times;
+              </button>
+            </div>
+
+            <div style={{ marginBottom: '16px' }}>
+              <input
+                type="text"
+                placeholder={language === 'uz' ? "Do'kon nomi yoki manzili..." : "Название или адрес магазина..."}
+                value={selfStoreSearchQuery}
+                onChange={(e) => setSelfStoreSearchQuery(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'var(--bg-primary)',
+                  color: 'var(--text-primary)',
+                  fontSize: '14px',
+                  boxSizing: 'border-box'
+                }}
+              />
+            </div>
+
+            <div style={{ 
+              overflowY: 'auto', 
+              flexGrow: 1, 
+              display: 'flex', 
+              flexDirection: 'column', 
+              gap: '8px',
+              paddingRight: '4px'
+            }}>
+              {inactiveAgentStores.filter(s => {
+                const query = selfStoreSearchQuery.toLowerCase();
+                return (s.name || '').toLowerCase().includes(query) || 
+                       (s.address || '').toLowerCase().includes(query) || 
+                       (s.owner_name || '').toLowerCase().includes(query);
+              }).length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                  {language === 'uz' ? "Qo'shimcha do'konlar topilmadi" : "Дополнительные магазины не найдены"}
+                </div>
+              ) : (
+                inactiveAgentStores.filter(s => {
+                  const query = selfStoreSearchQuery.toLowerCase();
+                  return (s.name || '').toLowerCase().includes(query) || 
+                         (s.address || '').toLowerCase().includes(query) || 
+                         (s.owner_name || '').toLowerCase().includes(query);
+                }).map(store => (
+                  <div 
+                    key={store.id}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      alignItems: 'center',
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1, marginRight: '12px', textAlign: 'left' }}>
+                      <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                        {store.name}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                        👤 {store.owner_name} • 📍 {store.address}
+                      </span>
+                    </div>
+                    <button
+                      onClick={() => handleAddSelfStoreAssignment(store)}
+                      style={{
+                        border: 'none',
+                        backgroundColor: 'var(--accent-color)',
+                        color: '#ffffff',
+                        padding: '6px 12px',
+                        borderRadius: '6px',
+                        fontSize: '12px',
+                        fontWeight: '600',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {language === 'uz' ? "Qo'shish" : "Добавить"}
+                    </button>
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </div>
       )}
