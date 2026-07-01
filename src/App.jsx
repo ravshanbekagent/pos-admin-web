@@ -636,7 +636,7 @@ function App() {
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const API_URL = 'https://posagent.onrender.com/api';
+  const API_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' ? 'http://localhost:5000/api' : 'https://posagent.onrender.com/api';
   const [isLoading, setIsLoading] = useState(false);
   const [token, setToken] = useState(() => localStorage.getItem('token') || '');
 
@@ -937,11 +937,15 @@ function App() {
   const [tindaDefaultMxik, setTindaDefaultMxik] = useState(() => localStorage.getItem('tinda_default_mxik') || '09901001001000000');
   const [tindaDefaultPackage, setTindaDefaultPackage] = useState(() => localStorage.getItem('tinda_default_package') || '242030');
   const [tindaTestMode, setTindaTestMode] = useState(() => localStorage.getItem('tinda_test_mode') === 'true');
+  const [tindaAutoTerminalMode, setTindaAutoTerminalMode] = useState(() => localStorage.getItem('tinda_auto_terminal_mode') === 'true');
 
   // Tinda Transaction Live States
   const [tindaPaymentStatus, setTindaPaymentStatus] = useState(null); // 'connecting', 'logging_in', 'waiting_card', 'success', 'error'
   const [tindaErrorMessage, setTindaErrorMessage] = useState('');
   const [tindaSocket, setTindaSocket] = useState(null);
+  const [isWaitingForTindaCallback, setIsWaitingForTindaCallback] = useState(false);
+  const [tindaPendingCallbackData, setTindaPendingCallbackData] = useState(null);
+  const [tindaPollingIntervalId, setTindaPollingIntervalId] = useState(null);
   const [showCashierTerminalConfig, setShowCashierTerminalConfig] = useState(false);
   const [visitedStores, setVisitedStores] = useState(() => {
     const stored = localStorage.getItem('visited_stores');
@@ -949,6 +953,22 @@ function App() {
   });
   const [showExitQuestionnaire, setShowExitQuestionnaire] = useState(false);
   const [exitReason, setExitReason] = useState('');
+
+  // Auto-clean Tinda Callback polling when cashier closes
+  useEffect(() => {
+    if (!activeCashierStore) {
+      if (tindaPollingIntervalId) {
+        clearInterval(tindaPollingIntervalId);
+        setTindaPollingIntervalId(null);
+      }
+      if (window.tindaSimTimeoutId) {
+        clearTimeout(window.tindaSimTimeoutId);
+        window.tindaSimTimeoutId = null;
+      }
+      setIsWaitingForTindaCallback(false);
+      setTindaPendingCallbackData(null);
+    }
+  }, [activeCashierStore]);
 
   // Company Branding States (Persisted in localStorage)
   const [companyLogo, setCompanyLogo] = useState(() => localStorage.getItem('companyLogo') || null);
@@ -2719,6 +2739,193 @@ function App() {
     }
   };
 
+  const startTindaCallbackPolling = (serialNumber) => {
+    setIsWaitingForTindaCallback(true);
+    setTindaPendingCallbackData(null);
+    
+    // Clear any existing polling just in case
+    if (tindaPollingIntervalId) {
+      clearInterval(tindaPollingIntervalId);
+    }
+
+    const pollFunc = async () => {
+      try {
+        const response = await fetch(`${API_URL}/tinda/callback/${serialNumber}`);
+        const data = await response.json();
+        
+        if (data.found && data.callback) {
+          // Callback received! Stop polling and set data
+          setIsWaitingForTindaCallback(false);
+          setTindaPendingCallbackData(data.callback);
+          showAlert(language === 'uz' ? "To'lov ma'lumotlari qabul qilindi!" : "Данные оплаты получены!", 'success');
+          
+          // Clear interval in our local closure and in state
+          clearInterval(pollIntervalId);
+          setTindaPollingIntervalId(null);
+        }
+      } catch (err) {
+        console.error("Error polling Tinda callback:", err);
+      }
+    };
+
+    // If simulation/test mode is ON, we trigger a fake callback after 4 seconds
+    let simTimeoutId = null;
+    if (tindaTestMode) {
+      simTimeoutId = setTimeout(async () => {
+        try {
+          await fetch(`${API_URL}/tinda/mock-callback`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              serialNumber: serialNumber,
+              totalAmount: 11750000
+            })
+          });
+        } catch (e) {
+          console.log("Mock API call failed, simulating directly in frontend.");
+          const mockData = {
+            sales_id: `MOCK-${Date.now()}`,
+            receipt_number: Math.floor(Math.random() * 1000) + 1,
+            date: new Date().toISOString(),
+            serial_number: serialNumber,
+            total_amount: 11750000,
+            payment: {
+              payment_method: 'by other cashless',
+              amount: 11750000
+            },
+            products: [
+              {
+                productId: 2, // Heets Amber Selection
+                productName: 'Heets Amber Selection',
+                price: 18000,
+                quantity: 50
+              },
+              {
+                productId: 1, // IQOS Iluma One (Pebble Grey)
+                productName: 'IQOS Iluma One (Pebble Grey)',
+                price: 350000,
+                quantity: 2
+              }
+            ]
+          };
+          setIsWaitingForTindaCallback(false);
+          setTindaPendingCallbackData(mockData);
+          showAlert(language === 'uz' ? "To'lov ma'lumotlari qabul qilindi! (Simulyatsiya)" : "Данные оплаты получены! (Симуляция)", 'success');
+          
+          // Clear interval
+          if (pollIntervalId) {
+            clearInterval(pollIntervalId);
+          }
+          setTindaPollingIntervalId(null);
+        }
+      }, 4000);
+    }
+
+    const pollIntervalId = setInterval(pollFunc, 2000);
+    setTindaPollingIntervalId(pollIntervalId);
+
+    // Save sim timeout id globally on window object to prevent memory leak
+    window.tindaSimTimeoutId = simTimeoutId;
+  };
+
+  const cancelTindaCallbackPolling = () => {
+    if (tindaPollingIntervalId) {
+      clearInterval(tindaPollingIntervalId);
+      setTindaPollingIntervalId(null);
+    }
+    if (window.tindaSimTimeoutId) {
+      clearTimeout(window.tindaSimTimeoutId);
+      window.tindaSimTimeoutId = null;
+    }
+    setIsWaitingForTindaCallback(false);
+    setTindaPendingCallbackData(null);
+    showAlert(language === 'uz' ? "To'lov kutish bekor qilindi" : "Ожидание оплаты отменено", 'info');
+  };
+
+  const handleConfirmTindaCallbackPayment = async (callbackData) => {
+    try {
+      const cartItemsForSale = [];
+      
+      const productsRes = await fetch(`${API_URL}/products`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      const allProducts = await productsRes.json();
+
+      const callbackProducts = callbackData.products || [];
+      for (const tindaProd of callbackProducts) {
+        const tindaName = tindaProd.productName || tindaProd.name || '';
+        const tindaBarcode = tindaProd.barcode || '';
+        
+        let localProduct = allProducts.find(p => 
+          (tindaBarcode && p.barcode === tindaBarcode) || 
+          (tindaName && p.name.toLowerCase() === tindaName.toLowerCase()) ||
+          p.id === tindaProd.productId ||
+          p.id === tindaProd.id
+        );
+
+        if (!localProduct) {
+          localProduct = allProducts[0] || { id: 1, name: tindaName || 'Chapman Red SSL', price: tindaProd.price || 260000, stock: 100 };
+        }
+
+        cartItemsForSale.push({
+          productId: localProduct.id,
+          productName: localProduct.name,
+          price: tindaProd.price || localProduct.price,
+          quantity: tindaProd.quantity || tindaProd.count || 1,
+          maxQty: localProduct.stock || 100,
+          unit: localProduct.unit || 'dona'
+        });
+      }
+
+      if (cartItemsForSale.length === 0) {
+        throw new Error(language === 'uz' ? "Savatchada mahsulotlar topilmadi!" : "В корзине не найдено товаров!");
+      }
+
+      // Map to API items
+      const itemsPayload = cartItemsForSale.map(item => ({
+        product_id: item.productId,
+        quantity: item.quantity,
+        unit_price: item.price
+      }));
+
+      const payload = {
+        store_id: activeCashierStore.id,
+        payment_gateway: 'tinda_callback',
+        items: itemsPayload
+      };
+
+      const res = await fetch(`${API_URL}/sales`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(payload)
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Sale failed');
+      }
+
+      showAlert(language === 'uz' ? "Sotuv muvaffaqiyatli tasdiqlandi!" : "Продажа успешно подтверждена!", 'success');
+      
+      await loadCloudData(token);
+
+      recordSoldVisit(activeCashierStore, cartItemsForSale);
+      setActiveCashierStore(null);
+      setCashierCart([]);
+      setTindaPendingCallbackData(null);
+      setIsWaitingForTindaCallback(false);
+
+    } catch (err) {
+      console.error("Error confirming Tinda callback payment:", err);
+      showAlert(err.message, 'error');
+    }
+  };
+
   const handleTindaTestPayment = (subtotal, discountAmount, finalTotal) => {
     setTindaPaymentStatus('connecting');
     setTindaErrorMessage('');
@@ -3471,8 +3678,8 @@ function App() {
                   padding: '12px 16px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_company', 'settings_agents', 'settings_admins'].includes(activeTab) ? 'var(--accent-light)' : 'transparent',
-                  color: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_company', 'settings_agents', 'settings_admins'].includes(activeTab) ? 'var(--accent-color)' : 'var(--text-secondary)',
+                  backgroundColor: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_autoterminal', 'settings_company', 'settings_agents', 'settings_admins'].includes(activeTab) ? 'var(--accent-light)' : 'transparent',
+                  color: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_autoterminal', 'settings_company', 'settings_agents', 'settings_admins'].includes(activeTab) ? 'var(--accent-color)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontWeight: '500',
                   textAlign: 'left',
@@ -3572,6 +3779,23 @@ function App() {
                     }}
                   >
                     {language === 'uz' ? "Terminal Sozlamalari" : 'Настройки терминала'}
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('settings_autoterminal')}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      border: 'none',
+                      backgroundColor: activeTab === 'settings_autoterminal' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                      color: activeTab === 'settings_autoterminal' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                      cursor: 'pointer',
+                      fontSize: '13px',
+                      fontWeight: '500',
+                      textAlign: 'left',
+                      transition: 'all var(--transition-fast)'
+                    }}
+                  >
+                    {language === 'uz' ? "Avto-Terminal Rejimi" : 'Режим Авто-Терминала'}
                   </button>
                   {userRole === 'admin' && (
                     <>
@@ -7972,6 +8196,70 @@ function App() {
             </div>
           )}
 
+          {/* VIEW: AUTO-TERMINAL SETTINGS */}
+          {activeTab === 'settings_autoterminal' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', maxWidth: '600px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                  {language === 'uz' ? "Avto-Terminal Sozlamalari" : "Настройки Авто-Терминала"}
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+                  {language === 'uz' 
+                    ? "Agentlar do'konga kirganda avtomatik terminal orqali savdoni amalga oshirish rejimini sozlang." 
+                    : "Настройте режим автоматических продаж через терминал при входе агентов в магазин."}
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  
+                  {/* Toggle Switch */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                    <div>
+                      <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        {language === 'uz' ? "Avtomatik sotuv (Callback orqali)" : "Автоматические продажи (через Callback)"}
+                      </h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {language === 'uz' 
+                          ? "Yoqilganda, kassa oynasida shtrix-kod skaneri yashiriladi va sotuv terminal orqali sinxronlashadi." 
+                          : "При включении окно сканирования на кассе скрывается, и продажа синхронизируется через терминал."}
+                      </p>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '24px', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={tindaAutoTerminalMode}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setTindaAutoTerminalMode(val);
+                          localStorage.setItem('tinda_auto_terminal_mode', val ? 'true' : 'false');
+                          showAlert(language === 'uz' ? "Avto-Terminal rejimi o'zgartirildi!" : "Режим Авто-Терминала изменен!", 'success');
+                        }}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: tindaAutoTerminalMode ? 'var(--accent-color)' : '#ccc',
+                        transition: '.4s',
+                        borderRadius: '24px'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          height: '18px', width: '18px',
+                          left: tindaAutoTerminalMode ? '26px' : '3px',
+                          bottom: '3px',
+                          backgroundColor: 'white',
+                          transition: '.4s',
+                          borderRadius: '50%'
+                        }} />
+                      </span>
+                    </label>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* VIEW: COMPANY LOGO & NAME SETTINGS */}
           {activeTab === 'settings_company' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
@@ -9492,14 +9780,345 @@ function App() {
 
           {!showPaymentSection ? (
             /* ==================== SCREEN 1: CART & PRODUCT ADDITION ==================== */
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flexGrow: 1,
-              overflow: 'hidden',
-              padding: '16px',
-              gap: '16px'
-            }}>
+            tindaAutoTerminalMode ? (
+              /* AUTO TERMINAL PANEL */
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flexGrow: 1,
+                padding: '32px 24px',
+                gap: '24px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'var(--bg-primary)',
+                overflowY: 'auto'
+              }}>
+                <div style={{
+                  maxWidth: '480px',
+                  width: '100%',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: '16px',
+                  border: '1px solid var(--border-color)',
+                  padding: '30px',
+                  textAlign: 'center',
+                  boxShadow: 'var(--box-shadow-md)'
+                }}>
+                  {/* Icon / Status indicator */}
+                  <div style={{
+                    width: '80px',
+                    height: '80px',
+                    borderRadius: '50%',
+                    backgroundColor: isWaitingForTindaCallback ? 'rgba(13, 148, 136, 0.1)' : 'rgba(13, 148, 136, 0.05)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    margin: '0 auto 20px auto',
+                    position: 'relative'
+                  }}>
+                    {isWaitingForTindaCallback ? (
+                      <div className="pulse-animation" style={{
+                        position: 'absolute',
+                        width: '100%',
+                        height: '100%',
+                        borderRadius: '50%',
+                        border: '2px solid var(--accent-color)',
+                        animation: 'pulse 1.8s infinite ease-in-out'
+                      }} />
+                    ) : null}
+                    <div style={{ color: 'var(--accent-color)' }}>
+                      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+                        <line x1="12" y1="18" x2="12.01" y2="18" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '10px' }}>
+                    {isWaitingForTindaCallback 
+                      ? (language === 'uz' ? "Terminal to'lovini kutish..." : "Ожидание оплаты с терминала...") 
+                      : (language === 'uz' ? "Avto-Terminal Rejimi" : "Режим Авто-Терминала")}
+                  </h3>
+
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5', marginBottom: '24px' }}>
+                    {isWaitingForTindaCallback 
+                      ? (language === 'uz' 
+                          ? "Kassa terminali orqali mahsulotlarni skanerlab sotuvni yakunlang. Tizim to'lov callback xabarini avtomatik ravishda qabul qiladi." 
+                          : "Отсканируйте товары через кассовый терминал и завершите продажу. Система автоматически примет сообщение callback.") 
+                      : (language === 'uz' 
+                          ? "Sotuv jarayonini boshlash uchun quyidagi tugmani bosing va kassa terminali orqali to'lovni qabul qiling." 
+                          : "Нажмите кнопку ниже, чтобы начать процесс продаж и принять оплату через кассовый терминал.")}
+                  </p>
+
+                  <div style={{
+                    backgroundColor: 'var(--bg-primary)',
+                    borderRadius: '8px',
+                    padding: '12px 16px',
+                    border: '1px solid var(--border-color)',
+                    marginBottom: '30px',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)',
+                    textAlign: 'left',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '4px'
+                  }}>
+                    <div>
+                      <strong>{language === 'uz' ? "Terminal ID / SN:" : "Terminal ID / SN:"}</strong> {tindaTerminalLogin || '2820330855'}
+                    </div>
+                    <div>
+                      <strong>{language === 'uz' ? "Kutish holati:" : "Статус ожидания:"}</strong> {isWaitingForTindaCallback 
+                        ? (language === 'uz' ? "Aktiv (kutmoqda...)" : "Активен (ожидание...)") 
+                        : (language === 'uz' ? "Noaktiv" : "Неактивен")}
+                    </div>
+                    {tindaTestMode && (
+                      <div style={{ color: 'var(--accent-color)', fontWeight: '600', marginTop: '4px' }}>
+                        ⚠️ {language === 'uz' ? "Simulyatsiya Mode yoqilgan" : "Режим симуляции включен"}
+                      </div>
+                    )}
+                  </div>
+
+                  {!isWaitingForTindaCallback ? (
+                    <button
+                      onClick={() => startTindaCallbackPolling(tindaTerminalLogin || '2820330855')}
+                      style={{
+                        width: '100%',
+                        padding: '14px',
+                        backgroundColor: 'var(--accent-color)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: '700',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 10px rgba(13, 148, 136, 0.2)'
+                      }}
+                    >
+                      {language === 'uz' ? "To'lovni kutishni boshlash" : "Начать ожидание оплаты"}
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '100%' }}>
+                      {tindaTestMode && (
+                        <button
+                          onClick={async () => {
+                            try {
+                              const sn = tindaTerminalLogin || '2820330855';
+                              const res = await fetch(`${API_URL}/tinda/mock-callback`, {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ serialNumber: sn })
+                              });
+                              const data = await res.json();
+                              if (data.success) {
+                                showAlert(language === 'uz' ? "Mock Callback yuborildi!" : "Мок-коллбэк отправлен!", 'success');
+                              } else {
+                                showAlert(data.error || 'Error', 'error');
+                              }
+                            } catch (e) {
+                              showAlert(e.message, 'error');
+                            }
+                          }}
+                          style={{
+                            width: '100%',
+                            padding: '14px',
+                            backgroundColor: '#eab308',
+                            color: '#1e293b',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: '700',
+                            fontSize: '14px',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 10px rgba(234, 179, 8, 0.3)'
+                          }}
+                        >
+                          ⚡ {language === 'uz' ? "Mock Callback Simulyatsiyasi" : "Симуляция Mock Callback"}
+                        </button>
+                      )}
+                      <button
+                        onClick={cancelTindaCallbackPolling}
+                        style={{
+                          width: '100%',
+                          padding: '14px',
+                          backgroundColor: '#ef4444',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: '8px',
+                          fontWeight: '700',
+                          fontSize: '14px',
+                          cursor: 'pointer',
+                          boxShadow: '0 4px 10px rgba(239, 68, 68, 0.2)'
+                        }}
+                      >
+                        {language === 'uz' ? "Bekor qilish" : "Отменить"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Received Callback Data (Confirmation overlay) */}
+                {tindaPendingCallbackData && (
+                  <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999,
+                    padding: '16px'
+                  }}>
+                    <div className="fade-in" style={{
+                      backgroundColor: 'var(--bg-secondary)',
+                      borderRadius: '16px',
+                      border: '1px solid var(--border-color)',
+                      maxWidth: '520px',
+                      width: '100%',
+                      padding: '24px',
+                      boxShadow: 'var(--box-shadow-lg)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '20px'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                        <div style={{
+                          width: '36px', height: '36px', borderRadius: '50%', backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                          display: 'flex', alignItems: 'center', justifyItems: 'center', color: 'var(--accent-color)', justifyContent: 'center'
+                        }}>
+                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </div>
+                        <div>
+                          <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                            {language === 'uz' ? "To'lov muvaffaqiyatli qabul qilindi!" : "Оплата успешно принята!"}
+                          </h3>
+                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                            ID: {tindaPendingCallbackData.sales_id}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>{language === 'uz' ? "Do'kon:" : "Магазин:"}</span>
+                          <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{activeCashierStore.storeName}</span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px' }}>
+                          <span style={{ color: 'var(--text-secondary)' }}>{language === 'uz' ? "Terminal SN:" : "Терминал SN:"}</span>
+                          <span style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{tindaPendingCallbackData.serial_number}</span>
+                        </div>
+                        
+                        {/* Products List */}
+                        <div style={{
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          overflow: 'hidden',
+                          marginTop: '8px'
+                        }}>
+                          <div style={{
+                            display: 'grid',
+                            gridTemplateColumns: '2fr 1fr 1.2fr',
+                            padding: '8px 12px',
+                            backgroundColor: 'var(--bg-primary)',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            color: 'var(--text-secondary)',
+                            borderBottom: '1px solid var(--border-color)'
+                          }}>
+                            <span>{language === 'uz' ? "Mahsulot" : "Товар"}</span>
+                            <span style={{ textAlign: 'center' }}>{language === 'uz' ? "Soni" : "Кол-во"}</span>
+                            <span style={{ textAlign: 'right' }}>{language === 'uz' ? "Narxi" : "Цена"}</span>
+                          </div>
+                          <div style={{ maxHeight: '180px', overflowY: 'auto' }}>
+                            {(tindaPendingCallbackData.products || []).map((prod, idx) => (
+                              <div key={idx} style={{
+                                display: 'grid',
+                                gridTemplateColumns: '2fr 1fr 1.2fr',
+                                padding: '10px 12px',
+                                fontSize: '12px',
+                                color: 'var(--text-primary)',
+                                borderBottom: idx < (tindaPendingCallbackData.products || []).length - 1 ? '1px solid var(--border-color)' : 'none'
+                              }}>
+                                <span style={{ fontWeight: '500', wordBreak: 'break-all' }}>{prod.productName || prod.name}</span>
+                                <span style={{ textAlign: 'center', color: 'var(--text-secondary)' }}>{prod.quantity || prod.count || 1}</span>
+                                <span style={{ textAlign: 'right', fontWeight: '600' }}>
+                                  {parseFloat(prod.price).toLocaleString('uz-UZ')} so'm
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Total payment */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '12px 16px',
+                          backgroundColor: 'var(--accent-light)',
+                          borderRadius: '8px',
+                          marginTop: '8px'
+                        }}>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--accent-color)' }}>
+                            {language === 'uz' ? "Jami to'langan summa:" : "Итого оплачено:"}
+                          </span>
+                          <span style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent-color)' }}>
+                            {parseFloat(tindaPendingCallbackData.total_amount).toLocaleString('uz-UZ')} so'm
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Confirm/Reject Buttons */}
+                      <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
+                        <button
+                          onClick={() => {
+                            setTindaPendingCallbackData(null);
+                            setIsWaitingForTindaCallback(false);
+                            showAlert(language === 'uz' ? "To'lov bekor qilindi" : "Оплата отклонена", 'info');
+                          }}
+                          style={{
+                            flex: 1,
+                            padding: '12px',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          {language === 'uz' ? "Rad etish" : "Отклонить"}
+                        </button>
+                        <button
+                          onClick={() => handleConfirmTindaCallbackPayment(tindaPendingCallbackData)}
+                          style={{
+                            flex: 2,
+                            padding: '12px',
+                            backgroundColor: 'var(--accent-color)',
+                            color: '#fff',
+                            border: 'none',
+                            borderRadius: '8px',
+                            fontWeight: '700',
+                            cursor: 'pointer',
+                            boxShadow: '0 4px 10px rgba(13, 148, 136, 0.2)'
+                          }}
+                        >
+                          {language === 'uz' ? "Tasdiqlash va tugatish" : "Подтвердить и завершить"}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              /* STANDARD SCANNER & CART WORKFLOW */
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flexGrow: 1,
+                overflow: 'hidden',
+                padding: '16px',
+                gap: '16px'
+              }}>
               {/* Barcode & Search Trigger Inputs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
                 <div className="cashier-input-row flex-nowrap-mobile" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -9775,7 +10394,8 @@ function App() {
                 </button>
               </div>
             </div>
-          ) : (
+          )
+        ) : (
             /* ==================== SCREEN 2: PAYMENT & DISCOUNT SELECTION ==================== */
             <div style={{
               display: 'flex',
