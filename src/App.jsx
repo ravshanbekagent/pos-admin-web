@@ -710,6 +710,8 @@ function App() {
         census_type: s.census_type || 'Census RET',
         status: s.status || 0,
         agentId: s.agent_id,
+        assigned_date: s.assigned_date,
+        duration_days: s.duration_days,
         order: s.order
       }));
 
@@ -778,7 +780,8 @@ function App() {
             map_link: s.map_link,
             latitude: s.latitude,
             longitude: s.longitude,
-            date: new Date().toISOString().split('T')[0],
+            date: s.assigned_date || new Date().toISOString().split('T')[0],
+            durationDays: s.duration_days || 1,
             order: s.order || 1
           };
         })
@@ -808,7 +811,8 @@ function App() {
               unit: item.product ? item.product.unit : 'dona',
               qty: item.qty_given,
               remainingQty: item.qty_given - item.qty_sold - item.qty_returned,
-              date: item.date
+              date: item.date,
+              durationDays: item.duration_days || 1
             }));
             setAssignments(mappedAssignments);
           }
@@ -949,17 +953,31 @@ function App() {
   const [companyNameColor, setCompanyNameColor] = useState(() => localStorage.getItem('companyNameColor') || '#f8fafc');
   const [companyBio, setCompanyBio] = useState(() => localStorage.getItem('companyBio') || 'MANAGEMENT');
   const [companyBioColor, setCompanyBioColor] = useState(() => localStorage.getItem('companyBioColor') || '#0d9488');
+  const isAssignmentActive = (assignDateStr, durationDays = 1) => {
+    if (!assignDateStr) return false;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const assignDate = new Date(assignDateStr);
+    assignDate.setHours(0, 0, 0, 0);
+
+    const diffTime = today.getTime() - assignDate.getTime();
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    return diffDays >= 0 && diffDays < durationDays;
+  };
+
   // Selected Agent and their assigned Products/Stores for everywhere in the App (reactive)
   const activeAgent = userRole === 'agent' 
     ? { id: parseInt(currentUserId || localStorage.getItem('currentUserId') || '0'), login: adminName, username: adminName } 
     : agents.find(a => a.id === selectedAgentId);
 
   const agentProducts = activeAgent 
-    ? assignments.filter(ass => ass.agentId === activeAgent.id) 
+    ? assignments.filter(ass => ass.agentId === activeAgent.id && isAssignmentActive(ass.date, ass.durationDays || 1)) 
     : [];
 
   const agentStores = activeAgent 
-    ? storeAssignments.filter(ass => ass.agentId === activeAgent.id).sort((a, b) => (a.order || 0) - (b.order || 0)) 
+    ? storeAssignments.filter(ass => ass.agentId === activeAgent.id && isAssignmentActive(ass.date, ass.durationDays || 1)).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
 
   const activeAgentStores = agentStores.filter(store => {
@@ -1080,8 +1098,8 @@ function App() {
   const [editingStore, setEditingStore] = useState(null);
   const [showEditStoreModal, setShowEditStoreModal] = useState(false);
   const [selectedStoreIds, setSelectedStoreIds] = useState([]);
-  const [newAssignment, setNewAssignment] = useState({ agentId: '', productId: '', qty: '' });
-  const [newStoreAssignment, setNewStoreAssignment] = useState({ agentId: '', storeId: '' });
+  const [newAssignment, setNewAssignment] = useState({ agentId: '', productId: '', qty: '', durationDays: '1' });
+  const [newStoreAssignment, setNewStoreAssignment] = useState({ agentId: '', storeId: '', durationDays: '1' });
 
   const [newAgent, setNewAgent] = useState({
     login: 'AGENT-FG-R3',
@@ -1997,6 +2015,7 @@ function App() {
       body: JSON.stringify({
         agent_id: agent.id,
         date: new Date().toISOString().split('T')[0],
+        duration_days: parseInt(newAssignment.durationDays || '1'),
         products: [
           {
             product_id: product.id,
@@ -2030,7 +2049,7 @@ function App() {
       showAlert(language === 'uz' ? 'Xatolik yuz berdi' : 'Произошла ошибка', 'error');
     });
 
-    setNewAssignment({ agentId: '', productId: '', qty: '' });
+    setNewAssignment({ agentId: '', productId: '', qty: '', durationDays: '1' });
     setShowAssignProductModal(false);
   };
 
@@ -2143,6 +2162,8 @@ function App() {
         location_lat: String(store.latitude || store.location_lat || ''),
         location_lng: String(store.longitude || store.location_lng || ''),
         agent_id: agent.id,
+        assigned_date: new Date().toISOString().split('T')[0],
+        duration_days: parseInt(newStoreAssignment.durationDays || '1'),
         order: nextOrder
       })
     })
@@ -2163,7 +2184,7 @@ function App() {
       showAlert(err.message, 'error');
     });
 
-    setNewStoreAssignment({ agentId: '', storeId: '' });
+    setNewStoreAssignment({ agentId: '', storeId: '', durationDays: '1' });
     setShowAssignStoreModal(false);
   };
 
@@ -8126,6 +8147,24 @@ function App() {
                 />
               </div>
 
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  {language === 'uz' ? "Amal qilish muddati" : "Срок действия"}
+                </label>
+                <select
+                  value={newAssignment.durationDays}
+                  onChange={(e) => setNewAssignment({ ...newAssignment, durationDays: e.target.value })}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', cursor: 'pointer' }}
+                >
+                  <option value="1">1 {language === 'uz' ? "kun (24 soat)" : "день (24 часа)"}</option>
+                  <option value="3">3 {language === 'uz' ? "kun" : "дня"}</option>
+                  <option value="7">7 {language === 'uz' ? "kun" : "дней"}</option>
+                  <option value="10">10 {language === 'uz' ? "kun" : "дней"}</option>
+                  <option value="15">15 {language === 'uz' ? "kun" : "дней"}</option>
+                  <option value="30">30 {language === 'uz' ? "kun" : "дней"}</option>
+                </select>
+              </div>
+
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
                 <button 
                   type="button"
@@ -8200,6 +8239,24 @@ function App() {
                   {stores.map(store => (
                     <option key={store.id} value={store.id}>{store.name}</option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  {language === 'uz' ? "Amal qilish muddati" : "Срок действия"}
+                </label>
+                <select
+                  value={newStoreAssignment.durationDays}
+                  onChange={(e) => setNewStoreAssignment({ ...newStoreAssignment, durationDays: e.target.value })}
+                  style={{ width: '100%', padding: '11px 14px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', cursor: 'pointer' }}
+                >
+                  <option value="1">1 {language === 'uz' ? "kun (24 soat)" : "день (24 часа)"}</option>
+                  <option value="3">3 {language === 'uz' ? "kun" : "дня"}</option>
+                  <option value="7">7 {language === 'uz' ? "kun" : "дней"}</option>
+                  <option value="10">10 {language === 'uz' ? "kun" : "дней"}</option>
+                  <option value="15">15 {language === 'uz' ? "kun" : "дней"}</option>
+                  <option value="30">30 {language === 'uz' ? "kun" : "дней"}</option>
                 </select>
               </div>
 
