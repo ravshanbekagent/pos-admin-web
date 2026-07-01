@@ -1277,15 +1277,45 @@ function App() {
   };
 
   const handleUpdateProductStock = (productId, val) => {
+    const numericVal = val === "" ? 0 : (isNaN(parseInt(val)) ? 0 : parseInt(val));
+    
     setProducts(prevProducts => prevProducts.map(p => {
       if (p.id === productId) {
         return {
           ...p,
-          stock: val === "" ? "" : (isNaN(parseInt(val)) ? 0 : parseInt(val))
+          stock: numericVal
         };
       }
       return p;
     }));
+
+    const product = products.find(p => p.id === productId);
+    if (!product) return;
+
+    fetch(`${API_URL}/products/${productId}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        barcode: product.barcode,
+        name: product.name,
+        price: product.price,
+        original_price: product.originalPrice || product.original_price || 0,
+        unit: product.unit,
+        stock: numericVal,
+        is_active: product.is_active !== undefined ? product.is_active : true
+      })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error('Zaxirani yangilashda xatolik yuz berdi');
+      return res.json();
+    })
+    .catch(err => {
+      console.error(err);
+      showAlert(err.message, 'error');
+    });
   };
 
   const resolveShortUrl = (url) => {
