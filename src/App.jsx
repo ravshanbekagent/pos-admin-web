@@ -765,6 +765,7 @@ function App() {
       setAgents(mappedAgents);
       setAdmins(mappedAdmins);
       setSales(mappedSales);
+      loadVisitsFromCloud();
 
       // 5. Dynamic Store Assignments loading
       const loadedStoreAssignments = mappedStores
@@ -893,6 +894,7 @@ function App() {
             }));
             setAssignments(mapped);
           }
+          loadVisitsFromCloud();
         } catch (err) {
           console.error("Error fetching selected agent inventory:", err);
         }
@@ -953,6 +955,7 @@ function App() {
     const stored = localStorage.getItem('visited_stores');
     return stored ? JSON.parse(stored) : [];
   });
+  const [cloudVisits, setCloudVisits] = useState([]);
   const [showExitQuestionnaire, setShowExitQuestionnaire] = useState(false);
   const [exitReason, setExitReason] = useState('');
 
@@ -1006,7 +1009,10 @@ function App() {
   const agentStores = activeAgent 
     ? storeAssignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id) && (userRole !== 'agent' || isAssignmentActive(ass.date, ass.durationDays || 1))).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
-  const activeStores = agentStores.filter(store => isAssignmentActive(store.date, store.durationDays || 1));
+  const activeStores = agentStores.filter(store => 
+    isAssignmentActive(store.date, store.durationDays || 1) &&
+    !cloudVisits.some(v => v.storeId === store.id && v.date === getTodayDateString())
+  );
   const activeAgentStores = agentStores.filter(store => {
     const todayStr = getTodayDateString();
     return !visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
@@ -1041,6 +1047,63 @@ function App() {
     });
   };
 
+    const loadVisitsFromCloud = () => {
+    if (!token) return;
+    const visitsUrl = userRole === 'agent' 
+      ? `${API_URL}/visits/agent/${localStorage.getItem('currentUserId') || currentUserId}`
+      : `${API_URL}/visits`;
+
+    fetch(visitsUrl, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+    .then(res => {
+      if (res.ok) return res.json();
+    })
+    .then(data => {
+      if (data) {
+        const mapped = data.map(v => ({
+          id: v.id,
+          storeId: v.store_id,
+          storeName: v.store ? v.store.name : 'Noma\'lum',
+          agentId: v.agent_id,
+          agentName: v.agent ? v.agent.name : 'Agent',
+          status: v.status,
+          reason: v.reason,
+          items: v.items ? JSON.parse(v.items) : [],
+          date: v.date,
+          time: v.time
+        }));
+        setCloudVisits(mapped);
+      }
+    })
+    .catch(err => console.error("Error loading visits:", err));
+  };
+
+  const saveVisitToCloud = (visitData) => {
+    if (!token) return;
+    fetch(`${API_URL}/visits`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        store_id: visitData.storeId,
+        status: visitData.status,
+        reason: visitData.reason,
+        items: visitData.items,
+        date: visitData.date,
+        time: visitData.time
+      })
+    })
+    .then(res => {
+      if (res.ok) {
+        loadVisitsFromCloud();
+      }
+    })
+    .catch(err => console.error("Error saving visit to cloud:", err));
+  };
+
   const recordSoldVisit = (store, cart) => {
     if (!store) return;
     const newVisit = {
@@ -1061,6 +1124,8 @@ function App() {
       localStorage.setItem('visited_stores', JSON.stringify(updated));
       return updated;
     });
+                  saveVisitToCloud(newVisit);
+    saveVisitToCloud(newVisit);
   };
 
   const handleExitCashier = () => {
@@ -3844,6 +3909,30 @@ function App() {
             <span>{userRole === 'agent' ? t('my_tasks') : t('assignments')}</span>
           </button>
 
+          {userRole !== 'agent' && (
+            <button 
+              onClick={() => setActiveTab('admin_agent_history')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'admin_agent_history' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'admin_agent_history' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontWeight: '500',
+                textAlign: 'left',
+                transition: 'all var(--transition-fast)'
+              }}
+            >
+              <Clock size={18} />
+              <span>{language === 'uz' ? "Agent tarixi" : "История агентов"}</span>
+            </button>
+          )}
+
           {userRole === 'agent' && (
             <button 
               onClick={() => setActiveTab('agent_history')}
@@ -4202,6 +4291,7 @@ function App() {
             {activeTab === 'settings_admins' && (language === 'uz' ? 'Adminlar Boshqaruvi' : 'Управление администраторами')}
             {activeTab === 'assignments' && (userRole === 'agent' ? t('my_tasks') : t('agent_assignments'))}
             {activeTab === 'agent_history' && (language === 'uz' ? 'Tarix' : 'История')}
+            {activeTab === 'admin_agent_history' && (language === 'uz' ? 'Agent tarixi' : 'История агентов')}
             {activeTab === 'sales' && t('sales_history_title')}
             {activeTab === 'tahlil_umumiy' && t('general_analytics')}
             {activeTab === 'tahlil_dokon' && t('store_analytics')}
@@ -6658,6 +6748,85 @@ function App() {
                             )
                           )}
                         </div>
+
+                          {/* Bugun tashrif buyurilgan do'konlar (Kichik ko'rinishda) */}
+                          <div style={{
+                            marginTop: '20px',
+                            backgroundColor: 'var(--bg-secondary)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '12px',
+                            padding: '16px',
+                            minWidth: 0
+                          }}>
+                            <h4 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', backgroundColor: '#10b981' }}></span>
+                              {language === 'uz' ? "Bugun tashrif buyurilgan do'konlar" : 'Посещенные магазины сегодня'}
+                            </h4>
+                            {(() => {
+                              const todayVisits = cloudVisits.filter(v => v.date === getTodayDateString());
+                              if (todayVisits.length === 0) {
+                                return (
+                                  <div style={{ fontSize: '11px', color: 'var(--text-muted)', textAlign: 'center', padding: '12px 0' }}>
+                                    {language === 'uz' ? "Bugun hech qaysi do'konga tashrif buyurilmadi" : 'Сегодня магазины не посещались'}
+                                  </div>
+                                );
+                              }
+                              return (
+                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '8px' }}>
+                                  {todayVisits.map(visit => {
+                                    const isSold = visit.status === 'sold';
+                                    return (
+                                      <div
+                                        key={visit.id}
+                                        style={{
+                                          display: 'flex',
+                                          flexDirection: 'column',
+                                          gap: '4px',
+                                          padding: '8px 10px',
+                                          borderRadius: '8px',
+                                          backgroundColor: 'var(--bg-primary)',
+                                          border: '1px solid var(--border-color)',
+                                          fontSize: '11px'
+                                        }}
+                                      >
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '6px' }}>
+                                          <span style={{ fontWeight: '600', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
+                                            {visit.storeName}
+                                          </span>
+                                          <span style={{ fontSize: '10px', color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                                            ⏱ {visit.time}
+                                          </span>
+                                        </div>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '2px' }}>
+                                          <span style={{
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            fontSize: '9px',
+                                            fontWeight: 'bold',
+                                            backgroundColor: isSold ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                            color: isSold ? '#10b981' : '#f59e0b'
+                                          }}>
+                                            {isSold ? (language === 'uz' ? 'Sotildi' : 'Продано') : (language === 'uz' ? 'Xarid qilmadi' : 'Нет покупки')}
+                                          </span>
+                                          {visit.reason && (
+                                            <span style={{ fontSize: '9px', color: 'var(--text-secondary)', fontStyle: 'italic', wordBreak: 'break-word', maxWidth: '100px', textAlign: 'right' }}>
+                                              {visit.reason}
+                                            </span>
+                                          )}
+                                          {isSold && visit.items && (
+                                            <span style={{ fontSize: '10px', color: 'var(--accent-color)', fontWeight: '600' }}>
+                                              {visit.items.reduce((sum, item) => sum + (item.qty * item.price), 0).toLocaleString()} UZS
+                                            </span>
+                                          )}
+                                        </div>
+                                      </div>
+                                    );
+                                  })}
+                                </div>
+                              );
+                            })()}
+                          </div>
+                          
                       </div>
 
                       {/* Right Column: Yo'nalishlar & Products */}
@@ -7008,6 +7177,173 @@ function App() {
                     ))}
                   </div>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* VIEW: ADMIN AGENT HISTORY */}
+          {activeTab === 'admin_agent_history' && (
+            <div className="fade-in" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: '24px',
+              alignItems: 'start'
+            }}>
+              {/* Left Column: Agents List */}
+              <div style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px'
+              }}>
+                <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                  {language === 'uz' ? "Agentlar ro'yxati" : "Список агентов"}
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {agents.map(agent => (
+                    <button
+                      key={agent.id}
+                      onClick={() => setSelectedAgentId(agent.id)}
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'flex-start',
+                        gap: '4px',
+                        padding: '12px',
+                        borderRadius: '8px',
+                        border: '1px solid',
+                        borderColor: selectedAgentId === agent.id ? 'var(--accent-color)' : 'var(--border-color)',
+                        backgroundColor: selectedAgentId === agent.id ? 'var(--accent-light)' : 'var(--bg-primary)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.2s ease',
+                        width: '100%'
+                      }}
+                    >
+                      <span style={{ fontSize: '13px', fontWeight: '600', color: selectedAgentId === agent.id ? 'var(--accent-color)' : 'var(--text-primary)' }}>
+                        {agent.name}
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        @{agent.username} • {agent.phone || (language === 'uz' ? "Telefon kiritilmagan" : "Телефон не указан")}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right Column: Visits History */}
+              <div style={{
+                backgroundColor: 'var(--bg-secondary)',
+                border: '1px solid var(--border-color)',
+                borderRadius: '12px',
+                padding: '20px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '16px',
+                gridColumn: 'span 2'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                      {language === 'uz' ? "Tashriflar va Sotuvlar tarixi" : "История визитов и продаж"}
+                    </h3>
+                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                      {language === 'uz' ? "Tanlangan agentning bugungi va oldingi tashriflari" : "Визиты и продажи выбранного агента"}
+                    </p>
+                  </div>
+                </div>
+
+                {(() => {
+                  const agentVisits = cloudVisits.filter(v => String(v.agentId) === String(selectedAgentId));
+                  if (agentVisits.length === 0) {
+                    return (
+                      <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                        {language === 'uz' ? "Ushihb agent tomonidan hali hech qanday tashrif amalga oshirilmagan." : "Этот агент еще не совершал визитов."}
+                      </div>
+                    );
+                  }
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {agentVisits.map(visit => {
+                        const isSold = visit.status === 'sold';
+                        const totalAmount = isSold && visit.items ? visit.items.reduce((sum, item) => sum + (item.qty * item.price), 0) : 0;
+                        return (
+                          <div
+                            key={visit.id}
+                            style={{
+                              backgroundColor: 'var(--bg-primary)',
+                              border: '1px solid var(--border-color)',
+                              borderRadius: '8px',
+                              padding: '12px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '8px'
+                            }}
+                          >
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                              <div>
+                                <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '13px' }}>
+                                  {visit.storeName}
+                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
+                                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                    📅 {visit.date} • 🕒 {visit.time}
+                                  </span>
+                                </div>
+                              </div>
+                              <span style={{
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                fontSize: '10px',
+                                fontWeight: 'bold',
+                                backgroundColor: isSold ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                color: isSold ? '#10b981' : '#f59e0b'
+                              }}>
+                                {isSold ? (language === 'uz' ? 'Sotuv yakunlandi' : 'Продажа завершена') : (language === 'uz' ? 'Xarid qilmadi' : 'Нет покупки')}
+                              </span>
+                            </div>
+
+                            {!isSold && visit.reason && (
+                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', backgroundColor: 'var(--bg-secondary)', padding: '6px 10px', borderRadius: '4px' }}>
+                                {language === 'uz' ? "Sabab: " : "Причина: "}{visit.reason}
+                              </div>
+                            )}
+
+                            {isSold && (
+                              <div style={{
+                                borderTop: '1px dashed var(--border-color)',
+                                paddingTop: '8px',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                gap: '6px'
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                                    {language === 'uz' ? "Sotilgan mahsulotlar:" : "Проданные товары:"}
+                                  </span>
+                                  <span style={{ fontSize: '11px', color: 'var(--accent-color)', fontWeight: '600' }}>
+                                    {language === 'uz' ? "Jami: " : "Итого: "}{totalAmount.toLocaleString()} UZS
+                                  </span>
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {visit.items && visit.items.map((item, idx) => (
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
+                                      <span>• {item.productName} ({item.qty} {language === 'uz' ? "dona" : "шт"})</span>
+                                      <span>{(item.qty * item.price).toLocaleString()} UZS</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -11722,6 +12058,7 @@ function App() {
                     localStorage.setItem('visited_stores', JSON.stringify(updated));
                     return updated;
                   });
+                  saveVisitToCloud(newVisit);
 
                   // Reset cashier states and close
                   setActiveCashierStore(null);
