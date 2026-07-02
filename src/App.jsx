@@ -979,6 +979,7 @@ function App() {
   const [companyBioColor, setCompanyBioColor] = useState(() => localStorage.getItem('companyBioColor') || '#0d9488');
   const isAssignmentActive = (assignDateStr, durationDays = 1) => {
     if (!assignDateStr) return false;
+    if (assignDateStr === '2000-01-01' || assignDateStr.startsWith('2000-01-01')) return false;
     if (durationDays === 9999 || durationDays === 0) return true;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -1004,6 +1005,7 @@ function App() {
   const agentStores = activeAgent 
     ? storeAssignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id) && (userRole !== 'agent' || isAssignmentActive(ass.date, ass.durationDays || 1))).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
+  const activeStores = agentStores.filter(store => isAssignmentActive(store.date, store.durationDays || 1));
   const activeAgentStores = agentStores.filter(store => {
     const todayStr = getTodayDateString();
     return !visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
@@ -6397,7 +6399,7 @@ function App() {
                             )
                           ) : (
                             /* Admin View: Original drag-and-drop table layout */
-                            agentStores.length === 0 ? (
+                            activeStores.length === 0 ? (
                               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? "Do'konlar biriktirilmagan" : 'Магазины не закреплены'}</div>
                             ) : (
                                <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -6406,10 +6408,10 @@ function App() {
                                     <th style={{ padding: '8px 4px', width: '28px' }}>
                                       <input 
                                         type="checkbox"
-                                        checked={agentStores.length > 0 && selectedTableStoreIds.length === agentStores.length}
+                                        checked={activeStores.length > 0 && selectedTableStoreIds.length === activeStores.length}
                                         onChange={(e) => {
                                           if (e.target.checked) {
-                                            setSelectedTableStoreIds(agentStores.map(s => s.id));
+                                            setSelectedTableStoreIds(activeStores.map(s => s.id));
                                           } else {
                                             setSelectedTableStoreIds([]);
                                           }
@@ -6447,7 +6449,7 @@ function App() {
                                   </tr>
                                 </thead>
                                 <tbody>
-                                  {agentStores.map((store, idx) => (
+                                  {activeStores.map((store, idx) => (
                                     <tr 
                                       key={store.id} 
                                       draggable={window.innerWidth > 768}
