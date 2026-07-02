@@ -1102,6 +1102,7 @@ function App() {
   const [selectedRouteToAssign, setSelectedRouteToAssign] = useState('');
   const [selectedRouteStoreIds, setSelectedRouteStoreIds] = useState([]);
   const [routeStoreSearchQuery, setRouteStoreSearchQuery] = useState('');
+  const [selectedTableStoreIds, setSelectedTableStoreIds] = useState([]);
   const [selectedAssignStoreIds, setSelectedAssignStoreIds] = useState([]);
   const [assignStoreSearchQuery, setAssignStoreSearchQuery] = useState('');
   const [showAddSelfStoreModal, setShowAddSelfStoreModal] = useState(false);
@@ -2642,6 +2643,60 @@ function App() {
           console.error(err);
           showAlert(err.message, 'error');
         });
+      }
+    );
+  };
+
+  const handleBulkDeleteStoreAssignments = () => {
+    if (selectedTableStoreIds.length === 0) return;
+    
+    showConfirm(
+      language === 'uz' 
+        ? `Tanlangan ${selectedTableStoreIds.length} ta do'konni biriktiruvdan o'chirishni xohlaysizmi?`
+        : `Вы действительно хотите удалить привязку для выбранных ${selectedTableStoreIds.length} магазинов?`,
+      () => {
+        setIsLoading(true);
+        const promises = selectedTableStoreIds.map(storeId => {
+          const store = stores.find(s => s.id === storeId);
+          if (!store) return Promise.resolve();
+          return fetch(`${API_URL}/stores/${storeId}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              name: store.name,
+              owner_name: store.ownerName || store.owner_name,
+              phone: store.phone,
+              address: store.address,
+              map_link: store.map_link,
+              location_lat: String(store.latitude || store.location_lat || ''),
+              location_lng: String(store.longitude || store.location_lng || ''),
+              agent_id: null,
+              assigned_date: null,
+              duration_days: null,
+              order: null
+            })
+          });
+        });
+
+        Promise.all(promises)
+          .then(() => {
+            showAlert(
+              language === 'uz' ? "Tanlangan do'konlar biriktiruvdan o'chirildi" : "Выбранные магазины отвязаны",
+              'success'
+            );
+            setSelectedTableStoreIds([]);
+            loadCloudData(token);
+          })
+          .catch(err => {
+            console.error(err);
+            showAlert(err.message, 'error');
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
       }
     );
   };
@@ -6344,14 +6399,50 @@ function App() {
                             agentStores.length === 0 ? (
                               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>{language === 'uz' ? "Do'konlar biriktirilmagan" : 'Магазины не закреплены'}</div>
                             ) : (
-                              <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
+                               <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', textAlign: 'left' }}>
                                 <thead>
                                   <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '12px' }}>
+                                    <th style={{ padding: '8px 4px', width: '28px' }}>
+                                      <input 
+                                        type="checkbox"
+                                        checked={agentStores.length > 0 && selectedTableStoreIds.length === agentStores.length}
+                                        onChange={(e) => {
+                                          if (e.target.checked) {
+                                            setSelectedTableStoreIds(agentStores.map(s => s.id));
+                                          } else {
+                                            setSelectedTableStoreIds([]);
+                                          }
+                                        }}
+                                        style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                                      />
+                                    </th>
                                     <th style={{ padding: '8px 4px', width: '36px' }}>№</th>
                                     <th style={{ padding: '8px 4px' }}>{language === 'uz' ? "Do'kon / Rahbar / Manzil" : 'Магазин / Руководитель / Адрес'}</th>
                                     <th style={{ padding: '8px 4px', textAlign: 'center', width: '70px' }}>{language === 'uz' ? 'Lokatsiya' : 'Локация'}</th>
-                                                                         <th style={{ padding: '8px 4px', textAlign: 'center', width: '120px' }}>{language === 'uz' ? 'Bugun faol' : 'Активен сегодня'}</th>
-<th style={{ padding: '8px 4px', textAlign: 'right', width: '60px' }}>{language === 'uz' ? "O'chirish" : 'Удалить'}</th>
+                                    <th style={{ padding: '8px 4px', textAlign: 'center', width: '120px' }}>{language === 'uz' ? 'Bugun faol' : 'Активен сегодня'}</th>
+                                    <th style={{ padding: '8px 4px', textAlign: 'right', width: '60px' }}>
+                                      {selectedTableStoreIds.length > 0 ? (
+                                        <button
+                                          onClick={handleBulkDeleteStoreAssignments}
+                                          title={language === 'uz' ? "Tanlanganlarni o'chirish" : "Удалить выбранные"}
+                                          style={{
+                                            border: 'none',
+                                            backgroundColor: 'transparent',
+                                            color: 'var(--warning-color)',
+                                            padding: '4px',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center'
+                                          }}
+                                        >
+                                          <Trash2 size={16} />
+                                        </button>
+                                      ) : (
+                                        language === 'uz' ? "O'chirish" : 'Удалить'
+                                      )}
+                                    </th>
                                   </tr>
                                 </thead>
                                 <tbody>
@@ -6371,6 +6462,20 @@ function App() {
                                       }}
                                       className="hoverable-row"
                                     >
+                                      <td style={{ padding: '10px 4px' }}>
+                                        <input 
+                                          type="checkbox"
+                                          checked={selectedTableStoreIds.includes(store.id)}
+                                          onChange={() => {
+                                            if (selectedTableStoreIds.includes(store.id)) {
+                                              setSelectedTableStoreIds(prev => prev.filter(id => id !== store.id));
+                                            } else {
+                                              setSelectedTableStoreIds(prev => [...prev, store.id]);
+                                            }
+                                          }}
+                                          style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                                        />
+                                      </td>
                                       <td style={{ padding: '10px 4px' }}>
                                         <div style={{
                                           width: '22px',
