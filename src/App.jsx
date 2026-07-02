@@ -1028,7 +1028,9 @@ function App() {
 
   const inactiveAgentStores = activeAgent 
     ? stores.filter(s => 
-        (s.agentId === null || s.agentId === undefined || String(s.agentId) === String(activeAgent.id)) &&
+        s.agentId !== null && 
+        s.agentId !== undefined && 
+        String(s.agentId) === String(activeAgent.id) &&
         !isAssignmentActive(s.assigned_date, s.duration_days || 1)
       )
     : [];
