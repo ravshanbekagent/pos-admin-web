@@ -9162,7 +9162,7 @@ function App() {
                     checked={
                       (() => {
                         const filtered = stores.filter(store => 
-                          store.agentId === selectedAgentId && 
+                          store.agentId !== null && store.agentId !== undefined && String(store.agentId) === String(selectedAgentId) && 
                           !isAssignmentActive(store.assigned_date, store.duration_days || 1) &&
                           (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())
                         );
@@ -9171,7 +9171,7 @@ function App() {
                     }
                     onChange={(e) => {
                       const filtered = stores.filter(store => 
-                        store.agentId === selectedAgentId && 
+                        store.agentId !== null && store.agentId !== undefined && String(store.agentId) === String(selectedAgentId) && 
                         !isAssignmentActive(store.assigned_date, store.duration_days || 1) &&
                         (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())
                       );
@@ -9207,7 +9207,7 @@ function App() {
                 }}>
                   {stores
                     .filter(store => 
-                      store.agentId === selectedAgentId && 
+                      store.agentId !== null && store.agentId !== undefined && String(store.agentId) === String(selectedAgentId) && 
                       !isAssignmentActive(store.assigned_date, store.duration_days || 1) &&
                       (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())
                     )
@@ -9248,7 +9248,7 @@ function App() {
                       );
                     })}
                   {stores.filter(store => 
-                    store.agentId === selectedAgentId && 
+                    store.agentId !== null && store.agentId !== undefined && String(store.agentId) === String(selectedAgentId) && 
                     !isAssignmentActive(store.assigned_date, store.duration_days || 1) &&
                     (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())
                   ).length === 0 && (
