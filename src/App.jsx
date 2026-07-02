@@ -888,7 +888,8 @@ function App() {
               unit: item.product ? item.product.unit : 'dona',
               qty: item.qty_given,
               remainingQty: item.qty_given - item.qty_sold - item.qty_returned,
-              date: item.date
+              date: item.date,
+              durationDays: item.duration_days || 1
             }));
             setAssignments(mapped);
           }
