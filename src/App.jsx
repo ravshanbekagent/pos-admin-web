@@ -725,7 +725,8 @@ function App() {
         name: u.name || u.username,
         role: u.role,
         phone: u.phone || '',
-        is_active: u.is_active
+        is_active: u.is_active,
+        terminal_sn: u.terminal_sn
       }));
 
       // Map sales
@@ -839,11 +840,13 @@ function App() {
   const handleLogout = () => {
     setToken('');
     setCurrentUserId('');
+    setTerminalSn('');
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUserId');
     localStorage.removeItem('adminName');
     localStorage.removeItem('adminPhoto');
+    localStorage.removeItem('terminalSn');
     setIsLoggedIn(false);
     showAlert('Tizimdan chiqildi', 'info');
   };
@@ -905,6 +908,7 @@ function App() {
 
   const [language, setLanguage] = useState(() => localStorage.getItem('lang') || 'uz');
   const [adminName, setAdminName] = useState(() => localStorage.getItem('adminName') || 'Bosh Admin');
+  const [terminalSn, setTerminalSn] = useState(() => localStorage.getItem('terminalSn') || '');
   const [adminPhoto, setAdminPhoto] = useState(() => localStorage.getItem('adminPhoto') || '');
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [customDiscountEnabled, setCustomDiscountEnabled] = useState(() => {
@@ -1275,6 +1279,8 @@ function App() {
       localStorage.setItem('currentUserId', data.user.id);
       setAdminName(data.user.name || data.user.username);
       localStorage.setItem('adminName', data.user.name || data.user.username);
+      setTerminalSn(data.user.terminal_sn || '');
+      localStorage.setItem('terminalSn', data.user.terminal_sn || '');
       setIsLoggedIn(true);
       
       let defaultTab = 'products';
@@ -9034,6 +9040,111 @@ function App() {
 
                 </div>
               </div>
+
+              {/* Agent-Terminal Mapping Card */}
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', maxWidth: '600px', marginTop: '20px' }}>
+                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                  {language === 'uz' ? "Agentlar Terminals Birikmasi" : "Привязка Терминалов Агентов"}
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                  {language === 'uz' 
+                    ? "Har bir agentning ismi va loginiga qarab o'ziga tegishli kassa terminali seriya raqamini (SN) biriktiring." 
+                    : "Привяжите серийный номер (SN) кассового терминала к имени и логину каждого агента."}
+                </p>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  {agents.filter(u => u.role === 'agent').length === 0 ? (
+                    <div style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>
+                      {language === 'uz' ? "Agentlar mavjud emas" : "Агенты не найдены"}
+                    </div>
+                  ) : (
+                    agents.filter(u => u.role === 'agent').map(agent => (
+                      <div key={agent.id} style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        justifyContent: 'space-between', 
+                        padding: '12px', 
+                        borderRadius: '8px', 
+                        backgroundColor: 'var(--bg-primary)', 
+                        border: '1px solid var(--border-color)',
+                        gap: '12px',
+                        flexWrap: 'wrap'
+                      }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {agent.name || (language === 'uz' ? "Ismsiz Agent" : "Агент без имени")}
+                          </span>
+                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                            @{agent.username}
+                          </span>
+                        </div>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <input 
+                            type="text"
+                            placeholder={language === 'uz' ? "Terminal SN (masalan: 2820330855)" : "SN Терминала (например: 2820330855)"}
+                            defaultValue={agent.terminal_sn || ''}
+                            id={`terminal-sn-input-${agent.id}`}
+                            style={{ 
+                              padding: '8px 12px', 
+                              borderRadius: '6px', 
+                              border: '1px solid var(--border-color)', 
+                              backgroundColor: 'var(--bg-secondary)', 
+                              color: 'var(--text-primary)', 
+                              fontSize: '12px', 
+                              fontWeight: '600',
+                              width: '180px'
+                            }}
+                          />
+                          <button
+                            onClick={async () => {
+                              const inputVal = document.getElementById(`terminal-sn-input-${agent.id}`).value.trim();
+                              try {
+                                const response = await fetch(`${API_URL}/auth/users/${agent.id}`, {
+                                  method: 'PUT',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                  },
+                                  body: JSON.stringify({ 
+                                    username: agent.username, 
+                                    name: agent.name, 
+                                    phone: agent.phone, 
+                                    is_active: agent.is_active, 
+                                    role: agent.role, 
+                                    terminal_sn: inputVal || null 
+                                  })
+                                });
+                                const data = await response.json();
+                                if (!response.ok) throw new Error(data.error || 'Saqlashda xatolik');
+                                
+                                // Update agent local state
+                                setAgents(prev => prev.map(a => a.id === agent.id ? { ...a, terminal_sn: inputVal || null } : a));
+                                showAlert(language === 'uz' ? "Terminal SN muvaffaqiyatli saqlandi!" : "Terminal SN успешно сохранен!", 'success');
+                              } catch (err) {
+                                showAlert(err.message, 'error');
+                              }
+                            }}
+                            style={{ 
+                              padding: '8px 16px', 
+                              backgroundColor: 'var(--accent-color)', 
+                              color: '#fff', 
+                              border: 'none', 
+                              borderRadius: '6px', 
+                              fontSize: '12px', 
+                              fontWeight: '600', 
+                              cursor: 'pointer' 
+                            }}
+                          >
+                            {language === 'uz' ? "Saqlash" : "Сохранить"}
+                          </button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
             </div>
           )}
 
@@ -10846,7 +10957,7 @@ function App() {
                     gap: '4px'
                   }}>
                     <div>
-                      <strong>{language === 'uz' ? "Terminal ID / SN:" : "Terminal ID / SN:"}</strong> {tindaTerminalLogin || '2820330855'}
+                      <strong>{language === 'uz' ? "Terminal ID / SN:" : "Terminal ID / SN:"}</strong> {terminalSn || localStorage.getItem('terminalSn') || tindaTerminalLogin || '2820330855'}
                     </div>
                     <div>
                       <strong>{language === 'uz' ? "Kutish holati:" : "Статус ожидания:"}</strong> {isWaitingForTindaCallback 
@@ -10862,7 +10973,7 @@ function App() {
 
                   {!isWaitingForTindaCallback ? (
                     <button
-                      onClick={() => startTindaCallbackPolling(tindaTerminalLogin || '2820330855')}
+                      onClick={() => startTindaCallbackPolling(terminalSn || localStorage.getItem('terminalSn') || tindaTerminalLogin || '2820330855')}
                       style={{
                         width: '100%',
                         padding: '14px',
@@ -10884,7 +10995,7 @@ function App() {
                         <button
                           onClick={async () => {
                             try {
-                              const sn = tindaTerminalLogin || '2820330855';
+                              const sn = terminalSn || localStorage.getItem('terminalSn') || tindaTerminalLogin || '2820330855';
                               const res = await fetch(`${API_URL}/tinda/mock-callback`, {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
