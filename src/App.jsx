@@ -784,6 +784,7 @@ function App() {
             longitude: s.longitude,
             date: s.assigned_date || getTodayDateString(),
             durationDays: s.duration_days || 1,
+            route: s.route,
             order: s.order || 1
           };
         })
@@ -6676,57 +6677,79 @@ function App() {
                             </h3>
                           </div>
                           
-                          {/* Routes list content */}
+                          {/* Stores list content */}
                           {(() => {
-                            const assignedRoutes = [...new Set(agentStores.map(s => s.route).filter(Boolean))].sort();
-                            if (assignedRoutes.length === 0) {
+                            if (agentStores.length === 0) {
                               return (
                                 <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                                  {language === 'uz' ? "Yo'nalishlar biriktirilmagan" : 'Направления не закреплены'}
+                                  {language === 'uz' ? "Do'konlar biriktirilmagan" : 'Магазины не закреплены'}
                                 </div>
                               );
                             }
                             return (
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {assignedRoutes.map(route => {
-                                  const routeStoreCount = agentStores.filter(s => s.route === route).length;
+                              <div style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                gap: '8px',
+                                maxHeight: '280px',
+                                overflowY: 'auto',
+                                paddingRight: '4px'
+                              }}>
+                                {agentStores.map(store => {
+                                  const isActive = isAssignmentActive(store.date, store.durationDays || 1);
                                   return (
                                     <div
-                                      key={route}
+                                      key={store.id}
                                       style={{
                                         display: 'flex',
                                         justifyContent: 'space-between',
                                         alignItems: 'center',
-                                        padding: '12px 16px',
+                                        padding: '8px 12px',
                                         borderRadius: '8px',
                                         backgroundColor: 'var(--bg-primary)',
-                                        border: '1px solid var(--border-color)'
+                                        border: '1px solid var(--border-color)',
+                                        fontSize: '12px'
                                       }}
                                     >
-                                      <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
-                                        <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                                          {route}
+                                      <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', gap: '2px', minWidth: 0, flex: 1 }}>
+                                        <span style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                          {store.storeName}
                                         </span>
-                                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                                          {routeStoreCount} {language === 'uz' ? "ta do'kon biriktirilgan" : "магазинов закреплено"}
-                                        </span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                          {store.route && (
+                                            <span style={{ fontSize: '9px', color: 'var(--accent-color)', fontWeight: '600', backgroundColor: 'var(--accent-light)', padding: '1px 4px', borderRadius: '4px' }}>
+                                              {store.route}
+                                            </span>
+                                          )}
+                                          <span style={{
+                                            fontSize: '9px',
+                                            fontWeight: '600',
+                                            padding: '1px 4px',
+                                            borderRadius: '4px',
+                                            backgroundColor: isActive ? 'rgba(16, 185, 129, 0.1)' : 'rgba(107, 114, 128, 0.1)',
+                                            color: isActive ? '#10b981' : '#6b7280'
+                                          }}>
+                                            {isActive ? (language === 'uz' ? 'Bugun faol' : 'Активен') : (language === 'uz' ? 'Nofaol' : 'Неактивен')}
+                                          </span>
+                                        </div>
                                       </div>
                                       <button
-                                        onClick={() => handleRemoveRouteAssignment(route)}
-                                        title={language === 'uz' ? "Yo'nalishni o'chirish" : "Удалить направление"}
+                                        onClick={() => handleDeleteStoreAssignment(store.id)}
+                                        title={language === 'uz' ? "Biriktiruvni o'chirish" : "Удалить привязку"}
                                         style={{
                                           border: 'none',
                                           backgroundColor: 'transparent',
                                           color: 'var(--warning-color)',
-                                          padding: '6px',
+                                          padding: '4px',
                                           cursor: 'pointer',
                                           borderRadius: '4px',
                                           display: 'inline-flex',
                                           alignItems: 'center',
-                                          justifyContent: 'center'
+                                          justifyContent: 'center',
+                                          flexShrink: 0
                                         }}
                                       >
-                                        <Trash2 size={15} />
+                                        <Trash2 size={14} />
                                       </button>
                                     </div>
                                   );
