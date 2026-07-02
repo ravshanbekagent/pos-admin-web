@@ -909,7 +909,34 @@ function App() {
   const [language, setLanguage] = useState(() => localStorage.getItem('lang') || 'uz');
   const [adminName, setAdminName] = useState(() => localStorage.getItem('adminName') || 'Bosh Admin');
   const [terminalSn, setTerminalSn] = useState(() => localStorage.getItem('terminalSn') || '');
+  const [pendingPayments, setPendingPayments] = useState([]);
+  const [showPendingModal, setShowPendingModal] = useState(false);
+  const [selectedPendingPayment, setSelectedPendingPayment] = useState(null);
+  const [selectedStoreForBinding, setSelectedStoreForBinding] = useState('');
   const [adminPhoto, setAdminPhoto] = useState(() => localStorage.getItem('adminPhoto') || '');
+
+  // Poll pending terminal payments for the logged-in agent
+  useEffect(() => {
+    if (!token || userRole !== 'agent' || !currentUserId) return;
+
+    const fetchPendingPayments = async () => {
+      try {
+        const res = await fetch(`${API_URL}/tinda/pending-payments/${currentUserId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setPendingPayments(data);
+        }
+      } catch (err) {
+        console.warn("Error fetching pending payments:", err);
+      }
+    };
+
+    fetchPendingPayments(); // initial fetch
+    const interval = setInterval(fetchPendingPayments, 10000); // every 10 seconds
+    return () => clearInterval(interval);
+  }, [token, userRole, currentUserId]);
   const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'dark');
   const [customDiscountEnabled, setCustomDiscountEnabled] = useState(() => {
     const stored = localStorage.getItem('customDiscountEnabled');
@@ -4322,6 +4349,57 @@ function App() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <style>{`
+              @keyframes pulse-btn {
+                0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+                70% { transform: scale(1.08); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+                100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+              }
+            `}</style>
+
+            {userRole === 'agent' && (
+              <button
+                onClick={() => setShowPendingModal(true)}
+                style={{
+                  position: 'relative',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '36px',
+                  height: '36px',
+                  borderRadius: '8px',
+                  backgroundColor: pendingPayments.length > 0 ? 'rgba(239, 68, 68, 0.15)' : 'var(--bg-primary)',
+                  border: pendingPayments.length > 0 ? '1px solid var(--danger-color, #ef4444)' : '1px solid var(--border-color)',
+                  color: pendingPayments.length > 0 ? 'var(--danger-color, #ef4444)' : 'var(--text-primary)',
+                  cursor: 'pointer',
+                  transition: 'all 0.3s ease',
+                  animation: pendingPayments.length > 0 ? 'pulse-btn 1.5s infinite' : 'none'
+                }}
+                title={language === 'uz' ? "Kutilayotgan terminal to'lovlari" : "Ожидающие терминальные оплаты"}
+              >
+                <StoreIcon size={18} />
+                {pendingPayments.length > 0 && (
+                  <span style={{
+                    position: 'absolute',
+                    top: '-6px',
+                    right: '-6px',
+                    backgroundColor: 'var(--danger-color, #ef4444)',
+                    color: '#fff',
+                    borderRadius: '50%',
+                    width: '18px',
+                    height: '18px',
+                    fontSize: '10px',
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    {pendingPayments.length}
+                  </span>
+                )}
+              </button>
+            )}
+
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               style={{
@@ -12470,6 +12548,233 @@ function App() {
                 ? (language === 'uz' ? "Yopish va qayta urinish" : "Закрыть и повторить") 
                 : (language === 'uz' ? "Bekor qilish" : "Отмена")}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Pending Terminal Payments Modal */}
+      {showPendingModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.75)',
+          backdropFilter: 'blur(4px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 99999
+        }} className="fade-in">
+          <div style={{
+            width: '90%',
+            maxWidth: '500px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '12px',
+            padding: '24px',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '16px',
+            maxHeight: '80vh'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
+              <h4 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <StoreIcon size={18} style={{ color: 'var(--danger-color, #ef4444)' }} />
+                {language === 'uz' ? "Kutilayotgan Terminal To'lovlari" : "Ожидающие Терминальные Оплаты"}
+              </h4>
+              <button 
+                onClick={() => {
+                  setShowPendingModal(false);
+                  setSelectedPendingPayment(null);
+                }}
+                style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer' }}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {!selectedPendingPayment ? (
+              // List View
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', overflowY: 'auto', flex: 1, paddingRight: '4px' }}>
+                {pendingPayments.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', color: 'var(--text-secondary)' }}>
+                    <div style={{ marginBottom: '8px' }}><CheckCircle size={32} style={{ color: 'var(--success-color, #22c55e)' }} /></div>
+                    <span style={{ fontSize: '13px' }}>
+                      {language === 'uz' ? "Kutilayotgan to'lovlar mavjud emas" : "Ожидающих оплат нет"}
+                    </span>
+                  </div>
+                ) : (
+                  pendingPayments.map(payment => (
+                    <div 
+                      key={payment.id} 
+                      onClick={() => {
+                        setSelectedPendingPayment(payment);
+                        setSelectedStoreForBinding('');
+                      }}
+                      style={{
+                        padding: '12px',
+                        borderRadius: '8px',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        transition: 'transform 0.2s ease, border-color 0.2s ease'
+                      }}
+                      className="pending-payment-card"
+                    >
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                          {parseFloat(payment.amount).toLocaleString('uz-UZ')} so'm
+                        </span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Clock size={12} />
+                          {new Date(payment.timestamp).toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })} ({language === 'uz' ? "kelgan vaqti" : "получено"})
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontSize: '11px', backgroundColor: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger-color, #ef4444)', padding: '4px 8px', borderRadius: '4px', fontWeight: '600' }}>
+                          {language === 'uz' ? "Do'konsiz" : "Без магазина"}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            ) : (
+              // Binding/Detail View
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <button 
+                  onClick={() => setSelectedPendingPayment(null)}
+                  style={{ alignSelf: 'flex-start', background: 'none', border: 'none', color: 'var(--accent-color)', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}
+                >
+                  &larr; {language === 'uz' ? "Ro'yxatga qaytish" : "Назад к списку"}
+                </button>
+
+                <div style={{ padding: '12px', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                    {language === 'uz' ? "To'lov summasi:" : "Сумма оплаты:"}
+                  </span>
+                  <span style={{ fontSize: '18px', fontWeight: '800', color: 'var(--accent-color)' }}>
+                    {parseFloat(selectedPendingPayment.amount).toLocaleString('uz-UZ')} so'm
+                  </span>
+                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    {language === 'uz' ? "Terminal SN:" : "Terminal SN:"} {selectedPendingPayment.serialNumber}
+                  </span>
+                </div>
+
+                {/* Products list if any */}
+                {selectedPendingPayment.products && selectedPendingPayment.products.length > 0 && (
+                  <div>
+                    <h5 style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '6px' }}>
+                      {language === 'uz' ? "Sotilgan mahsulotlar:" : "Проданные товары:"}
+                    </h5>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '120px', overflowY: 'auto', paddingRight: '4px' }}>
+                      {selectedPendingPayment.products.map((p, idx) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)', borderBottom: '1px dashed var(--border-color)', paddingBottom: '4px' }}>
+                          <span>{p.productName} (x{p.quantity})</span>
+                          <span>{(p.price * p.quantity).toLocaleString('uz-UZ')} so'm</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Store selection dropdown */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                    {language === 'uz' ? "Do'konni tanlang:" : "Выберите магазин:"}
+                  </label>
+                  <select 
+                    value={selectedStoreForBinding}
+                    onChange={(e) => setSelectedStoreForBinding(e.target.value)}
+                    style={{
+                      width: '100%',
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontSize: '13px',
+                      fontWeight: '600'
+                    }}
+                  >
+                    <option value="">{language === 'uz' ? "-- Do'konni tanlang --" : "-- Выберите магазин --"}</option>
+                    {stores.map(store => (
+                      <option key={store.id} value={store.id}>{store.name}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                  <button 
+                    onClick={() => setSelectedPendingPayment(null)}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'transparent',
+                      color: 'var(--text-secondary)',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      fontSize: '13px'
+                    }}
+                  >
+                    {language === 'uz' ? "Bekor qilish" : "Отмена"}
+                  </button>
+                  <button 
+                    disabled={!selectedStoreForBinding}
+                    onClick={async () => {
+                      try {
+                        const response = await fetch(`${API_URL}/tinda/assign-payment`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                          },
+                          body: JSON.stringify({
+                            paymentId: selectedPendingPayment.id,
+                            storeId: selectedStoreForBinding
+                          })
+                        });
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || 'Biriktirishda xatolik');
+                        
+                        // Update local states
+                        setPendingPayments(prev => prev.filter(p => p.id !== selectedPendingPayment.id));
+                        setSelectedPendingPayment(null);
+                        
+                        // Reload data to reflect new sale
+                        await loadCloudData(token);
+                        
+                        showAlert(language === 'uz' ? "To'lov do'konga muvaffaqiyatli biriktirildi!" : "Оплата успешно привязана к магазину!", 'success');
+                      } catch (err) {
+                        showAlert(err.message, 'error');
+                      }
+                    }}
+                    style={{
+                      flex: 1,
+                      padding: '10px',
+                      borderRadius: '8px',
+                      border: 'none',
+                      backgroundColor: 'var(--accent-color)',
+                      color: '#fff',
+                      fontWeight: '600',
+                      cursor: selectedStoreForBinding ? 'pointer' : 'not-allowed',
+                      opacity: selectedStoreForBinding ? 1 : 0.6,
+                      fontSize: '13px'
+                    }}
+                  >
+                    {language === 'uz' ? "Biriktirish" : "Привязать"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
