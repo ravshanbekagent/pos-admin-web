@@ -1100,6 +1100,8 @@ function App() {
   const [showAssignStoreModal, setShowAssignStoreModal] = useState(false);
   const [showAssignListModal, setShowAssignListModal] = useState(false);
   const [selectedRouteToAssign, setSelectedRouteToAssign] = useState('');
+  const [selectedRouteStoreIds, setSelectedRouteStoreIds] = useState([]);
+  const [routeStoreSearchQuery, setRouteStoreSearchQuery] = useState('');
   const [selectedAssignStoreIds, setSelectedAssignStoreIds] = useState([]);
   const [assignStoreSearchQuery, setAssignStoreSearchQuery] = useState('');
   const [showAddSelfStoreModal, setShowAddSelfStoreModal] = useState(false);
@@ -2265,25 +2267,24 @@ function App() {
     setShowAssignStoreModal(false);
   };
 
-  const handleAssignRouteToAgent = (route) => {
-    if (!route) return;
-    const agent = agents.find(a => a.id === selectedAgentId);
-    if (!agent) return;
-
-    // Find all stores in the route
-    const routeStores = stores.filter(s => s.route === route);
-    if (routeStores.length === 0) {
+  const handleAssignStoresToAgentRoute = () => {
+    if (selectedRouteStoreIds.length === 0) {
       showAlert(
-        language === 'uz' ? 'Ushbu yo\'nalishda do\'konlar topilmadi' : 'Магазины в этом направлении не найдены',
+        language === 'uz' ? 'Iltimos, kamida bitta do\'konni tanlang' : 'Пожалуйста, выберите хотя бы один магазин',
         'error'
       );
       return;
     }
+    const agent = agents.find(a => a.id === selectedAgentId);
+    if (!agent) return;
 
     setIsLoading(true);
     const nextOrder = storeAssignments.filter(ass => ass.agentId === agent.id).length + 1;
 
-    const promises = routeStores.map((store, index) => {
+    const promises = selectedRouteStoreIds.map((storeId, index) => {
+      const store = stores.find(s => s.id === storeId);
+      if (!store) return Promise.resolve();
+
       return fetch(`${API_URL}/stores/${store.id}`, {
         method: 'PUT',
         headers: {
@@ -2299,7 +2300,7 @@ function App() {
           location_lat: String(store.latitude || store.location_lat || ''),
           location_lng: String(store.longitude || store.location_lng || ''),
           agent_id: agent.id,
-          assigned_date: '2000-01-01', // inactive by default
+          assigned_date: '2000-01-01', // inactive by default, goes to "Biriktirilgan yo'nalishlar (Ro'yxat)"
           duration_days: 9999, // permanent assignment
           order: nextOrder + index
         })
@@ -2309,7 +2310,7 @@ function App() {
     Promise.all(promises)
       .then(() => {
         showAlert(
-          language === 'uz' ? 'Yo\'nalish muvaffaqiyatli biriktirildi' : 'Направление успешно закреплено',
+          language === 'uz' ? 'Do\'konlar yo\'nalishga muvaffaqiyatli biriktirildi' : 'Магазины успешно привязаны к направлению',
           'success'
         );
         loadCloudData(token);
@@ -2321,7 +2322,8 @@ function App() {
       .finally(() => {
         setIsLoading(false);
         setShowAssignListModal(false);
-        setSelectedRouteToAssign('');
+        setSelectedRouteStoreIds([]);
+        setRouteStoreSearchQuery('');
       });
   };
 
@@ -9365,27 +9367,124 @@ function App() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  {language === 'uz' ? "Yo'nalishni tanlang" : "Выберите направление"}
+                  {language === 'uz' ? "Do'konlarni tanlang" : "Выберите магазины"}
                 </label>
-                <select
-                  value={selectedRouteToAssign}
-                  onChange={(e) => setSelectedRouteToAssign(e.target.value)}
+                <input
+                  type="text"
+                  placeholder={language === 'uz' ? "Do'kon nomi bo'yicha qidirish..." : "Поиск по названию магазина..."}
+                  value={routeStoreSearchQuery}
+                  onChange={(e) => setRouteStoreSearchQuery(e.target.value)}
                   style={{
                     width: '100%',
-                    padding: '11px 14px',
+                    padding: '8px 12px',
                     borderRadius: '8px',
                     border: '1px solid var(--border-color)',
                     backgroundColor: 'var(--bg-primary)',
                     color: 'var(--text-primary)',
-                    fontSize: '14px',
-                    cursor: 'pointer'
+                    fontSize: '13px',
+                    marginBottom: '8px',
+                    boxSizing: 'border-box'
                   }}
-                >
-                  <option value="">{language === 'uz' ? "-- Yo'nalishni tanlang --" : "-- Выберите направление --"}</option>
-                  {[...new Set(stores.map(s => s.route).filter(Boolean))].sort().map(r => (
-                    <option key={r} value={r}>{r}</option>
-                  ))}
-                </select>
+                />
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', paddingBottom: '4px', borderBottom: '1px solid var(--border-color)' }}>
+                  <input
+                    type="checkbox"
+                    id="select-all-route-stores"
+                    checked={
+                      (() => {
+                        const filtered = stores.filter(store => 
+                          (store.agentId === null || store.agentId === undefined || String(store.agentId) !== String(selectedAgentId)) && 
+                          (store.name || '').toLowerCase().includes(routeStoreSearchQuery.toLowerCase())
+                        );
+                        return filtered.length > 0 && filtered.every(s => selectedRouteStoreIds.includes(s.id));
+                      })()
+                    }
+                    onChange={(e) => {
+                      const filtered = stores.filter(store => 
+                        (store.agentId === null || store.agentId === undefined || String(store.agentId) !== String(selectedAgentId)) && 
+                        (store.name || '').toLowerCase().includes(routeStoreSearchQuery.toLowerCase())
+                      );
+                      if (e.target.checked) {
+                        setSelectedRouteStoreIds(prev => {
+                          const newIds = [...prev];
+                          filtered.forEach(s => {
+                            if (!newIds.includes(s.id)) newIds.push(s.id);
+                          });
+                          return newIds;
+                        });
+                      } else {
+                        setSelectedRouteStoreIds(prev => prev.filter(id => !filtered.some(s => s.id === id)));
+                      }
+                    }}
+                    style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                  />
+                  <label htmlFor="select-all-route-stores" style={{ fontSize: '12px', color: 'var(--text-primary)', fontWeight: '600', cursor: 'pointer' }}>
+                    {language === 'uz' ? "Barchasini tanlash" : "Выбрать все"}
+                  </label>
+                </div>
+
+                <div style={{
+                  maxHeight: '180px',
+                  overflowY: 'auto',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  backgroundColor: 'var(--bg-primary)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '6px'
+                }}>
+                  {stores
+                    .filter(store => 
+                      (store.agentId === null || store.agentId === undefined || String(store.agentId) !== String(selectedAgentId)) && 
+                      (store.name || '').toLowerCase().includes(routeStoreSearchQuery.toLowerCase())
+                    )
+                    .map(store => {
+                      const isChecked = selectedRouteStoreIds.includes(store.id);
+                      return (
+                        <label 
+                          key={store.id} 
+                          style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '8px', 
+                            fontSize: '13px', 
+                            color: 'var(--text-primary)', 
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '4px',
+                            backgroundColor: isChecked ? 'rgba(13, 148, 136, 0.05)' : 'transparent'
+                          }}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => {
+                              if (isChecked) {
+                                setSelectedRouteStoreIds(prev => prev.filter(id => id !== store.id));
+                              } else {
+                                setSelectedRouteStoreIds(prev => [...prev, store.id]);
+                              }
+                            }}
+                            style={{ accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                          />
+                          <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left' }}>
+                            <span style={{ fontWeight: '500' }}>{store.name}</span>
+                            <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>📍 {store.address || 'Manzilsiz'}</span>
+                          </div>
+                        </label>
+                      );
+                    })}
+                  {stores.filter(store => 
+                    (store.agentId === null || store.agentId === undefined || String(store.agentId) !== String(selectedAgentId)) && 
+                    (store.name || '').toLowerCase().includes(routeStoreSearchQuery.toLowerCase())
+                  ).length === 0 && (
+                    <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
+                      {language === 'uz' ? "Do'kon topilmadi" : "Магазины не найдены"}
+                    </div>
+                  )}
+                </div>
               </div>
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
@@ -9393,7 +9492,8 @@ function App() {
                   type="button"
                   onClick={() => {
                     setShowAssignListModal(false);
-                    setSelectedRouteToAssign('');
+                    setSelectedRouteStoreIds([]);
+                    setRouteStoreSearchQuery('');
                   }}
                   style={{
                     flex: 1,
@@ -9410,18 +9510,18 @@ function App() {
                 </button>
                 <button 
                   type="button"
-                  onClick={() => handleAssignRouteToAgent(selectedRouteToAssign)}
-                  disabled={!selectedRouteToAssign}
+                  onClick={handleAssignStoresToAgentRoute}
+                  disabled={selectedRouteStoreIds.length === 0}
                   style={{
                     flex: 1,
                     padding: '12px',
                     borderRadius: '8px',
                     border: 'none',
-                    backgroundColor: selectedRouteToAssign ? 'var(--accent-color)' : 'var(--text-muted)',
+                    backgroundColor: selectedRouteStoreIds.length > 0 ? 'var(--accent-color)' : 'var(--text-muted)',
                     color: '#fff',
                     fontWeight: '600',
-                    cursor: selectedRouteToAssign ? 'pointer' : 'default',
-                    opacity: selectedRouteToAssign ? 1 : 0.6
+                    cursor: selectedRouteStoreIds.length > 0 ? 'pointer' : 'default',
+                    opacity: selectedRouteStoreIds.length > 0 ? 1 : 0.6
                   }}
                 >
                   {t('save')}
