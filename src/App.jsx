@@ -1001,7 +1001,7 @@ function App() {
     : [];
 
   const agentStores = activeAgent 
-    ? storeAssignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id) && isAssignmentActive(ass.date, ass.durationDays || 1)).sort((a, b) => (a.order || 0) - (b.order || 0)) 
+    ? storeAssignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id) && (userRole !== 'agent' || isAssignmentActive(ass.date, ass.durationDays || 1))).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
   const activeAgentStores = agentStores.filter(store => {
     const todayStr = getTodayDateString();
@@ -1098,6 +1098,8 @@ function App() {
   const [showAddStoreModal, setShowAddStoreModal] = useState(false);
   const [showAssignProductModal, setShowAssignProductModal] = useState(false);
   const [showAssignStoreModal, setShowAssignStoreModal] = useState(false);
+  const [showAssignListModal, setShowAssignListModal] = useState(false);
+  const [selectedRouteToAssign, setSelectedRouteToAssign] = useState('');
   const [selectedAssignStoreIds, setSelectedAssignStoreIds] = useState([]);
   const [assignStoreSearchQuery, setAssignStoreSearchQuery] = useState('');
   const [showAddSelfStoreModal, setShowAddSelfStoreModal] = useState(false);
@@ -2234,7 +2236,7 @@ function App() {
           location_lat: String(store.latitude || store.location_lat || ''),
           location_lng: String(store.longitude || store.location_lng || ''),
           agent_id: agent.id,
-          assigned_date: newStoreAssignment.isActiveToday ? getTodayDateString() : '2000-01-01',
+          assigned_date: getTodayDateString(),
           duration_days: newStoreAssignment.isPermanent ? 9999 : parseInt(newStoreAssignment.durationDays || '1'),
           order: nextOrder + index
         })
@@ -2261,6 +2263,169 @@ function App() {
     setSelectedAssignStoreIds([]);
     setAssignStoreSearchQuery('');
     setShowAssignStoreModal(false);
+  };
+
+  const handleAssignRouteToAgent = (route) => {
+    if (!route) return;
+    const agent = agents.find(a => a.id === selectedAgentId);
+    if (!agent) return;
+
+    // Find all stores in the route
+    const routeStores = stores.filter(s => s.route === route);
+    if (routeStores.length === 0) {
+      showAlert(
+        language === 'uz' ? 'Ushbu yo\'nalishda do\'konlar topilmadi' : 'Магазины в этом направлении не найдены',
+        'error'
+      );
+      return;
+    }
+
+    setIsLoading(true);
+    const nextOrder = storeAssignments.filter(ass => ass.agentId === agent.id).length + 1;
+
+    const promises = routeStores.map((store, index) => {
+      return fetch(`${API_URL}/stores/${store.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: store.name,
+          owner_name: store.owner_name,
+          phone: store.phone,
+          address: store.address,
+          map_link: store.map_link,
+          location_lat: String(store.latitude || store.location_lat || ''),
+          location_lng: String(store.longitude || store.location_lng || ''),
+          agent_id: agent.id,
+          assigned_date: '2000-01-01', // inactive by default
+          duration_days: 9999, // permanent assignment
+          order: nextOrder + index
+        })
+      });
+    });
+
+    Promise.all(promises)
+      .then(() => {
+        showAlert(
+          language === 'uz' ? 'Yo\'nalish muvaffaqiyatli biriktirildi' : 'Направление успешно закреплено',
+          'success'
+        );
+        loadCloudData(token);
+      })
+      .catch(err => {
+        console.error(err);
+        showAlert(err.message, 'error');
+      })
+      .finally(() => {
+        setIsLoading(false);
+        setShowAssignListModal(false);
+        setSelectedRouteToAssign('');
+      });
+  };
+
+  const handleRemoveRouteAssignment = (route) => {
+    if (!route) return;
+    showConfirm(
+      language === 'uz'
+        ? `Ushbu yo'nalishdagi barcha do'konlarni agent biriktiruvidan o'chirishni xohlaysizmi?`
+        : `Вы действительно хотите удалить все привязки магазинов этого направления?`,
+      () => {
+        setIsLoading(true);
+        // Find all stores of this agent that belong to this route
+        const routeAgentStores = agentStores.filter(s => s.route === route);
+        
+        const promises = routeAgentStores.map(store => {
+          return fetch(`${API_URL}/stores/${store.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              name: store.storeName || store.name,
+              owner_name: store.ownerName || store.owner_name,
+              phone: store.phone,
+              address: store.address,
+              map_link: store.map_link,
+              location_lat: String(store.latitude || store.location_lat || ''),
+              location_lng: String(store.longitude || store.location_lng || ''),
+              agent_id: null,
+              order: null
+            })
+          });
+        });
+
+        Promise.all(promises)
+          .then(() => {
+            showAlert(
+              language === 'uz' ? "Yo'nalish muvaffaqiyatli o'chirildi" : "Направление успешно удалено",
+              'success'
+            );
+            loadCloudData(token);
+          })
+          .catch(err => {
+            console.error(err);
+            showAlert(err.message, 'error');
+          })
+          .finally(() => {
+            setIsLoading(false);
+          });
+      }
+    );
+  };
+
+  const handleToggleStoreActiveToday = (store) => {
+    if (!store) return;
+    const isCurrentlyActive = isAssignmentActive(store.date, store.durationDays || 1);
+    
+    // Toggle state
+    const newAssignedDate = isCurrentlyActive ? '2000-01-01' : getTodayDateString();
+    
+    // Duration days can stay the same, but if it is activating, let's ensure it has at least 1 day.
+    // If it was permanent (9999), keep 9999.
+    const duration = store.durationDays || 1;
+
+    setIsLoading(true);
+    fetch(`${API_URL}/stores/${store.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify({
+        name: store.storeName || store.name,
+        owner_name: store.ownerName || store.owner_name,
+        phone: store.phone,
+        address: store.address,
+        map_link: store.map_link,
+        location_lat: String(store.latitude || store.location_lat || ''),
+        location_lng: String(store.longitude || store.location_lng || ''),
+        agent_id: store.agentId,
+        assigned_date: newAssignedDate,
+        duration_days: duration,
+        order: store.order || 1
+      })
+    })
+    .then(res => {
+      if (!res.ok) throw new Error(language === 'uz' ? 'Statusni o\'zgartirib bo\'lmadi' : 'Не удалось изменить статус');
+      return res.json();
+    })
+    .then(() => {
+      showAlert(
+        language === 'uz' ? 'Status muvaffaqiyatli o\'zgartirildi' : 'Статус успешно изменен',
+        'success'
+      );
+      loadCloudData(token);
+    })
+    .catch(err => {
+      console.error(err);
+      showAlert(err.message, 'error');
+    })
+    .finally(() => {
+      setIsLoading(false);
+    });
   };
 
   const handleAddSelfStoreAssignment = (store) => {
@@ -8970,7 +9135,7 @@ function App() {
             <form onSubmit={handleAddStoreAssignment} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                  {language === 'uz' ? "Do'konlarni tanlang" : "Выберите магазины"}
+                  {language === 'uz' ? "Do'konlarni tanlang (Yo'nalishdagi do'konlar)" : "Выберите магазины (Из направления)"}
                 </label>
                 <input
                   type="text"
@@ -8995,14 +9160,31 @@ function App() {
                     type="checkbox"
                     id="select-all-assign-stores"
                     checked={
-                      stores.length > 0 &&
-                      stores.every(store => selectedAssignStoreIds.includes(store.id))
+                      (() => {
+                        const filtered = stores.filter(store => 
+                          store.agentId === selectedAgentId && 
+                          !isAssignmentActive(store.assigned_date, store.duration_days || 1) &&
+                          (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())
+                        );
+                        return filtered.length > 0 && filtered.every(s => selectedAssignStoreIds.includes(s.id));
+                      })()
                     }
                     onChange={(e) => {
+                      const filtered = stores.filter(store => 
+                        store.agentId === selectedAgentId && 
+                        !isAssignmentActive(store.assigned_date, store.duration_days || 1) &&
+                        (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())
+                      );
                       if (e.target.checked) {
-                        setSelectedAssignStoreIds(stores.map(s => s.id));
+                        setSelectedAssignStoreIds(prev => {
+                          const newIds = [...prev];
+                          filtered.forEach(s => {
+                            if (!newIds.includes(s.id)) newIds.push(s.id);
+                          });
+                          return newIds;
+                        });
                       } else {
-                        setSelectedAssignStoreIds([]);
+                        setSelectedAssignStoreIds(prev => prev.filter(id => !filtered.some(s => s.id === id)));
                       }
                     }}
                     style={{ cursor: 'pointer', accentColor: 'var(--accent-color)' }}
@@ -9024,7 +9206,11 @@ function App() {
                   gap: '6px'
                 }}>
                   {stores
-                    .filter(store => (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase()))
+                    .filter(store => 
+                      store.agentId === selectedAgentId && 
+                      !isAssignmentActive(store.assigned_date, store.duration_days || 1) &&
+                      (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())
+                    )
                     .map(store => {
                       const isChecked = selectedAssignStoreIds.includes(store.id);
                       return (
@@ -9061,25 +9247,16 @@ function App() {
                         </label>
                       );
                     })}
-                  {stores.filter(store => (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())).length === 0 && (
+                  {stores.filter(store => 
+                    store.agentId === selectedAgentId && 
+                    !isAssignmentActive(store.assigned_date, store.duration_days || 1) &&
+                    (store.name || '').toLowerCase().includes(assignStoreSearchQuery.toLowerCase())
+                  ).length === 0 && (
                     <div style={{ padding: '12px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '12px' }}>
-                      {language === 'uz' ? "Do'kon topilmadi" : "Магазины не найдены"}
+                      {language === 'uz' ? "Yo'nalishda faollashtirilmagan do'konlar mavjud emas" : "Нет неактивных магазинов в направлениях"}
                     </div>
                   )}
                 </div>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', marginTop: '4px' }}>
-                <input
-                  type="checkbox"
-                  id="assign-store-active-today"
-                  checked={newStoreAssignment.isActiveToday}
-                  onChange={(e) => setNewStoreAssignment({ ...newStoreAssignment, isActiveToday: e.target.checked })}
-                  style={{ width: '15px', height: '15px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
-                />
-                <label htmlFor="assign-store-active-today" style={{ fontSize: '13px', color: 'var(--text-primary)', fontWeight: '600', cursor: 'pointer' }}>
-                  {language === 'uz' ? "Bugungi faol vazifalarga qo'shish" : "Добавить в сегодняшние активные задачи"}
-                </label>
               </div>
 
               <div>
@@ -9155,6 +9332,102 @@ function App() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal 2.5: Assign List (Route) */}
+      {showAssignListModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }} className="fade-in">
+          <div style={{
+            width: '400px',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: 'var(--shadow-lg)'
+          }}>
+            <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '20px' }}>
+              {language === 'uz' ? "Yo'nalish (Ro'yxat) biriktirish" : "Закрепить направление (Список)"}
+            </h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div>
+                <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                  {language === 'uz' ? "Yo'nalishni tanlang" : "Выберите направление"}
+                </label>
+                <select
+                  value={selectedRouteToAssign}
+                  onChange={(e) => setSelectedRouteToAssign(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '11px 14px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)',
+                    color: 'var(--text-primary)',
+                    fontSize: '14px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option value="">{language === 'uz' ? "-- Yo'nalishni tanlang --" : "-- Выберите направление --"}</option>
+                  {[...new Set(stores.map(s => s.route).filter(Boolean))].sort().map(r => (
+                    <option key={r} value={r}>{r}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '12px' }}>
+                <button 
+                  type="button"
+                  onClick={() => {
+                    setShowAssignListModal(false);
+                    setSelectedRouteToAssign('');
+                  }}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid var(--border-color)',
+                    backgroundColor: 'transparent',
+                    color: 'var(--text-secondary)',
+                    fontWeight: '600',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {t('cancel')}
+                </button>
+                <button 
+                  type="button"
+                  onClick={() => handleAssignRouteToAgent(selectedRouteToAssign)}
+                  disabled={!selectedRouteToAssign}
+                  style={{
+                    flex: 1,
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: 'none',
+                    backgroundColor: selectedRouteToAssign ? 'var(--accent-color)' : 'var(--text-muted)',
+                    color: '#fff',
+                    fontWeight: '600',
+                    cursor: selectedRouteToAssign ? 'pointer' : 'default',
+                    opacity: selectedRouteToAssign ? 1 : 0.6
+                  }}
+                >
+                  {t('save')}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
