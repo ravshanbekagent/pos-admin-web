@@ -985,11 +985,18 @@ function App() {
     if (!assignDateStr) return false;
     if (assignDateStr === '2000-01-01' || assignDateStr.startsWith('2000-01-01')) return false;
     if (durationDays === 9999 || durationDays === 0) return true;
+    // Timezone safe local date parsing
+    const parts = assignDateStr.split('T')[0].split('-');
+    if (parts.length !== 3) return false;
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    
+    const assignDate = new Date(year, month, day);
+    assignDate.setHours(0, 0, 0, 0);
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    const assignDate = new Date(assignDateStr);
-    assignDate.setHours(0, 0, 0, 0);
 
     const diffTime = today.getTime() - assignDate.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
@@ -1019,7 +1026,10 @@ function App() {
   });
 
   const inactiveAgentStores = activeAgent 
-    ? stores.filter(s => s.agentId !== null && s.agentId !== undefined && String(s.agentId) === String(activeAgent.id))
+    ? stores.filter(s => 
+        (s.agentId === null || s.agentId === undefined || String(s.agentId) === String(activeAgent.id)) &&
+        !isAssignmentActive(s.assigned_date, s.duration_days || 1)
+      )
     : [];
 
 
