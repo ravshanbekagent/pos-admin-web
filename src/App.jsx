@@ -1014,7 +1014,7 @@ function App() {
     : [];
 
   const agentStores = activeAgent 
-    ? storeAssignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id) && (userRole !== 'agent' || isAssignmentActive(ass.date, ass.durationDays || 1))).sort((a, b) => (a.order || 0) - (b.order || 0)) 
+    ? storeAssignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id)).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
   const activeStores = agentStores.filter(store => 
     isAssignmentActive(store.date, store.durationDays || 1) &&
@@ -1022,7 +1022,8 @@ function App() {
   );
   const activeAgentStores = agentStores.filter(store => {
     const todayStr = getTodayDateString();
-    return !visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
+    return isAssignmentActive(store.date, store.durationDays || 1) &&
+           !visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
   });
 
   const inactiveAgentStores = activeAgent 
@@ -6861,7 +6862,10 @@ function App() {
                           
                           {/* Stores list content */}
                           {(() => {
-                            if (agentStores.length === 0) {
+                            const displayedStores = userRole === 'agent'
+                              ? agentStores.filter(s => !isAssignmentActive(s.date, s.durationDays || 1))
+                              : agentStores;
+                            if (displayedStores.length === 0) {
                               return (
                                 <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
                                   {language === 'uz' ? "Do'konlar biriktirilmagan" : 'Магазины не закреплены'}
@@ -6877,7 +6881,7 @@ function App() {
                                 overflowY: 'auto',
                                 paddingRight: '4px'
                               }}>
-                                {agentStores.map(store => {
+                                {displayedStores.map(store => {
                                   const isActive = isAssignmentActive(store.date, store.durationDays || 1);
                                   return (
                                     <div
