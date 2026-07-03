@@ -1061,8 +1061,7 @@ function App() {
     ? stores.filter(s => 
         s.agentId !== null && 
         s.agentId !== undefined && 
-        String(s.agentId) === String(activeAgent.id) &&
-        !isAssignmentActive(s.assigned_date, s.duration_days || 1)
+        String(s.agentId) === String(activeAgent.id)
       )
     : [];
 
@@ -2578,6 +2577,21 @@ function App() {
         language === 'uz' ? 'Do\'kon vazifalar ro\'yxatiga qo\'shildi' : 'Магазин добавлен в список задач',
         'success'
       );
+      
+      // Clear visited status locally
+      setVisitedStores(prev => {
+        const todayStr = getTodayDateString();
+        const updated = prev.filter(v => !(v.storeId === store.id && v.date === todayStr));
+        localStorage.setItem('visited_stores', JSON.stringify(updated));
+        return updated;
+      });
+      
+      // Clear from cloudVisits state
+      setCloudVisits(prev => {
+        const todayStr = getTodayDateString();
+        return prev.filter(v => !(v.storeId === store.id && v.date === todayStr));
+      });
+
       loadCloudData(token);
       setShowAddSelfStoreModal(false);
     })
