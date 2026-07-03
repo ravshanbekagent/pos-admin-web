@@ -1398,7 +1398,6 @@ function App() {
           barcode: newProduct.barcode,
           name: newProduct.name,
           price: parseFloat(newProduct.price || 0),
-          original_price: parseFloat(newProduct.price || 0) * 0.8,
           unit: newProduct.unit,
           stock: 100,
           category: newProduct.category,
@@ -1465,7 +1464,6 @@ function App() {
           barcode: editingProduct.barcode,
           name: editingProduct.name,
           price: parseFloat(editingProduct.price || 0),
-          original_price: parseFloat(editingProduct.price || 0) * 0.8,
           unit: editingProduct.unit,
           is_active: editingProduct.is_active,
           category: editingProduct.category,
@@ -1602,7 +1600,7 @@ function App() {
             barcode,
             name,
             price,
-            original_price: price * 0.8,
+            original_price: 0,
             unit,
             stock: 100,
             category,
@@ -1694,7 +1692,7 @@ function App() {
         barcode: product.barcode,
         name: product.name,
         price: product.price,
-        original_price: product.originalPrice || product.original_price || 0,
+        original_price: 0,
         unit: product.unit,
         stock: numericVal,
         is_active: product.is_active !== undefined ? product.is_active : true
@@ -5170,7 +5168,6 @@ function App() {
                           <th style={{ padding: '12px' }}>{t('barcode')}</th>
                           <th style={{ padding: '12px' }}>{t('product_name')}</th>
                           <th style={{ padding: '12px' }}>{t('selling_price')}</th>
-                          <th style={{ padding: '12px' }}>{t('original_price')}</th>
                           <th style={{ padding: '12px' }}>{t('unit')}</th>
                           <th style={{ padding: '12px', textAlign: 'right' }}>{t('stock_qty')}</th>
                           <th style={{ padding: '12px', textAlign: 'right' }}>{language === 'uz' ? 'O\'chirish' : 'Удалить'}</th>
@@ -5202,9 +5199,6 @@ function App() {
                                 {product.name}
                               </td>
                               <td style={{ padding: '12px', fontWeight: '600' }}>{product.price.toLocaleString()} UZS</td>
-                              <td style={{ padding: '12px', fontWeight: '500', color: 'var(--text-secondary)' }}>
-                                {product.originalPrice ? `${product.originalPrice.toLocaleString()} UZS` : <span style={{ color: 'var(--text-muted)', fontStyle: 'italic', fontSize: '12px' }}>{t('not_entered')}</span>}
-                              </td>
                               <td style={{ padding: '12px' }}>
                                 <span style={{ backgroundColor: 'var(--bg-tertiary)', padding: '3px 8px', borderRadius: '4px', fontSize: '12px' }}>
                                   {product.unit}
