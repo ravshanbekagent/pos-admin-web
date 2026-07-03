@@ -28,7 +28,9 @@ import {
   CheckCircle,
   CreditCard,
   Loader,
-  Clock
+  Clock,
+  Upload,
+  Download
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { 
@@ -694,7 +696,17 @@ function App() {
         originalPrice: parseFloat(p.original_price || 0),
         unit: p.unit,
         stock: p.stock,
-        is_active: p.is_active
+        is_active: p.is_active,
+        category: p.category || '',
+        psid: p.psid || '',
+        marked: p.marked !== undefined ? p.marked : true,
+        is_integer_units: p.is_integer_units !== undefined ? p.is_integer_units : true,
+        package_code: p.package_code || '',
+        inn: p.inn || '',
+        pinfl: p.pinfl || '',
+        owner_type: p.owner_type || '0',
+        store_name: p.store_name || '',
+        vat: p.vat !== undefined ? parseFloat(p.vat) : 0.12
       }));
 
       // Map stores
@@ -1416,6 +1428,158 @@ function App() {
       setTimeout(() => setScannerNotification(''), 5000);
     }
     setScannerValue('');
+  };
+
+  const handleExportProductsToExcel = () => {
+    try {
+      const dataToExport = products.map(p => ({
+        'Id': p.id || '',
+        'Product Name': p.name || '',
+        'Category': p.category || '',
+        'Barcode': p.barcode || '',
+        'PSID': p.psid || '02402001001041011',
+        'Marked': p.marked !== undefined ? String(p.marked) : 'true',
+        'Is Integer Units': p.is_integer_units !== undefined ? String(p.is_integer_units) : 'true',
+        'Units': p.unit || 'dona',
+        'Package code': p.package_code || '1871427',
+        'INN': p.inn || '',
+        'Pinfl': p.pinfl || '',
+        'Type of the product/service owner': p.owner_type || '0',
+        'Store Name': p.store_name || '',
+        'Price': p.price || 0,
+        'VAT': p.vat !== undefined ? p.vat : 0.12
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Products');
+
+      XLSX.writeFile(workbook, 'product-list.xlsx');
+
+      showAlert(
+        language === 'uz' ? "Mahsulotlar muvaffaqiyatli eksport qilindi!" : "Продукты успешно экспортированы!",
+        'success'
+      );
+    } catch (err) {
+      console.error("Export Excel Error:", err);
+      showAlert(err.message, 'error');
+    }
+  };
+
+  const handleImportProductsFromExcel = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      setIsLoading(true);
+      try {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const rawRows = XLSX.utils.sheet_to_json(worksheet);
+
+        if (rawRows.length === 0) {
+          throw new Error(language === 'uz' ? "Faylda mahsulotlar topilmadi!" : "Продукты в файле не найдены!");
+        }
+
+        let importSuccessCount = 0;
+        let importUpdateCount = 0;
+        let importErrorCount = 0;
+
+        for (const row of rawRows) {
+          const barcode = String(row['Barcode'] || '').trim();
+          const name = String(row['Product Name'] || '').trim();
+          const price = parseFloat(row['Price'] || 0);
+          const unit = String(row['Units'] || 'dona').trim();
+
+          const category = String(row['Category'] || '').trim();
+          const psid = String(row['PSID'] || '').trim();
+          const marked = String(row['Marked'] || 'true').trim() === 'true';
+          const is_integer_units = String(row['Is Integer Units'] || 'true').trim() === 'true';
+          const package_code = String(row['Package code'] || '').trim();
+          const inn = String(row['INN'] || '').trim();
+          const pinfl = String(row['Pinfl'] || '').trim();
+          const owner_type = String(row['Type of the product/service owner'] || '0').trim();
+          const store_name = String(row['Store Name'] || '').trim();
+          const vat = parseFloat(row['VAT'] || 0.12);
+
+          if (!barcode || !name) {
+            importErrorCount++;
+            continue;
+          }
+
+          const existingProduct = products.find(p => String(p.barcode) === barcode);
+
+          const productPayload = {
+            barcode,
+            name,
+            price,
+            original_price: price * 0.8,
+            unit,
+            stock: 100,
+            category,
+            psid,
+            marked,
+            is_integer_units,
+            package_code,
+            inn,
+            pinfl,
+            owner_type,
+            store_name,
+            vat
+          };
+
+          try {
+            if (existingProduct) {
+              const res = await fetch(`${API_URL}/products/${existingProduct.id}`, {
+                method: 'PUT',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(productPayload)
+              });
+              if (!res.ok) throw new Error();
+              importUpdateCount++;
+            } else {
+              const res = await fetch(`${API_URL}/products`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify(productPayload)
+              });
+              if (!res.ok) throw new Error();
+              importSuccessCount++;
+            }
+          } catch (apiErr) {
+            importErrorCount++;
+          }
+        }
+
+        await loadCloudData(token);
+
+        showAlert(
+          language === 'uz' 
+            ? `Import muvaffaqiyatli yakunlandi! Qo'shildi: ${importSuccessCount} ta, Yangilandi: ${importUpdateCount} ta, Xatoliklar: ${importErrorCount} ta.` 
+            : `Импорт успешно завершен! Добавлено: ${importSuccessCount}, Обновлено: ${importUpdateCount}, Ошибок: ${importErrorCount}.`,
+          importErrorCount > 0 ? 'info' : 'success'
+        );
+
+        e.target.value = null;
+
+      } catch (err) {
+        console.error("Import Excel Error:", err);
+        showAlert(err.message, 'error');
+        e.target.value = null;
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    reader.readAsArrayBuffer(file);
   };
 
   const handleUpdateProductStock = (productId, val) => {
@@ -4802,6 +4966,69 @@ function App() {
                         {language === 'uz' ? 'Skanerlash' : 'Сканировать'}
                       </button>
                     </form>
+
+                    {/* Export Button */}
+                    <button 
+                      onClick={handleExportProductsToExcel}
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                        e.currentTarget.style.borderColor = 'var(--accent-color)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                      }}
+                    >
+                      <Download size={16} /> {language === 'uz' ? 'Eksport' : 'Экспорт'}
+                    </button>
+
+                    {/* Import Button */}
+                    <label 
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '14px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
+                        e.currentTarget.style.borderColor = 'var(--accent-color)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                      }}
+                    >
+                      <Upload size={16} /> {language === 'uz' ? 'Import' : 'Импорт'}
+                      <input 
+                        type="file" 
+                        accept=".xlsx, .xls" 
+                        onChange={handleImportProductsFromExcel} 
+                        style={{ display: 'none' }} 
+                      />
+                    </label>
 
                     {/* Add Product Button */}
                     <button 
