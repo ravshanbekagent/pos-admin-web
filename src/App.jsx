@@ -13778,9 +13778,20 @@ function App() {
                     }}
                   >
                     <option value="">{language === 'uz' ? "-- Do'konni tanlang --" : "-- Выберите магазин --"}</option>
-                    {stores.map(store => (
-                      <option key={store.id} value={store.id}>{store.name}</option>
-                    ))}
+                    {stores
+                      .filter(store => {
+                        if (userRole === 'agent') {
+                          return store.agentId !== null && store.agentId !== undefined && String(store.agentId) === String(currentUserId);
+                        }
+                        if (selectedPendingPayment && selectedPendingPayment.agentId) {
+                          return store.agentId !== null && store.agentId !== undefined && String(store.agentId) === String(selectedPendingPayment.agentId);
+                        }
+                        return true;
+                      })
+                      .map(store => (
+                        <option key={store.id} value={store.id}>{store.name}</option>
+                      ))
+                    }
                   </select>
                 </div>
 
