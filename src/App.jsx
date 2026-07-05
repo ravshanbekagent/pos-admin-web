@@ -4456,7 +4456,7 @@ function App() {
                       transition: 'all var(--transition-fast)'
                     }}
                   >
-                    {language === 'uz' ? "Terminal Sozlamalari" : 'Настройки терминала'}
+                    {language === 'uz' ? "Tinda Terminal" : 'Tinda Терминал'}
                   </button>
                   <button
                     onClick={() => setActiveTab('settings_autoterminal')}
@@ -14426,7 +14426,7 @@ function App() {
             gap: '16px'
           }}>
             <h4 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-              {language === 'uz' ? "Terminal Sozlamalari" : "Настройки терминала"}
+              {language === 'uz' ? "Tinda Terminal Sozlamalari" : "Настройки терминала Tinda"}
             </h4>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
