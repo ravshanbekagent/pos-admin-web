@@ -9896,21 +9896,21 @@ function App() {
                       <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{language === 'uz' ? 'Umumiy Savdo Tushumi' : 'Общая выручка от продаж'}</span>
                         <h3 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--accent-color)', margin: 0 }}>{totalRevenue.toLocaleString()} UZS</h3>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{language === 'uz' ? 'Jami amalga oshirilgan savdolar' : 'Всего осуществлено продаж'}</span>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{language === 'uz' ? 'Jami amalga oshirilgan savdolar summasi' : 'Сумма всех осуществленных продаж'}</span>
                       </div>
 
                       {/* Card 2 */}
                       <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{language === 'uz' ? 'Jami Tannarx (Xarajat)' : 'Общая себестоимость (Расход)'}</span>
-                        <h3 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--warning-color)', margin: 0 }}>{totalCost.toLocaleString()} UZS</h3>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{language === 'uz' ? 'Mahsulotlar asl narxi yig\'indisi' : 'Сумма себестоимости товаров'}</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{language === 'uz' ? 'Amalga Oshirilgan Savdolar' : 'Количество сделок'}</span>
+                        <h3 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--warning-color)', margin: 0 }}>{filteredSales.length.toLocaleString()} {language === 'uz' ? 'ta' : 'сделок'}</h3>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{language === 'uz' ? 'Muvaffaqiyatli tranzaksiyalar soni' : 'Количество успешных транзакций'}</span>
                       </div>
 
                       {/* Card 3 */}
                       <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{t('net_profit')}</span>
-                        <h3 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success-color)', margin: 0 }}>{totalProfit.toLocaleString()} UZS</h3>
-                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{language === 'uz' ? 'Tushumdan tannarx ayirilganda' : 'Выручка за вычетом себестоимости'}</span>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{language === 'uz' ? 'Savdo Qilingan Do\'konlar' : 'Охваченные магазины'}</span>
+                        <h3 style={{ fontSize: '24px', fontWeight: '700', color: 'var(--success-color)', margin: 0 }}>{Object.keys(storeSales).length.toLocaleString()} {language === 'uz' ? 'ta' : 'магазинов'}</h3>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{language === 'uz' ? 'Kamida bitta savdo qilingan do\'konlar' : 'Магазины с продажами'}</span>
                       </div>
 
                     </div>
@@ -9960,7 +9960,7 @@ function App() {
 
               {/* Chart section */}
               <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '500', marginBottom: '20px' }}>{language === 'uz' ? 'Savdo va Sof Foyda Solishtirmasi' : 'Сравнение продаж и чистой прибыли'}</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: '500', marginBottom: '20px' }}>{language === 'uz' ? 'Kunlik Savdo Dinamikasi' : 'Динамика ежедневных продаж'}</h3>
                 <div style={{ width: '100%', height: '300px' }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart
@@ -9968,16 +9968,8 @@ function App() {
                         const dailyData = {};
                         getFilteredSales(sales).forEach(s => {
                           const date = s.date;
-                          if (!dailyData[date]) dailyData[date] = { name: date, tushum: 0, foyda: 0 };
+                          if (!dailyData[date]) dailyData[date] = { name: date, tushum: 0 };
                           dailyData[date].tushum += s.total;
-                          let saleCost = 0;
-                          if (s.items) {
-                            s.items.forEach(item => {
-                              const cost = item.originalPrice || (products.find(p => p.name === item.productName)?.originalPrice) || 0;
-                              saleCost += (cost * item.qty);
-                            });
-                          }
-                          dailyData[date].foyda += (s.total - saleCost);
                         });
                         return Object.values(dailyData);
                       })()}
@@ -9988,17 +9980,12 @@ function App() {
                           <stop offset="5%" stopColor="var(--accent-color)" stopOpacity={0.4}/>
                           <stop offset="95%" stopColor="var(--accent-color)" stopOpacity={0}/>
                         </linearGradient>
-                        <linearGradient id="colorFoyda" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="var(--success-color)" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="var(--success-color)" stopOpacity={0}/>
-                        </linearGradient>
                       </defs>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
                       <XAxis dataKey="name" stroke="var(--text-secondary)" style={{ fontSize: '12px' }} />
                       <YAxis stroke="var(--text-secondary)" style={{ fontSize: '12px' }} />
                       <Tooltip contentStyle={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }} />
                       <Area type="monotone" dataKey="tushum" name={language === 'uz' ? 'Tushum' : 'Выручка'} stroke="var(--accent-color)" fillOpacity={1} fill="url(#colorTushum)" />
-                      <Area type="monotone" dataKey="foyda" name={language === 'uz' ? 'Sof Foyda' : 'Чистая прибыль'} stroke="var(--success-color)" fillOpacity={1} fill="url(#colorFoyda)" />
                     </AreaChart>
                   </ResponsiveContainer>
                 </div>
@@ -10103,7 +10090,6 @@ function App() {
                       <th style={{ padding: '12px' }}>{language === 'uz' ? 'Do\'kon nomi' : 'Название магазина'}</th>
                       <th style={{ padding: '12px' }}>{language === 'uz' ? 'Xarid qilingan mahsulotlar (Soni)' : 'Купленные товары (Кол-во)'}</th>
                       <th style={{ padding: '12px' }}>{language === 'uz' ? 'Umumiy tushum' : 'Общая выручка'}</th>
-                      <th style={{ padding: '12px' }}>{language === 'uz' ? 'Sof foyda' : 'Чистая прибыль'}</th>
                       <th style={{ padding: '12px' }}>{language === 'uz' ? 'Eng ko\'p olingan mahsulot' : 'Самый покупаемый товар'}</th>
                       <th style={{ padding: '12px' }}>{language === 'uz' ? 'Sotgan agentlar' : 'Продавшие агенты'}</th>
                     </tr>
@@ -10116,7 +10102,6 @@ function App() {
                         
                         let totalQty = 0;
                         let revenue = 0;
-                        let costSum = 0;
                         const productCounts = {};
                         const agentsSet = new Set();
 
@@ -10126,14 +10111,10 @@ function App() {
                           if (s.items) {
                             s.items.forEach(item => {
                               totalQty += item.qty;
-                              const cost = item.originalPrice || (products.find(p => p.name === item.productName)?.originalPrice) || 0;
-                              costSum += (cost * item.qty);
                               productCounts[item.productName] = (productCounts[item.productName] || 0) + item.qty;
                             });
                           }
                         });
-
-                        const profit = revenue - costSum;
 
                         // Find top product in store
                         let topProd = "-";
@@ -10158,9 +10139,6 @@ function App() {
                             </td>
                             <td style={{ padding: '12px' }}>{totalQty.toLocaleString()} {language === 'uz' ? 'dona' : 'шт'}</td>
                             <td style={{ padding: '12px', fontWeight: '600', color: 'var(--accent-color)' }}>{revenue.toLocaleString()} UZS</td>
-                            <td style={{ padding: '12px', fontWeight: '600', color: profit >= 0 ? 'var(--success-color)' : 'var(--warning-color)' }}>
-                              {profit.toLocaleString()} UZS
-                            </td>
                             <td style={{ padding: '12px', fontSize: '13px' }}>
                               {topProd} {topProdQty > 0 && `(${topProdQty} ${language === 'uz' ? 'dona' : 'шт'})`}
                             </td>
@@ -10229,7 +10207,6 @@ function App() {
                             <th style={{ padding: '10px' }}>{language === 'uz' ? 'Mahsulot nomi' : 'Название товара'}</th>
                             <th style={{ padding: '10px', textAlign: 'right' }}>{language === 'uz' ? 'Sotilgan miqdor' : 'Проданное количество'}</th>
                             <th style={{ padding: '10px', textAlign: 'right' }}>{language === 'uz' ? 'Jami tushum' : 'Общая выручка'}</th>
-                            <th style={{ padding: '10px', textAlign: 'right' }}>{language === 'uz' ? 'Sof foyda' : 'Чистая прибыль'}</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -10241,12 +10218,10 @@ function App() {
                               if (s.items) {
                                 s.items.forEach(item => {
                                   if (!productsMap[item.productName]) {
-                                    productsMap[item.productName] = { name: item.productName, qty: 0, revenue: 0, cost: 0 };
+                                    productsMap[item.productName] = { name: item.productName, qty: 0, revenue: 0 };
                                   }
                                   productsMap[item.productName].qty += item.qty;
                                   productsMap[item.productName].revenue += (item.qty * item.price);
-                                  const cost = item.originalPrice || (products.find(p => p.name === item.productName)?.originalPrice) || 0;
-                                  productsMap[item.productName].cost += (item.qty * cost);
                                 });
                               }
                             });
@@ -10256,7 +10231,7 @@ function App() {
                             if (sortedProducts.length === 0) {
                               return (
                                 <tr>
-                                  <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                  <td colSpan="3" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                     {language === 'uz' ? 'Ushbu do\'konga hali mahsulot sotilmagan.' : 'В этот магазин еще не было продаж.'}
                                   </td>
                                 </tr>
@@ -10264,15 +10239,11 @@ function App() {
                             }
 
                             return sortedProducts.map(item => {
-                              const itemProfit = item.revenue - item.cost;
                               return (
                                 <tr key={item.name} style={{ borderBottom: '1px solid var(--border-color)', fontSize: '14px' }}>
                                   <td style={{ padding: '10px', fontWeight: '500' }}>{item.name}</td>
                                   <td style={{ padding: '10px', textAlign: 'right' }}>{item.qty.toLocaleString()} {language === 'uz' ? 'dona' : 'шт'}</td>
                                   <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: 'var(--accent-color)' }}>{item.revenue.toLocaleString()} UZS</td>
-                                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: itemProfit >= 0 ? 'var(--success-color)' : 'var(--warning-color)' }}>
-                                    {itemProfit.toLocaleString()} UZS
-                                  </td>
                                 </tr>
                               );
                             });
@@ -10484,10 +10455,6 @@ function App() {
                           <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--accent-color)' }}>{totalRevenue.toLocaleString()} UZS</div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{language === 'uz' ? 'Sof Foyda' : 'Чистая прибыль'}</div>
-                          <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--success-color)' }}>{totalProfit.toLocaleString()} UZS</div>
-                        </div>
-                        <div style={{ textAlign: 'right' }}>
                           <div style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{language === 'uz' ? 'Do\'konlar' : 'Магазины'}</div>
                           <div style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>{storeVisits.size} {language === 'uz' ? 'ta' : 'шт'}</div>
                         </div>
@@ -10503,20 +10470,18 @@ function App() {
                             <th style={{ padding: '10px' }}>{language === 'uz' ? 'Mahsulot nomi' : 'Название товара'}</th>
                             <th style={{ padding: '10px', textAlign: 'right' }}>{language === 'uz' ? 'Sotilgan miqdor' : 'Проданное количество'}</th>
                             <th style={{ padding: '10px', textAlign: 'right' }}>{language === 'uz' ? 'Sotuv summasi' : 'Сумма продаж'}</th>
-                            <th style={{ padding: '10px', textAlign: 'right' }}>{language === 'uz' ? 'Sof foyda' : 'Чистая прибыль'}</th>
                           </tr>
                         </thead>
                         <tbody>
                           {Object.keys(productSummary).length === 0 ? (
                             <tr>
-                              <td colSpan="4" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                              <td colSpan="3" style={{ padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                                 {language === 'uz' ? 'Bu agent hozircha savdo qilmagan.' : 'Этот агент еще не совершал продаж.'}
                               </td>
                             </tr>
                           ) : (
                             Object.keys(productSummary).map(prodName => {
                               const info = productSummary[prodName];
-                              const pProfit = info.revenue - info.cost;
                               return (
                                 <tr 
                                   key={prodName} 
@@ -10527,9 +10492,6 @@ function App() {
                                   <td style={{ padding: '10px', fontWeight: '500', color: 'var(--accent-color)', textDecoration: 'underline', textDecorationStyle: 'dashed' }}>{prodName}</td>
                                   <td style={{ padding: '10px', textAlign: 'right' }}>{info.qty.toLocaleString()} {language === 'uz' ? 'dona' : 'шт'}</td>
                                   <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: 'var(--accent-color)' }}>{info.revenue.toLocaleString()} UZS</td>
-                                  <td style={{ padding: '10px', textAlign: 'right', fontWeight: '600', color: pProfit >= 0 ? 'var(--success-color)' : 'var(--warning-color)' }}>
-                                    {pProfit.toLocaleString()} UZS
-                                  </td>
                                 </tr>
                               );
                             })
