@@ -1168,6 +1168,34 @@ function App() {
           }
         });
         setCloudVisits(uniqueMapped);
+        
+        // Merge visit items into sales that have empty items (for older records or fallbacks)
+        setSales(prevSales => {
+          return prevSales.map(sale => {
+            if (sale.items && sale.items.length > 0) return sale;
+            
+            // Find a visit that matches the sale by agent, store, status, and date
+            const matchedVisit = uniqueMapped.find(v => 
+              v.agentId === sale.agentId &&
+              v.storeId === sale.storeId &&
+              v.status === 'sold' &&
+              (v.date === sale.date || v.date === 'Bugun')
+            );
+            
+            if (matchedVisit && matchedVisit.items && matchedVisit.items.length > 0) {
+              return {
+                ...sale,
+                items: matchedVisit.items.map(item => ({
+                  productName: item.productName || item.name || 'Noma\'lum',
+                  qty: item.qty || item.quantity || 1,
+                  price: parseFloat(item.price || 0),
+                  originalPrice: parseFloat(item.originalPrice || item.original_price || 0)
+                }))
+              };
+            }
+            return sale;
+          });
+        });
       }
     })
     .catch(err => console.error("Error loading visits:", err));
