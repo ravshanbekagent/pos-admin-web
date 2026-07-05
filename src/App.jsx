@@ -8280,81 +8280,106 @@ function App() {
                   {language === 'uz' ? "Bugun tashrif buyurilgan va savdo qilingan do'konlar ro'yxati" : "Список магазинов, которые вы посетили сегодня"}
                 </p>
 
-                {visitedStores.filter(v => v.date === getTodayDateString()).length === 0 ? (
-                  <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                    {language === 'uz' ? "Bugun hali hech qaysi do'konga tashrif buyurilmadi." : "Сегодня вы еще не посетили ни один магазин."}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {visitedStores.filter(v => v.date === getTodayDateString()).map((visit, index) => (
-                      <div key={index} style={{
-                        backgroundColor: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px',
-                        padding: '16px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '12px'
-                      }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
-                          <div>
-                            <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>
-                              {visit.storeName}
-                            </span>
-                            <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                              🕒 {visit.time}
-                            </span>
-                          </div>
-                          <div>
-                            {visit.status === 'sold' ? (
-                              <span style={{
-                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                color: '#10b981',
-                                padding: '4px 10px',
-                                borderRadius: '20px',
-                                fontSize: '11px',
-                                fontWeight: '600'
-                              }}>
-                                {language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена"}
-                              </span>
-                            ) : (
-                              <span style={{
-                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
-                                color: '#f59e0b',
-                                padding: '4px 10px',
-                                borderRadius: '20px',
-                                fontSize: '11px',
-                                fontWeight: '600'
-                              }}>
-                                {language === 'uz' ? `Sotuvsiz (Sabab: ${visit.reason})` : `Без продажи (Причина: ${visit.reason})`}
-                              </span>
-                            )}
-                          </div>
-                        </div>
+                {(() => {
+                  const todayStr = getTodayDateString();
+                  // Merge local visitedStores and cloudVisits by storeId + date to avoid duplicates, prioritizing local ones if they are newer
+                  const allVisits = [...visitedStores];
+                  
+                  (cloudVisits || []).forEach(cv => {
+                    const exists = allVisits.some(v => v.storeId === cv.storeId && v.date === cv.date);
+                    if (!exists) {
+                      allVisits.push(cv);
+                    } else if (cv.status === 'sold') {
+                      // Prioritize cloud 'sold' status over local empty status if both exist for today
+                      const idx = allVisits.findIndex(v => v.storeId === cv.storeId && v.date === cv.date);
+                      if (idx !== -1 && allVisits[idx].status !== 'sold') {
+                        allVisits[idx] = cv;
+                      }
+                    }
+                  });
 
-                        {visit.status === 'sold' && visit.items && visit.items.length > 0 && (
-                          <div style={{
-                            borderTop: '1px dashed var(--border-color)',
-                            paddingTop: '8px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '6px'
-                          }}>
-                            <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>
-                              {language === 'uz' ? "Sotilgan mahsulotlar:" : "Проданные товары:"}
-                            </span>
-                            {visit.items.map((item, itemIdx) => (
-                              <div key={itemIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)' }}>
-                                <span>• {item.productName} ({item.qty} dona)</span>
-                                <span>{(item.qty * item.price).toLocaleString()} UZS</span>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                  const todayVisits = allVisits.filter(v => v.date === todayStr);
+
+                  if (todayVisits.length === 0) {
+                    return (
+                      <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                        {language === 'uz' ? "Bugun hali hech qaysi do'konga tashrif buyurilmadi." : "Сегодня вы еще не посетили ни один магазин."}
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  }
+
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {todayVisits.map((visit, index) => (
+                        <div key={index} style={{
+                          backgroundColor: 'var(--bg-primary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px'
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                            <div>
+                              <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>
+                                {visit.storeName}
+                              </span>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
+                                🕒 {visit.time}
+                              </span>
+                            </div>
+                            <div>
+                              {visit.status === 'sold' ? (
+                                <span style={{
+                                  backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                  color: '#10b981',
+                                  padding: '4px 10px',
+                                  borderRadius: '20px',
+                                  fontSize: '11px',
+                                  fontWeight: '600'
+                                }}>
+                                  {language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена"}
+                                </span>
+                              ) : (
+                                <span style={{
+                                  backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                  color: '#f59e0b',
+                                  padding: '4px 10px',
+                                  borderRadius: '20px',
+                                  fontSize: '11px',
+                                  fontWeight: '600'
+                                }}>
+                                  {language === 'uz' ? `Sotuvsiz (Sabab: ${visit.reason})` : `Без продажи (Причина: ${visit.reason})`}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+
+                          {visit.status === 'sold' && visit.items && visit.items.length > 0 && (
+                            <div style={{
+                              borderTop: '1px dashed var(--border-color)',
+                              paddingTop: '8px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              gap: '6px'
+                            }}>
+                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                                {language === 'uz' ? "Sotilgan mahsulotlar:" : "Проданные товары:"}
+                              </span>
+                              {visit.items.map((item, itemIdx) => (
+                                <div key={itemIdx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', color: 'var(--text-secondary)' }}>
+                                  <span>• {item.productName} ({item.qty} dona)</span>
+                                  <span>{(item.qty * item.price).toLocaleString()} UZS</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -13834,8 +13859,50 @@ function App() {
                         setPendingPayments(prev => prev.filter(p => p.id !== selectedPendingPayment.id));
                         setSelectedPendingPayment(null);
                         
+                        // Update local visitedStores list
+                        setVisitedStores(prev => {
+                          const todayStr = getTodayDateString();
+                          const todayTime = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
+                          
+                          const mappedItems = (selectedPendingPayment.products || []).map(p => ({
+                            productName: p.productName || "Mahsulot",
+                            qty: p.quantity || 1,
+                            price: p.price || 0
+                          }));
+
+                          const existingIdx = prev.findIndex(v => v.storeId === parseInt(selectedStoreForBinding) && v.date === todayStr);
+                          let updated = [...prev];
+                          if (existingIdx !== -1) {
+                            updated[existingIdx] = {
+                              ...updated[existingIdx],
+                              status: 'sold',
+                              reason: '',
+                              items: mappedItems,
+                              time: todayTime
+                            };
+                          } else {
+                            const storeObj = stores.find(s => s.id === parseInt(selectedStoreForBinding));
+                            const storeName = storeObj ? storeObj.name : "Do'kon";
+                            
+                            const newVisit = {
+                              storeId: parseInt(selectedStoreForBinding),
+                              storeName: storeName,
+                              status: 'sold',
+                              reason: '',
+                              items: mappedItems,
+                              date: todayStr,
+                              time: todayTime
+                            };
+                            updated = [newVisit, ...updated];
+                          }
+                          
+                          localStorage.setItem('visited_stores', JSON.stringify(updated));
+                          return updated;
+                        });
+
                         // Reload data to reflect new sale
                         await loadCloudData(token);
+                        loadVisitsFromCloud();
                         
                         showAlert(language === 'uz' ? "To'lov do'konga muvaffaqiyatli biriktirildi!" : "Оплата успешно привязана к магазину!", 'success');
                       } catch (err) {
