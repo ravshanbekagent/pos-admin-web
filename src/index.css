@@ -466,4 +466,58 @@ tr.hoverable-row:hover {
   }
 }
 
+/* Responsive utility classes for detailed view */
+@media (min-width: 769px) {
+  .desktop-only-block {
+    display: block !important;
+  }
+  .desktop-only-flex {
+    display: flex !important;
+  }
+  .desktop-only-table {
+    display: table !important;
+  }
+  .mobile-only-block, .mobile-only-flex {
+    display: none !important;
+  }
+}
+
+@media (max-width: 768px) {
+  .desktop-only-block, .desktop-only-flex, .desktop-only-table {
+    display: none !important;
+  }
+  .mobile-only-block {
+    display: block !important;
+  }
+  .mobile-only-flex {
+    display: flex !important;
+  }
+}
+
+.admin-modal-card {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  width: 100%;
+  max-width: 860px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 768px) {
+  .admin-modal-card {
+    max-height: 95vh !important;
+    max-width: 95vw !important;
+    border-radius: 12px !important;
+  }
+  
+  .financial-summary-block {
+    align-self: stretch !important;
+    width: 100% !important;
+  }
+}
+
 
