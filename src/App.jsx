@@ -1156,7 +1156,18 @@ function App() {
           date: v.date,
           time: v.time
         }));
-        setCloudVisits(mapped);
+        
+        // Deduplicate visits in the list view (unique by agent, store, date, time, status)
+        const uniqueMapped = [];
+        const seen = new Set();
+        mapped.forEach(v => {
+          const key = `${v.agentId}-${v.storeId}-${v.date}-${v.time}-${v.status}`;
+          if (!seen.has(key)) {
+            seen.add(key);
+            uniqueMapped.push(v);
+          }
+        });
+        setCloudVisits(uniqueMapped);
       }
     })
     .catch(err => console.error("Error loading visits:", err));
@@ -1207,7 +1218,6 @@ function App() {
       localStorage.setItem('visited_stores', JSON.stringify(updated));
       return updated;
     });
-                  saveVisitToCloud(newVisit);
     saveVisitToCloud(newVisit);
   };
 
@@ -3544,7 +3554,9 @@ function App() {
       const payload = {
         store_id: activeCashierStore.id,
         payment_gateway: 'tinda_callback',
-        items: itemsPayload
+        items: itemsPayload,
+        tinda_sales_id: callbackData.id || callbackData.sales_id || callbackData.salePublicId || null,
+        tinda_receipt_number: callbackData.receipt_number || callbackData.receiptNumber || null
       };
 
       const res = await fetch(`${API_URL}/sales`, {
@@ -3784,7 +3796,8 @@ function App() {
       const payload = {
         store_id: activeCashierStore.id,
         payment_gateway: 'tinda',
-        items: items
+        items: items,
+        tinda_sales_id: tindaSaleId || null
       };
 
       const res = await fetch(`${API_URL}/sales`, {
@@ -4485,42 +4498,42 @@ function App() {
                       {t('settings_discounts')}
                     </button>
                   )}
-                  <button
-                    onClick={() => setActiveTab('settings_payments')}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      backgroundColor: activeTab === 'settings_payments' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
-                      color: activeTab === 'settings_payments' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      textAlign: 'left',
-                      transition: 'all var(--transition-fast)'
-                    }}
-                  >
-                    {language === 'uz' ? "Tinda Terminal" : 'Tinda Терминал'}
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('settings_autoterminal')}
-                    style={{
-                      padding: '8px 12px',
-                      borderRadius: '6px',
-                      border: 'none',
-                      backgroundColor: activeTab === 'settings_autoterminal' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
-                      color: activeTab === 'settings_autoterminal' ? 'var(--accent-color)' : 'var(--text-secondary)',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '500',
-                      textAlign: 'left',
-                      transition: 'all var(--transition-fast)'
-                    }}
-                  >
-                    {language === 'uz' ? "Avto-Terminal Rejimi" : 'Режим Авто-Терминала'}
-                  </button>
                   {userRole === 'admin' && (
                     <>
+                      <button
+                        onClick={() => setActiveTab('settings_payments')}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'settings_payments' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                          color: activeTab === 'settings_payments' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          textAlign: 'left',
+                          transition: 'all var(--transition-fast)'
+                        }}
+                      >
+                        {language === 'uz' ? "Tinda Terminal" : 'Tinda Терминал'}
+                      </button>
+                      <button
+                        onClick={() => setActiveTab('settings_autoterminal')}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'settings_autoterminal' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                          color: activeTab === 'settings_autoterminal' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          textAlign: 'left',
+                          transition: 'all var(--transition-fast)'
+                        }}
+                      >
+                        {language === 'uz' ? "Avto-Terminal Rejimi" : 'Режим Авто-Терминала'}
+                      </button>
                       <button
                         onClick={() => setActiveTab('settings_company')}
                         style={{
