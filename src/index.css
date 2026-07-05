@@ -448,4 +448,22 @@ tr.hoverable-row:hover {
   }
 }
 
+/* Touch active state and hover styles for history cards */
+.history-visit-card {
+  transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.history-visit-card.clickable:active {
+  background-color: var(--bg-tertiary) !important;
+  transform: scale(0.98) !important;
+}
+
+@media (hover: hover) {
+  .history-visit-card.clickable:hover {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 6px 16px rgba(13, 148, 136, 0.15) !important;
+    transform: translateY(-2px) !important;
+  }
+}
+
 

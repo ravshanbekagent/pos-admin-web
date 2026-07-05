@@ -625,6 +625,8 @@ function App() {
   ]);
 
   const [selectedAgentId, setSelectedAgentId] = useState(2); // Defaults to Sherzod Alimov (id: 2)
+  const [agentSearchQuery, setAgentSearchQuery] = useState('');
+  const [isAgentDropdownOpen, setIsAgentDropdownOpen] = useState(false);
   const [productsTabMode, setProductsTabMode] = useState('warehouse'); // 'warehouse' or 'agents_stock'
   const [selectedProductStockDetails, setSelectedProductStockDetails] = useState(null); // stores product name for detailed stock modal
   const [tahlillarOpen, setTahlillarOpen] = useState(false);
@@ -1001,6 +1003,7 @@ function App() {
   });
   const [cloudVisits, setCloudVisits] = useState([]);
   const [selectedHistoryVisit, setSelectedHistoryVisit] = useState(null);
+  const [selectedAdminHistoryVisit, setSelectedAdminHistoryVisit] = useState(null);
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState('all');
   const [showExitQuestionnaire, setShowExitQuestionnaire] = useState(false);
@@ -8495,19 +8498,16 @@ function App() {
                   );
                 })()}
 
-                {/* History Visit Products Detail Modal */}
+                {/* Agent History Visit - Simple Detail Modal */}
                 {selectedHistoryVisit && (() => {
                   const visit = selectedHistoryVisit;
                   let products = [];
-                  let tindaPayload = null;
-
                   try {
                     if (visit.items) {
                       const parsed = typeof visit.items === 'string' ? JSON.parse(visit.items) : visit.items;
                       if (parsed && typeof parsed === 'object') {
                         if (parsed.products) {
                           products = parsed.products || [];
-                          tindaPayload = parsed.tindaPayload || null;
                         } else if (Array.isArray(parsed)) {
                           products = parsed;
                         }
@@ -8517,32 +8517,7 @@ function App() {
                     console.warn("Failed to parse items:", e);
                   }
 
-                  // Fallbacks for details
-                  const displaySalesId = tindaPayload?.sales_id || tindaPayload?.id || `VISIT-${visit.id || 'N/A'}`;
-                  const displayReceiptNo = tindaPayload?.receipt_number || tindaPayload?.receiptNumber || 'N/A';
-                  const displayDate = tindaPayload?.date 
-                    ? new Date(tindaPayload.date).toLocaleString('uz-UZ') 
-                    : `${visit.date} ${visit.time}`;
-                  const displayDiscount = tindaPayload?.discountAmount || 0;
-                  
-                  const displayStoreName = tindaPayload?.store?.name || visit.storeName;
-                  const displayAddress = tindaPayload?.store?.address || 'N/A';
-                  const displayManager = tindaPayload?.store?.manager || 'N/A';
-                  
-                  const displayCashNo = tindaPayload?.pos?.posNumber || '1';
-                  const displayFiscalCard = tindaPayload?.pos?.fiscalCardId || 'N/A';
-                  const displayModel = tindaPayload?.pos?.posHardwareModel || 'N/A';
-                  const displayApplet = tindaPayload?.appletVersion || '0401';
-                  const displayFmId = tindaPayload?.pos?.fmId || tindaPayload?.pos?.fiscalCardId || 'N/A';
-                  const displaySerial = tindaPayload?.pos?.posHardwareSerialNumber || visit.serialNumber || 'N/A';
-                  const displayUserName = tindaPayload?.userName || 'N/A';
-
-                  const paymentInfo = tindaPayload?.payments && tindaPayload.payments[0]
-                    ? `${tindaPayload.payments[0].paymentType === 'CASHLESS' ? (language === 'uz' ? "Naqd pulsiz" : "Безналичный") : tindaPayload.payments[0].paymentType}: ${parseFloat(tindaPayload.payments[0].paymentAmount).toLocaleString('uz-UZ')} UZS`
-                    : (language === 'uz' ? "Terminal to'lovi" : "Терминальный платеж");
-
-                  const computedFullCost = products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0);
-                  const computedVat = computedFullCost * 0.12 / 1.12; // 12% standard VAT included
+                  const totalSum = products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0);
 
                   return (
                     <div style={{
@@ -8551,7 +8526,7 @@ function App() {
                       left: 0,
                       width: '100%',
                       height: '100%',
-                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                      backgroundColor: 'rgba(15, 23, 42, 0.75)',
                       backdropFilter: 'blur(4px)',
                       display: 'flex',
                       alignItems: 'center',
@@ -8560,411 +8535,818 @@ function App() {
                       padding: '16px'
                     }}>
                       <div style={{
-                        backgroundColor: 'var(--bg-secondary)',
-                        border: '1px solid var(--border-color)',
+                        backgroundColor: '#1e293b', // Sleek dark card style as in user's image
+                        border: '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '16px',
                         width: '100%',
-                        maxWidth: '860px',
-                        maxHeight: '90vh',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        overflow: 'hidden',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+                        maxWidth: '500px',
+                        padding: '24px',
+                        color: '#f8fafc',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)'
                       }}>
                         {/* Modal Header */}
-                        <div style={{ 
-                          display: 'flex', 
-                          justifyContent: 'space-between', 
-                          alignItems: 'center', 
-                          padding: '18px 24px', 
-                          borderBottom: '1px solid var(--border-color)',
-                          backgroundColor: 'var(--bg-primary)'
-                        }}>
-                          <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-                            {language === 'uz' ? "Tafsilotlar" : "Details"}
-                          </h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                          <div>
+                            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', margin: '0 0 6px 0' }}>
+                              {visit.storeName}
+                            </h3>
+                            <span style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              🕒 {visit.time} ({visit.date})
+                            </span>
+                          </div>
                           <button 
                             onClick={() => setSelectedHistoryVisit(null)}
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: 'var(--text-muted)',
-                              fontSize: '20px',
+                              color: '#94a3b8',
+                              fontSize: '22px',
                               cursor: 'pointer',
                               padding: '4px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center'
+                              lineHeight: '1'
                             }}
                           >
                             ×
                           </button>
                         </div>
 
-                        {/* Modal Scrollable Content */}
-                        <div style={{ padding: '20px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          
-                          {/* SECTION 1: Transaction & Store Info */}
-                          <div style={{
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            backgroundColor: 'var(--bg-primary)',
-                            padding: '16px',
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '24px'
-                          }}>
-                            {/* Column 1 */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Sales ID:</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600', wordBreak: 'break-all' }}>{displaySalesId}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Chek raqami:" : "Receipt number:"}</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayReceiptNo}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Sana:" : "Date:"}</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDate}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Chegirma summasi:" : "Discount amount:"}</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDiscount.toLocaleString()} UZS</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "To'lov turi:" : "Payment:"}</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{paymentInfo}</span>
-                              </div>
-                            </div>
-
-                            {/* Column 2 */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Do'kon nomi:" : "Store name:"}</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayStoreName}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Manzil:" : "Address:"}</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{displayAddress}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Mas'ul shaxs:" : "Manager:"}</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayManager}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SECTION 2: POS Details */}
-                          <div style={{
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            backgroundColor: 'var(--bg-primary)',
-                            padding: '16px',
-                            display: 'grid',
-                            gridTemplateColumns: '1fr 1fr',
-                            gap: '24px'
-                          }}>
-                            {/* Column 1 */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Kassa raqami:" : "Cash desk number:"}</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayCashNo}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Fiscal card ID:</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayFiscalCard}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Model:</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayModel}</span>
-                              </div>
-                            </div>
-
-                            {/* Column 2 */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Applet version:</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayApplet}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Fiscal module ID:</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayFmId}</span>
-                              </div>
-                              <div style={{ display: 'flex' }}>
-                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Serial number:</span>
-                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displaySerial}</span>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* SECTION 3: Cashier / User details */}
-                          <div style={{
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            backgroundColor: 'var(--bg-primary)',
-                            padding: '12px 16px',
-                            display: 'flex',
-                            fontSize: '12px'
-                          }}>
-                            <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Kassir ismi:" : "User name:"}</span>
-                            <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayUserName}</span>
-                          </div>
-
-                          {/* SECTION 4: Product list table */}
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                📋 {language === 'uz' ? "Mahsulotlar ro'yxati" : "Product list"}
-                              </h4>
-                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                                {language === 'uz' ? "Mahsulotlar soni:" : "Number of products:"} {products.length}
-                              </span>
-                            </div>
-
-                            <div style={{ 
-                              border: '1px solid var(--border-color)', 
-                              borderRadius: '8px', 
-                              overflow: 'hidden',
-                              backgroundColor: 'var(--bg-primary)'
-                            }}>
-                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
-                                <thead>
-                                  <tr style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: '700' }}>
-                                    <th style={{ padding: '10px 12px', width: '40px' }}>#</th>
-                                    <th style={{ padding: '10px 12px', width: '120px' }}>PRODUCT ID</th>
-                                    <th style={{ padding: '10px 12px' }}>NAME</th>
-                                    <th style={{ padding: '10px 12px' }}>LABEL</th>
-                                    <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>COUNT</th>
-                                    <th style={{ padding: '10px 12px', width: '110px', textAlign: 'right' }}>PRICE FOR UNIT</th>
-                                    <th style={{ padding: '10px 12px', width: '60px', textAlign: 'center' }}>VAT</th>
-                                    <th style={{ padding: '10px 12px', width: '110px', textAlign: 'right' }}>TOTAL PRICE</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {products.map((item, idx) => {
-                                    const totalItemPrice = (item.qty || item.quantity || 1) * (item.price || 0);
-                                    return (
-                                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
-                                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{idx + 1}</td>
-                                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '11px' }}>{item.productId || 'N/A'}</td>
-                                        <td style={{ padding: '10px 12px', fontWeight: '600' }}>{item.productName}</td>
-                                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '10px', wordBreak: 'break-all' }}>
-                                          {item.markedLabel || item.barcode || 'N/A'}
-                                        </td>
-                                        <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '600' }}>{item.qty || item.quantity || 1}</td>
-                                        <td style={{ padding: '10px 12px', textAlign: 'right' }}>{parseFloat(item.price || 0).toLocaleString('uz-UZ')}</td>
-                                        <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>12%</td>
-                                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600' }}>{totalItemPrice.toLocaleString('uz-UZ')}</td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </div>
-
-                          {/* SECTION 5: Financial Summary Table */}
-                          <div style={{
-                            alignSelf: 'flex-end',
-                            width: '280px',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '8px',
-                            backgroundColor: 'var(--bg-primary)',
-                            padding: '12px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            gap: '6px',
-                            fontSize: '12px'
-                          }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Boshlang'ich narx:" : "Full cost:"}</span>
-                              <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{computedFullCost.toLocaleString('uz-UZ')} UZS</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Chegirma summasi:" : "Discount amount:"}</span>
-                              <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDiscount.toLocaleString('uz-UZ')} UZS</span>
-                            </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                              <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Shundan QQS (12%):" : "VAT including (12%):"}</span>
-                              <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{computedVat.toLocaleString('uz-UZ')} UZS</span>
-                            </div>
-                            <div style={{ 
-                              display: 'flex', 
-                              justifyContent: 'space-between', 
-                              borderTop: '1px solid var(--border-color)', 
-                              paddingTop: '6px', 
-                              marginTop: '2px',
-                              fontWeight: '800',
-                              fontSize: '13px'
-                            }}>
-                              <span style={{ color: 'var(--text-primary)' }}>{language === 'uz' ? "Jami summa:" : "Total:"}</span>
-                              <span style={{ color: '#10b981' }}>{(computedFullCost - displayDiscount).toLocaleString('uz-UZ')} UZS</span>
-                            </div>
-                          </div>
-
-                        </div>
-
-                        {/* Modal Footer (Close Button) */}
+                        {/* Modal Body: Headers */}
                         <div style={{ 
                           display: 'flex', 
-                          justifyContent: 'flex-end', 
-                          padding: '16px 24px', 
-                          borderTop: '1px solid var(--border-color)',
-                          backgroundColor: 'var(--bg-primary)'
+                          justifyContent: 'space-between', 
+                          fontSize: '12px', 
+                          fontWeight: '700', 
+                          color: '#64748b', 
+                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
+                          paddingBottom: '8px',
+                          marginBottom: '12px'
                         }}>
+                          <span style={{ flex: 1 }}>{language === 'uz' ? "Mahsulot" : "Товар"}</span>
+                          <span style={{ width: '80px', textAlign: 'right' }}>{language === 'uz' ? "Soni" : "Кол-во"}</span>
+                          <span style={{ width: '120px', textAlign: 'right' }}>{language === 'uz' ? "Jami" : "Всего"}</span>
+                        </div>
+
+                        {/* Products list */}
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px', marginBottom: '24px' }}>
+                          {products.map((item, idx) => (
+                            <div key={idx} style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              alignItems: 'center', 
+                              fontSize: '13px', 
+                              color: '#cbd5e1', 
+                              borderBottom: '1px dashed rgba(255, 255, 255, 0.05)', 
+                              paddingBottom: '8px'
+                            }}>
+                              <span style={{ fontWeight: '600', flex: 1, paddingRight: '12px', color: '#fff' }}>
+                                {item.productName}
+                              </span>
+                              <span style={{ width: '80px', textAlign: 'right', color: '#94a3b8' }}>
+                                {item.qty || item.quantity || 1} {language === 'uz' ? "dona" : "шт."}
+                              </span>
+                              <span style={{ width: '120px', textAlign: 'right', fontWeight: '700', color: '#fff' }}>
+                                {((item.qty || item.quantity || 1) * (item.price || 0)).toLocaleString()} UZS
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Total Sum */}
+                        <div style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                          paddingTop: '16px',
+                          fontWeight: '800',
+                          fontSize: '16px',
+                          marginBottom: '20px'
+                        }}>
+                          <span style={{ color: '#fff' }}>
+                            {language === 'uz' ? "Umumiy summa:" : "Общая сумма:"}
+                          </span>
+                          <span style={{ color: '#10b981' }}>
+                            {totalSum.toLocaleString()} UZS
+                          </span>
+                        </div>
+
+                        {/* Close Button */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <button 
                             onClick={() => setSelectedHistoryVisit(null)}
                             style={{
-                              padding: '8px 24px',
-                              backgroundColor: 'var(--accent-color)',
+                              padding: '10px 24px',
+                              backgroundColor: '#0d9488',
                               color: '#fff',
                               border: 'none',
                               borderRadius: '8px',
                               fontSize: '13px',
-                              fontWeight: '600',
+                              fontWeight: '700',
                               cursor: 'pointer',
-                              boxShadow: '0 4px 6px -1px rgba(13, 148, 136, 0.2)'
+                              transition: 'background-color 0.2s',
+                              boxShadow: '0 4px 6px -1px rgba(13, 148, 136, 0.3)'
                             }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0f766e'}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0d9488'}
                           >
-                            {language === 'uz' ? "Yopish" : "Close"}
+                            {language === 'uz' ? "Yopish" : "Закрыть"}
                           </button>
                         </div>
                       </div>
                     </div>
                   );
                 })()}
+
               </div>
             </div>
           )}
 
-          {/* VIEW: ADMIN AGENT HISTORY */}
-          {activeTab === 'admin_agent_history' && (
-            <div className="fade-in" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
-              gap: '24px',
-              alignItems: 'start'
-            }}>
-              {/* Left Column: Agents List */}
+          {/* Admin History Visit - Detailed Invoice Modal */}
+          {selectedAdminHistoryVisit && (() => {
+            const visit = selectedAdminHistoryVisit;
+            let products = [];
+            let tindaPayload = null;
+
+            try {
+              if (visit.items) {
+                const parsed = typeof visit.items === 'string' ? JSON.parse(visit.items) : visit.items;
+                if (parsed && typeof parsed === 'object') {
+                  if (parsed.products) {
+                    products = parsed.products || [];
+                    tindaPayload = parsed.tindaPayload || null;
+                  } else if (Array.isArray(parsed)) {
+                    products = parsed;
+                  }
+                }
+              }
+            } catch (e) {
+              console.warn("Failed to parse items:", e);
+            }
+
+            // Fallbacks for details
+            const displaySalesId = tindaPayload?.sales_id || tindaPayload?.id || `VISIT-${visit.id || 'N/A'}`;
+            const displayReceiptNo = tindaPayload?.receipt_number || tindaPayload?.receiptNumber || 'N/A';
+            const displayDate = tindaPayload?.date 
+              ? new Date(tindaPayload.date).toLocaleString('uz-UZ') 
+              : `${visit.date} ${visit.time}`;
+            const displayDiscount = tindaPayload?.discountAmount || 0;
+            
+            const displayStoreName = tindaPayload?.store?.name || visit.storeName;
+            const displayAddress = tindaPayload?.store?.address || 'N/A';
+            const displayManager = tindaPayload?.store?.manager || 'N/A';
+            
+            const displayCashNo = tindaPayload?.pos?.posNumber || '1';
+            const displayFiscalCard = tindaPayload?.pos?.fiscalCardId || 'N/A';
+            const displayModel = tindaPayload?.pos?.posHardwareModel || 'N/A';
+            const displayApplet = tindaPayload?.appletVersion || '0401';
+            const displayFmId = tindaPayload?.pos?.fmId || tindaPayload?.pos?.fiscalCardId || 'N/A';
+            const displaySerial = tindaPayload?.pos?.posHardwareSerialNumber || visit.serialNumber || 'N/A';
+            const displayUserName = tindaPayload?.userName || 'N/A';
+
+            const paymentInfo = tindaPayload?.payments && tindaPayload.payments[0]
+              ? `${tindaPayload.payments[0].paymentType === 'CASHLESS' ? (language === 'uz' ? "Naqd pulsiz" : "Безналичный") : tindaPayload.payments[0].paymentType}: ${parseFloat(tindaPayload.payments[0].paymentAmount).toLocaleString('uz-UZ')} UZS`
+              : (language === 'uz' ? "Terminal to'lovi" : "Терминальный платеж");
+
+            const computedFullCost = products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0);
+            const computedVat = computedFullCost * 0.12 / 1.12; // 12% standard VAT included
+
+            return (
               <div style={{
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                padding: '20px',
+                position: 'fixed',
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
+                backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                backdropFilter: 'blur(4px)',
                 display: 'flex',
-                flexDirection: 'column',
-                gap: '16px'
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 999999,
+                padding: '16px'
               }}>
-                <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-                  {language === 'uz' ? "Agentlar ro'yxati" : "Список агентов"}
-                </h3>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                  {agents.map(agent => (
-                    <button
-                      key={agent.id}
-                      onClick={() => setSelectedAgentId(agent.id)}
+                <div style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '16px',
+                  width: '100%',
+                  maxWidth: '860px',
+                  maxHeight: '90vh',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+                }}>
+                  {/* Modal Header */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'space-between', 
+                    alignItems: 'center', 
+                    padding: '18px 24px', 
+                    borderBottom: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)'
+                  }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                      {language === 'uz' ? "Tafsilotlar" : "Details"}
+                    </h3>
+                    <button 
+                      onClick={() => setSelectedAdminHistoryVisit(null)}
                       style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'flex-start',
-                        gap: '4px',
-                        padding: '12px',
-                        borderRadius: '8px',
-                        border: '1px solid',
-                        borderColor: selectedAgentId === agent.id ? 'var(--accent-color)' : 'var(--border-color)',
-                        backgroundColor: selectedAgentId === agent.id ? 'var(--accent-light)' : 'var(--bg-primary)',
+                        background: 'none',
+                        border: 'none',
+                        color: 'var(--text-muted)',
+                        fontSize: '20px',
                         cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'all 0.2s ease',
-                        width: '100%'
+                        padding: '4px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                       }}
                     >
-                      <span style={{ fontSize: '13px', fontWeight: '600', color: selectedAgentId === agent.id ? 'var(--accent-color)' : 'var(--text-primary)' }}>
-                        {agent.name}
-                      </span>
-                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                        @{agent.username} • {agent.phone || (language === 'uz' ? "Telefon kiritilmagan" : "Телефон не указан")}
-                      </span>
+                      ×
                     </button>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              {/* Right Column: Visits History */}
-              <div style={{
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border-color)',
-                borderRadius: '12px',
-                padding: '20px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '16px',
-                gridColumn: 'span 2'
-              }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
-                  <div>
-                    <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-                      {language === 'uz' ? "Tashriflar va Sotuvlar tarixi" : "История визитов и продаж"}
-                    </h3>
-                    <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
-                      {language === 'uz' ? "Tanlangan agentning bugungi va oldingi tashriflari" : "Визиты и продажи выбранного агента"}
-                    </p>
+                  {/* Modal Scrollable Content */}
+                  <div style={{ padding: '20px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    
+                    {/* SECTION 1: Transaction & Store Info */}
+                    <div style={{
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--bg-primary)',
+                      padding: '16px',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '24px'
+                    }}>
+                      {/* Column 1 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Sales ID:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600', wordBreak: 'break-all' }}>{displaySalesId}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Chek raqami:" : "Receipt number:"}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayReceiptNo}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Sana:" : "Date:"}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDate}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Chegirma summasi:" : "Discount amount:"}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDiscount.toLocaleString()} UZS</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "To'lov turi:" : "Payment:"}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{paymentInfo}</span>
+                        </div>
+                      </div>
+
+                      {/* Column 2 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Do'kon nomi:" : "Store name:"}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayStoreName}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Manzil:" : "Address:"}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{displayAddress}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Mas'ul shaxs:" : "Manager:"}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayManager}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 2: POS Details */}
+                    <div style={{
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--bg-primary)',
+                      padding: '16px',
+                      display: 'grid',
+                      gridTemplateColumns: '1fr 1fr',
+                      gap: '24px'
+                    }}>
+                      {/* Column 1 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Kassa raqami:" : "Cash desk number:"}</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayCashNo}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Fiscal card ID:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayFiscalCard}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Model:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayModel}</span>
+                        </div>
+                      </div>
+
+                      {/* Column 2 */}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Applet version:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayApplet}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Fiscal module ID:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayFmId}</span>
+                        </div>
+                        <div style={{ display: 'flex' }}>
+                          <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Serial number:</span>
+                          <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displaySerial}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* SECTION 3: Cashier / User details */}
+                    <div style={{
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--bg-primary)',
+                      padding: '12px 16px',
+                      display: 'flex',
+                      fontSize: '12px'
+                    }}>
+                      <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Kassir ismi:" : "User name:"}</span>
+                      <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayUserName}</span>
+                    </div>
+
+                    {/* SECTION 4: Product list table */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          📋 {language === 'uz' ? "Mahsulotlar ro'yxati" : "Product list"}
+                        </h4>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                          {language === 'uz' ? "Mahsulotlar soni:" : "Number of products:"} {products.length}
+                        </span>
+                      </div>
+
+                      <div style={{ 
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: '8px', 
+                        overflow: 'hidden',
+                        backgroundColor: 'var(--bg-primary)'
+                      }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                          <thead>
+                            <tr style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: '700' }}>
+                              <th style={{ padding: '10px 12px', width: '40px' }}>#</th>
+                              <th style={{ padding: '10px 12px', width: '120px' }}>PRODUCT ID</th>
+                              <th style={{ padding: '10px 12px' }}>NAME</th>
+                              <th style={{ padding: '10px 12px' }}>LABEL</th>
+                              <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>COUNT</th>
+                              <th style={{ padding: '10px 12px', width: '110px', textAlign: 'right' }}>PRICE FOR UNIT</th>
+                              <th style={{ padding: '10px 12px', width: '60px', textAlign: 'center' }}>VAT</th>
+                              <th style={{ padding: '10px 12px', width: '110px', textAlign: 'right' }}>TOTAL PRICE</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {products.map((item, idx) => {
+                              const totalItemPrice = (item.qty || item.quantity || 1) * (item.price || 0);
+                              return (
+                                <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{idx + 1}</td>
+                                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '11px' }}>{item.productId || 'N/A'}</td>
+                                  <td style={{ padding: '10px 12px', fontWeight: '600' }}>{item.productName}</td>
+                                  <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '10px', wordBreak: 'break-all' }}>
+                                    {item.markedLabel || item.barcode || 'N/A'}
+                                  </td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '600' }}>{item.qty || item.quantity || 1}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right' }}>{parseFloat(item.price || 0).toLocaleString('uz-UZ')}</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>12%</td>
+                                  <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600' }}>{totalItemPrice.toLocaleString('uz-UZ')}</td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+
+                    {/* SECTION 5: Financial Summary Table */}
+                    <div style={{
+                      alignSelf: 'flex-end',
+                      width: '280px',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      backgroundColor: 'var(--bg-primary)',
+                      padding: '12px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '6px',
+                      fontSize: '12px'
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Boshlang'ich narx:" : "Full cost:"}</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{computedFullCost.toLocaleString('uz-UZ')} UZS</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Chegirma summasi:" : "Discount amount:"}</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDiscount.toLocaleString('uz-UZ')} UZS</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Shundan QQS (12%):" : "VAT including (12%):"}</span>
+                        <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{computedVat.toLocaleString('uz-UZ')} UZS</span>
+                      </div>
+                      <div style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        borderTop: '1px solid var(--border-color)', 
+                        paddingTop: '6px', 
+                        marginTop: '2px',
+                        fontWeight: '800',
+                        fontSize: '13px'
+                      }}>
+                        <span style={{ color: 'var(--text-primary)' }}>{language === 'uz' ? "Jami summa:" : "Total:"}</span>
+                        <span style={{ color: '#10b981' }}>{(computedFullCost - displayDiscount).toLocaleString('uz-UZ')} UZS</span>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Modal Footer (Close Button) */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-end', 
+                    padding: '16px 24px', 
+                    borderTop: '1px solid var(--border-color)',
+                    backgroundColor: 'var(--bg-primary)'
+                  }}>
+                    <button 
+                      onClick={() => setSelectedAdminHistoryVisit(null)}
+                      style={{
+                        padding: '8px 24px',
+                        backgroundColor: 'var(--accent-color)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 6px -1px rgba(13, 148, 136, 0.2)'
+                      }}
+                    >
+                      {language === 'uz' ? "Yopish" : "Close"}
+                    </button>
                   </div>
                 </div>
+              </div>
+            );
+          })()}
 
-                {(() => {
-                  const agentVisits = cloudVisits.filter(v => String(v.agentId) === String(selectedAgentId));
-                  if (agentVisits.length === 0) {
-                    return (
-                      <div style={{ padding: '40px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                        {language === 'uz' ? "Ushihb agent tomonidan hali hech qanday tashrif amalga oshirilmagan." : "Этот агент еще не совершал визитов."}
+          {/* VIEW: ADMIN AGENT HISTORY */}
+          {activeTab === 'admin_agent_history' && (() => {
+            const selectedAgent = agents.find(a => String(a.id) === String(selectedAgentId)) || agents[0];
+            const agentVisits = cloudVisits.filter(v => String(v.agentId) === String(selectedAgentId));
+            const totalVisits = agentVisits.length;
+            const soldVisits = agentVisits.filter(v => v.status === 'sold').length;
+            const noSaleVisits = totalVisits - soldVisits;
+            
+            // Calculate total sales sum safely handling JSON string or array items
+            const totalSalesValue = agentVisits.reduce((sum, v) => {
+              if (v.status !== 'sold') return sum;
+              let visitTotal = 0;
+              try {
+                if (v.items) {
+                  const parsed = typeof v.items === 'string' ? JSON.parse(v.items) : v.items;
+                  const productsList = parsed?.products || (Array.isArray(parsed) ? parsed : []);
+                  visitTotal = productsList.reduce((acc, item) => acc + ((item.qty || item.quantity || 1) * (item.price || 0)), 0);
+                }
+              } catch (e) {
+                console.warn("Error calculating total for sales sum:", e);
+              }
+              return sum + visitTotal;
+            }, 0);
+
+            // Filter agents for dropdown search
+            const filteredAgents = agents.filter(a => 
+              a.name.toLowerCase().includes(agentSearchQuery.toLowerCase()) ||
+              (a.phone && a.phone.includes(agentSearchQuery)) ||
+              a.username.toLowerCase().includes(agentSearchQuery.toLowerCase())
+            );
+
+            return (
+              <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                
+                {/* Control bar: Searchable Filter Dropdown & Agent Stats */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '16px 20px',
+                  gap: '20px',
+                  flexWrap: 'wrap',
+                  position: 'relative' // relative context for dropdown positioning
+                }}>
+                  {/* Left block: Custom Combobox (Filter dropdown) */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative', zIndex: 100, minWidth: '280px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                      {language === 'uz' ? "Agent bo'yicha filter:" : "Фильтр по агенту:"}
+                    </span>
+                    
+                    {/* Trigger Button */}
+                    <div 
+                      onClick={() => setIsAgentDropdownOpen(!isAgentDropdownOpen)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        userSelect: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
+                      onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+                      onMouseOut={(e) => e.currentTarget.style.borderColor = isAgentDropdownOpen ? 'var(--accent-color)' : 'var(--border-color)'}
+                    >
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        👤 {selectedAgent ? selectedAgent.name : (language === 'uz' ? "Agentni tanlang" : "Выберите агента")}
+                      </span>
+                      <span>{isAgentDropdownOpen ? '▲' : '▼'}</span>
+                    </div>
+
+                    {/* Dropdown Menu Overlay List */}
+                    {isAgentDropdownOpen && (
+                      <div style={{
+                        position: 'absolute',
+                        top: 'calc(100% + 4px)',
+                        left: 0,
+                        width: '100%',
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.15)',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column'
+                      }}>
+                        {/* Search Input inside Dropdown */}
+                        <div style={{ padding: '8px', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)' }}>
+                          <input 
+                            type="text"
+                            placeholder={language === 'uz' ? "Qidirish..." : "Поиск..."}
+                            value={agentSearchQuery}
+                            onChange={(e) => setAgentSearchQuery(e.target.value)}
+                            onClick={(e) => e.stopPropagation()} // prevent closing dropdown
+                            style={{
+                              width: '100%',
+                              padding: '8px 10px',
+                              borderRadius: '6px',
+                              border: '1px solid var(--border-color)',
+                              backgroundColor: 'var(--bg-secondary)',
+                              color: 'var(--text-primary)',
+                              fontSize: '12px',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+
+                        {/* List items */}
+                        <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
+                          {filteredAgents.length === 0 ? (
+                            <div style={{ padding: '12px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>
+                              {language === 'uz' ? "Agent topilmadi" : "Агент не найден"}
+                            </div>
+                          ) : (
+                            filteredAgents.map(agent => (
+                              <div
+                                key={agent.id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedAgentId(agent.id);
+                                  setIsAgentDropdownOpen(false);
+                                  setAgentSearchQuery(''); // reset search on select
+                                }}
+                                style={{
+                                  padding: '10px 14px',
+                                  fontSize: '12.5px',
+                                  color: selectedAgentId === agent.id ? 'var(--accent-color)' : 'var(--text-primary)',
+                                  backgroundColor: selectedAgentId === agent.id ? 'var(--accent-light)' : 'transparent',
+                                  cursor: 'pointer',
+                                  transition: 'background-color 0.15s',
+                                  fontWeight: selectedAgentId === agent.id ? '700' : '500',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
+                                }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = selectedAgentId === agent.id ? 'var(--accent-light)' : 'transparent'}
+                              >
+                                <span>{agent.name}</span>
+                                <span style={{ fontSize: '10.5px', color: 'var(--text-muted)' }}>@{agent.username}</span>
+                              </div>
+                            ))
+                          )}
+                        </div>
                       </div>
-                    );
-                  }
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    )}
+                  </div>
+
+                  {/* Right block: Selected Agent stats cards */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    flexWrap: 'wrap'
+                  }}>
+                    {/* Stat card 1: Total Visits */}
+                    <div style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minWidth: '100px'
+                    }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>
+                        {language === 'uz' ? "Tashriflar" : "Визиты"}
+                      </span>
+                      <span style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)', marginTop: '4px' }}>
+                        {totalVisits}
+                      </span>
+                    </div>
+
+                    {/* Stat card 2: Successful sales */}
+                    <div style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minWidth: '100px'
+                    }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>
+                        {language === 'uz' ? "Sotuvlar" : "Продажи"}
+                      </span>
+                      <span style={{ fontSize: '16px', fontWeight: '800', color: '#10b981', marginTop: '4px' }}>
+                        {soldVisits}
+                      </span>
+                    </div>
+
+                    {/* Stat card 3: No Sale reason count */}
+                    <div style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minWidth: '100px'
+                    }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>
+                        {language === 'uz' ? "Sotuvsiz" : "Без продажи"}
+                      </span>
+                      <span style={{ fontSize: '16px', fontWeight: '800', color: '#f59e0b', marginTop: '4px' }}>
+                        {noSaleVisits}
+                      </span>
+                    </div>
+
+                    {/* Stat card 4: Total Amount */}
+                    <div style={{
+                      backgroundColor: 'var(--bg-primary)',
+                      border: '1px solid var(--border-color)',
+                      borderRadius: '8px',
+                      padding: '8px 16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      minWidth: '140px'
+                    }}>
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>
+                        {language === 'uz' ? "Umumiy Summa" : "Общая сумма"}
+                      </span>
+                      <span style={{ fontSize: '16px', fontWeight: '800', color: 'var(--accent-color)', marginTop: '4px' }}>
+                        {totalSalesValue.toLocaleString()} UZS
+                      </span>
+                    </div>
+                  </div>
+
+                </div>
+
+                {/* Main container: Full Width Visits History */}
+                <div style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '16px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                        {language === 'uz' 
+                          ? `${selectedAgent?.name || ''} - Tashriflar va Sotuvlar tarixi` 
+                          : `${selectedAgent?.name || ''} - История визитов и продаж`
+                        }
+                      </h3>
+                      <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                        {language === 'uz' ? "Tashrif tafsilotlarini ko'rish uchun do'kon nomini bosing." : "Нажмите на название магазина для просмотра подробностей."}
+                      </p>
+                    </div>
+                  </div>
+
+                  {agentVisits.length === 0 ? (
+                    <div style={{ padding: '48px 16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                      {language === 'uz' ? "Ushbu agent tomonidan hali hech qanday tashrif amalga oshirilmagan." : "Этот агент еще не совершал визитов."}
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '16px' }}>
                       {agentVisits.map(visit => {
                         const isSold = visit.status === 'sold';
-                        const totalAmount = isSold && visit.items ? visit.items.reduce((sum, item) => sum + (item.qty * item.price), 0) : 0;
+                        let products = [];
+                        try {
+                          if (visit.items) {
+                            const parsed = typeof visit.items === 'string' ? JSON.parse(visit.items) : visit.items;
+                            products = parsed?.products || (Array.isArray(parsed) ? parsed : []);
+                          }
+                        } catch (e) {
+                          console.warn("Failed to parse items for list display:", e);
+                        }
+                        const totalAmount = isSold ? products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0) : 0;
+
                         return (
                           <div
                             key={visit.id}
+                            onClick={() => {
+                              if (isSold) {
+                                setSelectedAdminHistoryVisit(visit);
+                              }
+                            }}
+                            className={`history-visit-card${isSold ? ' clickable' : ''}`}
                             style={{
                               backgroundColor: 'var(--bg-primary)',
                               border: '1px solid var(--border-color)',
-                              borderRadius: '8px',
-                              padding: '12px',
+                              borderRadius: '10px',
+                              padding: '16px',
                               display: 'flex',
                               flexDirection: 'column',
-                              gap: '8px'
+                              gap: '12px',
+                              cursor: isSold ? 'pointer' : 'default',
+                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)'
                             }}
                           >
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
-                              <div>
-                                <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '13px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column' }}>
+                                <span style={{ 
+                                  fontWeight: '700', 
+                                  color: isSold ? 'var(--accent-color)' : 'var(--text-primary)', 
+                                  fontSize: '14.5px',
+                                  textDecoration: isSold ? 'underline' : 'none',
+                                  lineHeight: '1.2'
+                                }}>
                                   {visit.storeName}
                                 </span>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
-                                    📅 {visit.date} • 🕒 {visit.time}
-                                  </span>
-                                </div>
+                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '6px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                  📅 {visit.date} • 🕒 {visit.time}
+                                </span>
                               </div>
                               <span style={{
-                                padding: '2px 8px',
-                                borderRadius: '4px',
+                                padding: '3px 8px',
+                                borderRadius: '6px',
                                 fontSize: '10px',
                                 fontWeight: 'bold',
-                                backgroundColor: isSold ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
-                                color: isSold ? '#10b981' : '#f59e0b'
+                                textTransform: 'uppercase',
+                                backgroundColor: isSold ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)',
+                                color: isSold ? '#10b981' : '#f59e0b',
+                                whiteSpace: 'nowrap'
                               }}>
                                 {isSold ? (language === 'uz' ? 'Sotuv yakunlandi' : 'Продажа завершена') : (language === 'uz' ? 'Xarid qilmadi' : 'Нет покупки')}
                               </span>
                             </div>
 
                             {!isSold && visit.reason && (
-                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', fontStyle: 'italic', backgroundColor: 'var(--bg-secondary)', padding: '6px 10px', borderRadius: '4px' }}>
+                              <div style={{ 
+                                fontSize: '11.5px', 
+                                color: 'var(--text-secondary)', 
+                                fontStyle: 'italic', 
+                                backgroundColor: 'var(--bg-secondary)', 
+                                padding: '8px 12px', 
+                                borderRadius: '6px',
+                                borderLeft: '3px solid #f59e0b'
+                              }}>
                                 {language === 'uz' ? "Sabab: " : "Причина: "}{visit.reason}
                               </div>
                             )}
@@ -8972,26 +9354,48 @@ function App() {
                             {isSold && (
                               <div style={{
                                 borderTop: '1px dashed var(--border-color)',
-                                paddingTop: '8px',
+                                paddingTop: '10px',
                                 display: 'flex',
                                 flexDirection: 'column',
-                                gap: '6px'
+                                gap: '8px'
                               }}>
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span style={{ fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                                  <span style={{ fontSize: '11.5px', color: 'var(--text-muted)', fontWeight: '600' }}>
                                     {language === 'uz' ? "Sotilgan mahsulotlar:" : "Проданные товары:"}
                                   </span>
-                                  <span style={{ fontSize: '11px', color: 'var(--accent-color)', fontWeight: '600' }}>
+                                  <span style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: '700' }}>
                                     {language === 'uz' ? "Jami: " : "Итого: "}{totalAmount.toLocaleString()} UZS
                                   </span>
                                 </div>
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                  {visit.items && visit.items.map((item, idx) => (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                                  {products.map((item, idx) => (
                                     <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: 'var(--text-secondary)' }}>
-                                      <span>• {item.productName} ({item.qty} {language === 'uz' ? "dona" : "шт"})</span>
-                                      <span>{(item.qty * item.price).toLocaleString()} UZS</span>
+                                      <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <span style={{ color: 'var(--text-muted)' }}>•</span> {item.productName} 
+                                        <span style={{ color: 'var(--text-muted)', fontSize: '10px' }}>({item.qty || item.quantity || 1} {language === 'uz' ? "dona" : "шт"})</span>
+                                      </span>
+                                      <span style={{ fontWeight: '500' }}>{((item.qty || item.quantity || 1) * (item.price || 0)).toLocaleString()} UZS</span>
                                     </div>
                                   ))}
+                                </div>
+                                
+                                {/* View Receipt / Details CTA Button Link for mobile/touch usability */}
+                                <div style={{
+                                  marginTop: '4px',
+                                  display: 'flex',
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  padding: '8px 12px',
+                                  borderRadius: '6px',
+                                  backgroundColor: 'var(--accent-light)',
+                                  color: 'var(--accent-color)',
+                                  fontSize: '11.5px',
+                                  fontWeight: '700',
+                                  gap: '6px',
+                                  border: '1px solid transparent',
+                                  userSelect: 'none'
+                                }}>
+                                  📄 {language === 'uz' ? "Batafsil chekni ko'rish" : "Посмотреть чек"} ➔
                                 </div>
                               </div>
                             )}
@@ -8999,11 +9403,12 @@ function App() {
                         );
                       })}
                     </div>
-                  );
-                })()}
+                  )}
+                </div>
+
               </div>
-            </div>
-          )}
+            );
+          })()}
 
           {/* VIEW 5: SALES HISTORY */}
           {activeTab === 'sales' && (
