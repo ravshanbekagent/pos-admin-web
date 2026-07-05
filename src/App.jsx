@@ -3244,7 +3244,9 @@ function App() {
           price: price,
           quantity: 1,
           unit: product.unit || 'dona',
-          maxQty: maxQty
+          maxQty: maxQty,
+          psid: product.psid || '',
+          package_code: product.package_code || ''
         }];
       }
     });
@@ -3660,8 +3662,8 @@ function App() {
                 vat: 0.0,
                 amount: parseFloat(item.quantity),
                 isDecimalUnits: item.unit !== 'dona',
-                psid: tindaDefaultMxik,
-                packageCode: parseInt(tindaDefaultPackage),
+                psid: item.psid || tindaDefaultMxik,
+                packageCode: item.package_code ? parseInt(item.package_code, 10) : parseInt(tindaDefaultPackage, 10),
                 sellerType: 0
               };
             });
