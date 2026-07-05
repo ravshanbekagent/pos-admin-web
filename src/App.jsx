@@ -3378,7 +3378,7 @@ function App() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               serialNumber: serialNumber,
-              totalAmount: 11750000
+              totalAmount: 1600000
             })
           });
         } catch (e) {
@@ -3388,10 +3388,10 @@ function App() {
             receipt_number: Math.floor(Math.random() * 1000) + 1,
             date: new Date().toISOString(),
             serial_number: serialNumber,
-            total_amount: 11750000,
+            total_amount: 1600000,
             payment: {
               payment_method: 'by other cashless',
-              amount: 11750000
+              amount: 1600000
             },
             products: [
               {
