@@ -1001,6 +1001,8 @@ function App() {
   });
   const [cloudVisits, setCloudVisits] = useState([]);
   const [selectedHistoryVisit, setSelectedHistoryVisit] = useState(null);
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [historyStatusFilter, setHistoryStatusFilter] = useState('all');
   const [showExitQuestionnaire, setShowExitQuestionnaire] = useState(false);
   const [exitReason, setExitReason] = useState('');
 
@@ -8281,6 +8283,70 @@ function App() {
                   {language === 'uz' ? "Bugun tashrif buyurilgan va savdo qilingan do'konlar ro'yxati" : "Список магазинов, которые вы посетили сегодня"}
                 </p>
 
+                {/* Search & Status Filters */}
+                <div style={{
+                  display: 'flex',
+                  gap: '12px',
+                  marginBottom: '20px',
+                  flexWrap: 'wrap'
+                }}>
+                  {/* Search Input */}
+                  <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
+                    <span style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-muted)',
+                      fontSize: '14px',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}>
+                      🔍
+                    </span>
+                    <input
+                      type="text"
+                      placeholder={language === 'uz' ? "Do'kon nomini qidirish..." : "Поиск по названию магазина..."}
+                      value={historySearchQuery}
+                      onChange={(e) => setHistorySearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px 10px 36px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                        outline: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
+                    />
+                  </div>
+
+                  {/* Status Filter Dropdown */}
+                  <div style={{ width: '180px' }}>
+                    <select
+                      value={historyStatusFilter}
+                      onChange={(e) => setHistoryStatusFilter(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="all">{language === 'uz' ? "Barcha holatlar" : "Все статусы"}</option>
+                      <option value="sold">{language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена"}</option>
+                      <option value="no_sale">{language === 'uz' ? "Sotuvsiz tashrif" : "Без продажи"}</option>
+                    </select>
+                  </div>
+                </div>
+
                 {(() => {
                   const todayStr = getTodayDateString();
                   // Merge local visitedStores and cloudVisits by storeId + date to avoid duplicates, prioritizing local ones if they are newer
@@ -8301,17 +8367,36 @@ function App() {
 
                   const todayVisits = allVisits.filter(v => v.date === todayStr);
 
-                  if (todayVisits.length === 0) {
+                  // Apply search query filter
+                  let filteredVisits = todayVisits;
+                  if (historySearchQuery.trim()) {
+                    const query = historySearchQuery.toLowerCase();
+                    filteredVisits = filteredVisits.filter(v => 
+                      v.storeName && v.storeName.toLowerCase().includes(query)
+                    );
+                  }
+
+                  // Apply status filter
+                  if (historyStatusFilter === 'sold') {
+                    filteredVisits = filteredVisits.filter(v => v.status === 'sold');
+                  } else if (historyStatusFilter === 'no_sale') {
+                    filteredVisits = filteredVisits.filter(v => v.status !== 'sold');
+                  }
+
+                  if (filteredVisits.length === 0) {
                     return (
                       <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                        {language === 'uz' ? "Bugun hali hech qaysi do'konga tashrif buyurilmadi." : "Сегодня вы еще не посетили ни один магазин."}
+                        {historySearchQuery || historyStatusFilter !== 'all'
+                          ? (language === 'uz' ? "Filtrga mos keladigan tashriflar topilmadi." : "Визиты по заданным фильтрам не найдены.")
+                          : (language === 'uz' ? "Bugun hali hech qaysi do'konga tashrif buyurilmadi." : "Сегодня вы еще не посетили ни один магазин.")
+                        }
                       </div>
                     );
                   }
 
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      {todayVisits.map((visit, index) => {
+                      {filteredVisits.map((visit, index) => {
                         const totalSum = visit.status === 'sold' && visit.items 
                           ? visit.items.reduce((sum, item) => sum + ((item.qty || 1) * (item.price || 0)), 0)
                           : 0;
