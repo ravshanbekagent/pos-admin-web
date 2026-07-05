@@ -743,7 +743,13 @@ function App() {
         role: u.role,
         phone: u.phone || '',
         is_active: u.is_active,
-        terminal_sn: u.terminal_sn
+        terminal_sn: u.terminal_sn,
+        tinda_ip: u.tinda_ip || '',
+        tinda_login: u.tinda_login || '',
+        tinda_pin: u.tinda_pin || '',
+        tinda_default_mxik: u.tinda_default_mxik || '',
+        tinda_default_package: u.tinda_default_package || '',
+        tinda_test_mode: u.tinda_test_mode !== undefined ? u.tinda_test_mode : false
       }));
 
       // Map sales
@@ -858,12 +864,24 @@ function App() {
     setToken('');
     setCurrentUserId('');
     setTerminalSn('');
+    setTindaTerminalIp('192.168.1.100:8080');
+    setTindaTerminalLogin('');
+    setTindaTerminalPin('');
+    setTindaDefaultMxik('09901001001000000');
+    setTindaDefaultPackage('242030');
+    setTindaTestMode(false);
     localStorage.removeItem('token');
     localStorage.removeItem('userRole');
     localStorage.removeItem('currentUserId');
     localStorage.removeItem('adminName');
     localStorage.removeItem('adminPhoto');
     localStorage.removeItem('terminalSn');
+    localStorage.removeItem('tinda_terminal_ip');
+    localStorage.removeItem('tinda_terminal_login');
+    localStorage.removeItem('tinda_terminal_pin');
+    localStorage.removeItem('tinda_default_mxik');
+    localStorage.removeItem('tinda_default_package');
+    localStorage.removeItem('tinda_test_mode');
     setIsLoggedIn(false);
     showAlert('Tizimdan chiqildi', 'info');
   };
@@ -990,6 +1008,7 @@ function App() {
   const [tindaDefaultPackage, setTindaDefaultPackage] = useState(() => localStorage.getItem('tinda_default_package') || '242030');
   const [tindaTestMode, setTindaTestMode] = useState(() => localStorage.getItem('tinda_test_mode') === 'true');
   const [tindaAutoTerminalMode, setTindaAutoTerminalMode] = useState(() => localStorage.getItem('tinda_auto_terminal_mode') === 'true');
+  const [selectedTindaAgent, setSelectedTindaAgent] = useState(null);
 
   // Tinda Transaction Live States
   const [tindaPaymentStatus, setTindaPaymentStatus] = useState(null); // 'connecting', 'logging_in', 'waiting_card', 'success', 'error'
@@ -1348,6 +1367,29 @@ function App() {
       localStorage.setItem('adminName', data.user.name || data.user.username);
       setTerminalSn(data.user.terminal_sn || '');
       localStorage.setItem('terminalSn', data.user.terminal_sn || '');
+
+      // Load user-specific Tinda terminal settings
+      const userIp = data.user.tinda_ip || '';
+      const userLogin = data.user.tinda_login || '';
+      const userPin = data.user.tinda_pin || '';
+      const userMxik = data.user.tinda_default_mxik || '09901001001000000';
+      const userPackage = data.user.tinda_default_package || '242030';
+      const userTestMode = data.user.tinda_test_mode === true || data.user.tinda_test_mode === 'true';
+
+      setTindaTerminalIp(userIp);
+      setTindaTerminalLogin(userLogin);
+      setTindaTerminalPin(userPin);
+      setTindaDefaultMxik(userMxik);
+      setTindaDefaultPackage(userPackage);
+      setTindaTestMode(userTestMode);
+
+      localStorage.setItem('tinda_terminal_ip', userIp);
+      localStorage.setItem('tinda_terminal_login', userLogin);
+      localStorage.setItem('tinda_terminal_pin', userPin);
+      localStorage.setItem('tinda_default_mxik', userMxik);
+      localStorage.setItem('tinda_default_package', userPackage);
+      localStorage.setItem('tinda_test_mode', userTestMode ? 'true' : 'false');
+
       setIsLoggedIn(true);
       
       let defaultTab = 'products';
@@ -10911,135 +10953,356 @@ function App() {
           {/* VIEW: PAYMENT INTEGRATION SETTINGS */}
           {activeTab === 'settings_payments' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', maxWidth: '600px' }}>
-                <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
-                  {language === 'uz' ? "Tinda Terminal Sozlamalari" : "Настройки терминала Tinda"}
-                </h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
-                  {language === 'uz' 
-                    ? "Kassada to'lovni amalga oshirishda foydalaniladigan Tinda smart-terminalining ulanish parametrlarini sozlang." 
-                    : "Настройте параметры подключения смарт-терминала Tinda, используемого для оплаты на кассе."}
-                </p>
-
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              {userRole !== 'agent' ? (
+                // ADMIN SPLIT-VIEW
+                <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 2fr', gap: '24px' }}>
                   
-                  {/* IP Address */}
-                  <div>
-                    <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                      {language === 'uz' ? "Terminal IP manzili va Port (Host:Port)" : "IP-адрес и порт терминала (Host:Port)"}
-                    </label>
-                    <input 
-                      type="text" 
-                      value={tindaTerminalIp}
-                      onChange={(e) => setTindaTerminalIp(e.target.value)}
-                      placeholder="Masalan: 192.168.1.100:8080"
-                      style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
-                    />
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                    {/* User Name */}
-                    <div>
-                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                        {language === 'uz' ? "Terminal Xodim Logini" : "Логин сотрудника на терминале"}
-                      </label>
-                      <input 
-                        type="text" 
-                        value={tindaTerminalLogin}
-                        onChange={(e) => setTindaTerminalLogin(e.target.value)}
-                        placeholder="Masalan: Test Administrator"
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
-                      />
-                    </div>
-
-                    {/* PIN Code */}
-                    <div>
-                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                        {language === 'uz' ? "Terminal PIN kodi" : "ПИН-код терминала"}
-                      </label>
-                      <input 
-                        type="password" 
-                        value={tindaTerminalPin}
-                        onChange={(e) => setTindaTerminalPin(e.target.value)}
-                        placeholder="Masalan: 1111"
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px' }}>
-                    {/* Default MXIK */}
-                    <div>
-                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                        {language === 'uz' ? "Birlamchi MXIK (IKPU) kodi" : "Основной код ИКПУ (МХИК)"}
-                      </label>
-                      <input 
-                        type="text" 
-                        value={tindaDefaultMxik}
-                        onChange={(e) => setTindaDefaultMxik(e.target.value)}
-                        placeholder="Masalan: 09901001001000000"
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
-                      />
-                    </div>
-
-                    {/* Default Package Code */}
-                    <div>
-                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
-                        {language === 'uz' ? "Birlamchi Qadoq kodi" : "Основной код упаковки"}
-                      </label>
-                      <input 
-                        type="text" 
-                        value={tindaDefaultPackage}
-                        onChange={(e) => setTindaDefaultPackage(e.target.value)}
-                        placeholder="Masalan: 242030"
-                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
-                      />
+                  {/* Left Column: Agent List */}
+                  <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', height: 'fit-content' }}>
+                    <h3 style={{ fontSize: '15px', fontWeight: '600', marginBottom: '16px', color: 'var(--text-primary)' }}>
+                      {language === 'uz' ? "Agentlar Ro'yxati" : "Список агентов"}
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '450px', overflowY: 'auto' }}>
+                      {agents.length === 0 ? (
+                        <div style={{ fontSize: '13px', color: 'var(--text-secondary)', textAlign: 'center', padding: '20px' }}>
+                          {language === 'uz' ? "Agentlar mavjud emas" : "Агенты отсутствуют"}
+                        </div>
+                      ) : (
+                        agents.map(agent => {
+                          const isSelected = selectedTindaAgent && selectedTindaAgent.id === agent.id;
+                          return (
+                            <div
+                              key={agent.id}
+                              onClick={() => {
+                                setSelectedTindaAgent(agent);
+                                setTindaTerminalIp(agent.tinda_ip || '');
+                                setTindaTerminalLogin(agent.tinda_login || '');
+                                setTindaTerminalPin(agent.tinda_pin || '');
+                                setTindaDefaultMxik(agent.tinda_default_mxik || '09901001001000000');
+                                setTindaDefaultPackage(agent.tinda_default_package || '242030');
+                                setTindaTestMode(agent.tinda_test_mode === true);
+                              }}
+                              style={{
+                                padding: '12px',
+                                borderRadius: '8px',
+                                border: '1px solid ' + (isSelected ? 'var(--accent-color)' : 'var(--border-color)'),
+                                backgroundColor: isSelected ? 'rgba(13, 148, 136, 0.08)' : 'var(--bg-primary)',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease-in-out'
+                              }}
+                            >
+                              <div style={{ fontWeight: '600', fontSize: '13px', color: 'var(--text-primary)' }}>
+                                {agent.name}
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                @{agent.login} {agent.tinda_ip ? `(${agent.tinda_ip})` : ''}
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
                     </div>
                   </div>
 
-                  {/* Test Demo Mode Toggle */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
-                    <input 
-                      type="checkbox" 
-                      id="tinda-test-mode"
-                      checked={tindaTestMode}
-                      onChange={(e) => setTindaTestMode(e.target.checked)}
-                      style={{ width: '18px', height: '18px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
-                    />
-                    <label htmlFor="tinda-test-mode" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}>
-                      {language === 'uz' ? "Test Demo rejimini yoqish (Simulyatsiya)" : "Включить тестовый демо-режим (Симуляция)"}
-                    </label>
+                  {/* Right Column: Settings Form */}
+                  <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                    {selectedTindaAgent ? (
+                      <div>
+                        <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                          {selectedTindaAgent.name} - {language === 'uz' ? "Terminal Sozlamalari" : "Настройки терминала"}
+                        </h3>
+                        <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                          {language === 'uz' 
+                            ? `Ushbu agent uchun Tinda smart-terminalining ulanish parametrlarini sozlang.` 
+                            : `Настройте параметры подключения смарт-терминала Tinda для этого агента.`}
+                        </p>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          {/* IP Address */}
+                          <div>
+                            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                              {language === 'uz' ? "Terminal IP manzili va Port (Host:Port)" : "IP-адрес и порт терминала (Host:Port)"}
+                            </label>
+                            <input 
+                              type="text" 
+                              value={tindaTerminalIp}
+                              onChange={(e) => setTindaTerminalIp(e.target.value)}
+                              placeholder="Masalan: 192.168.1.100:8080"
+                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                            />
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            {/* User Name */}
+                            <div>
+                              <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                                {language === 'uz' ? "Terminal Xodim Logini" : "Логин сотрудника на терминале"}
+                              </label>
+                              <input 
+                                type="text" 
+                                value={tindaTerminalLogin}
+                                onChange={(e) => setTindaTerminalLogin(e.target.value)}
+                                placeholder="Masalan: Test Administrator"
+                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                              />
+                            </div>
+
+                            {/* PIN Code */}
+                            <div>
+                              <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                                {language === 'uz' ? "Terminal PIN kodi" : "ПИН-код терминала"}
+                              </label>
+                              <input 
+                                type="password" 
+                                value={tindaTerminalPin}
+                                onChange={(e) => setTindaTerminalPin(e.target.value)}
+                                placeholder="Masalan: 1111"
+                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                              />
+                            </div>
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px' }}>
+                            {/* Default MXIK */}
+                            <div>
+                              <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                                {language === 'uz' ? "Birlamchi MXIK (IKPU) kodi" : "Основной код ИКПУ (МХИК)"}
+                              </label>
+                              <input 
+                                type="text" 
+                                value={tindaDefaultMxik}
+                                onChange={(e) => setTindaDefaultMxik(e.target.value)}
+                                placeholder="Masalan: 09901001001000000"
+                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                              />
+                            </div>
+
+                            {/* Default Package Code */}
+                            <div>
+                              <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                                {language === 'uz' ? "Birlamchi Qadoq kodi" : "Основной код упаковки"}
+                              </label>
+                              <input 
+                                type="text" 
+                                value={tindaDefaultPackage}
+                                onChange={(e) => setTindaDefaultPackage(e.target.value)}
+                                placeholder="Masalan: 242030"
+                                style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Test Demo Mode Toggle */}
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                            <input 
+                              type="checkbox" 
+                              id="tinda-test-mode"
+                              checked={tindaTestMode}
+                              onChange={(e) => setTindaTestMode(e.target.checked)}
+                              style={{ width: '18px', height: '18px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                            />
+                            <label htmlFor="tinda-test-mode" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}>
+                              {language === 'uz' ? "Test Demo rejimini yoqish (Simulyatsiya)" : "Включить тестовый демо-режим (Симуляция)"}
+                            </label>
+                          </div>
+
+                          {/* Save Button */}
+                          <button
+                            onClick={async () => {
+                              try {
+                                const response = await fetch(`${API_URL}/auth/users/${selectedTindaAgent.id}`, {
+                                  method: 'PUT',
+                                  headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${token}`
+                                  },
+                                  body: JSON.stringify({
+                                    tinda_ip: tindaTerminalIp,
+                                    tinda_login: tindaTerminalLogin,
+                                    tinda_pin: tindaTerminalPin,
+                                    tinda_default_mxik: tindaDefaultMxik,
+                                    tinda_default_package: tindaDefaultPackage,
+                                    tinda_test_mode: tindaTestMode
+                                  })
+                                });
+                                
+                                if (!response.ok) {
+                                  throw new Error('Serverda xatolik yuz berdi');
+                                }
+                                
+                                // Update agent settings locally in the state
+                                setAgents(prev => prev.map(a => a.id === selectedTindaAgent.id ? {
+                                  ...a,
+                                  tinda_ip: tindaTerminalIp,
+                                  tinda_login: tindaTerminalLogin,
+                                  tinda_pin: tindaTerminalPin,
+                                  tinda_default_mxik: tindaDefaultMxik,
+                                  tinda_default_package: tindaDefaultPackage,
+                                  tinda_test_mode: tindaTestMode
+                                } : a));
+
+                                showAlert(language === 'uz' ? "Tinda terminal sozlamalari muvaffaqiyatli saqlandi!" : "Настройки терминала Tinda успешно сохранены!", 'success');
+                              } catch (err) {
+                                showAlert(language === 'uz' ? "Saqlashda xatolik: " + err.message : "Ошибка сохранения: " + err.message, 'error');
+                              }
+                            }}
+                            style={{
+                              padding: '12px',
+                              backgroundColor: 'var(--accent-color)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontWeight: '600',
+                              fontSize: '14px',
+                              cursor: 'pointer',
+                              width: '100%',
+                              marginTop: '10px'
+                            }}
+                          >
+                            {language === 'uz' ? "Sozlamalarni saqlash" : "Сохранить настройки"}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '300px', flexDirection: 'column', color: 'var(--text-secondary)' }}>
+                        <div style={{ fontSize: '32px', marginBottom: '12px' }}>⚙️</div>
+                        <div style={{ fontSize: '14px', fontWeight: '500' }}>
+                          {language === 'uz' ? "Sozlash uchun chap tomondagi ro'yxatdan agentni tanlang" : "Выберите агента из списка слева для настройки"}
+                        </div>
+                      </div>
+                    )}
                   </div>
-
-                  {/* Save Button */}
-                  <button
-                    onClick={() => {
-                      localStorage.setItem('tinda_terminal_ip', tindaTerminalIp);
-                      localStorage.setItem('tinda_terminal_login', tindaTerminalLogin);
-                      localStorage.setItem('tinda_terminal_pin', tindaTerminalPin);
-                      localStorage.setItem('tinda_default_mxik', tindaDefaultMxik);
-                      localStorage.setItem('tinda_default_package', tindaDefaultPackage);
-                      localStorage.setItem('tinda_test_mode', tindaTestMode ? 'true' : 'false');
-                      showAlert(language === 'uz' ? "Tinda terminal sozlamalari saqlandi!" : "Настройки терминала Tinda сохранены!", 'success');
-                    }}
-                    style={{
-                      padding: '12px',
-                      backgroundColor: 'var(--accent-color)',
-                      color: '#fff',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontWeight: '600',
-                      fontSize: '14px',
-                      cursor: 'pointer',
-                      width: '100%',
-                      marginTop: '10px'
-                    }}
-                  >
-                    {language === 'uz' ? "Sozlamalarni saqlash" : "Сохранить настройки"}
-                  </button>
-
                 </div>
-              </div>
+              ) : (
+                // AGENT SIMPLE VIEW (read-only/local settings view for logged in agent)
+                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', maxWidth: '600px' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '8px', color: 'var(--text-primary)' }}>
+                    {language === 'uz' ? "Tinda Terminal Sozlamalari" : "Настройки терминала Tinda"}
+                  </h3>
+                  <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '24px' }}>
+                    {language === 'uz' 
+                      ? "Sizga biriktirilgan Tinda smart-terminalining ulanish parametrlari." 
+                      : "Параметры подключения закрепленного за вами смарт-терминала Tinda."}
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {/* IP Address */}
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                        {language === 'uz' ? "Terminal IP manzili va Port (Host:Port)" : "IP-адрес и порт терминала (Host:Port)"}
+                      </label>
+                      <input 
+                        type="text" 
+                        value={tindaTerminalIp}
+                        onChange={(e) => setTindaTerminalIp(e.target.value)}
+                        placeholder="Masalan: 192.168.1.100:8080"
+                        style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      {/* User Name */}
+                      <div>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                          {language === 'uz' ? "Terminal Xodim Logini" : "Логин сотрудника на терминале"}
+                        </label>
+                        <input 
+                          type="text" 
+                          value={tindaTerminalLogin}
+                          onChange={(e) => setTindaTerminalLogin(e.target.value)}
+                          placeholder="Masalan: Test Administrator"
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                        />
+                      </div>
+
+                      {/* PIN Code */}
+                      <div>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                          {language === 'uz' ? "Terminal PIN kodi" : "ПИН-код терминала"}
+                        </label>
+                        <input 
+                          type="password" 
+                          value={tindaTerminalPin}
+                          onChange={(e) => setTindaTerminalPin(e.target.value)}
+                          placeholder="Masalan: 1111"
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                        />
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '12px' }}>
+                      {/* Default MXIK */}
+                      <div>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                          {language === 'uz' ? "Birlamchi MXIK (IKPU) kodi" : "Основной код ИКПУ (МХИК)"}
+                        </label>
+                        <input 
+                          type="text" 
+                          value={tindaDefaultMxik}
+                          onChange={(e) => setTindaDefaultMxik(e.target.value)}
+                          placeholder="Masalan: 09901001001000000"
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                        />
+                      </div>
+
+                      {/* Default Package Code */}
+                      <div>
+                        <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                          {language === 'uz' ? "Birlamchi Qadoq kodi" : "Основной код упаковки"}
+                        </label>
+                        <input 
+                          type="text" 
+                          value={tindaDefaultPackage}
+                          onChange={(e) => setTindaDefaultPackage(e.target.value)}
+                          placeholder="Masalan: 242030"
+                          style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '13px', fontWeight: '600' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Test Demo Mode Toggle */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', padding: '12px', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                      <input 
+                        type="checkbox" 
+                        id="tinda-test-mode"
+                        checked={tindaTestMode}
+                        onChange={(e) => setTindaTestMode(e.target.checked)}
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--accent-color)', cursor: 'pointer' }}
+                      />
+                      <label htmlFor="tinda-test-mode" style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', cursor: 'pointer', userSelect: 'none' }}>
+                        {language === 'uz' ? "Test Demo rejimini yoqish (Simulyatsiya)" : "Включить тестовый демо-режим (Симуляция)"}
+                      </label>
+                    </div>
+
+                    {/* Save Button for Local Agent */}
+                    <button
+                      onClick={() => {
+                        localStorage.setItem('tinda_terminal_ip', tindaTerminalIp);
+                        localStorage.setItem('tinda_terminal_login', tindaTerminalLogin);
+                        localStorage.setItem('tinda_terminal_pin', tindaTerminalPin);
+                        localStorage.setItem('tinda_default_mxik', tindaDefaultMxik);
+                        localStorage.setItem('tinda_default_package', tindaDefaultPackage);
+                        localStorage.setItem('tinda_test_mode', tindaTestMode ? 'true' : 'false');
+                        showAlert(language === 'uz' ? "Mahalliy sozlamalar saqlandi!" : "Локальные настройки сохранены!", 'success');
+                      }}
+                      style={{
+                        padding: '12px',
+                        backgroundColor: 'var(--accent-color)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '8px',
+                        fontWeight: '600',
+                        fontSize: '14px',
+                        cursor: 'pointer',
+                        width: '100%',
+                        marginTop: '10px'
+                      }}
+                    >
+                      {language === 'uz' ? "Mahalliy sozlamalarni saqlash" : "Сохранить локальные настройки"}
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
