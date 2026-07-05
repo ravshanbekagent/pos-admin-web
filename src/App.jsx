@@ -628,6 +628,7 @@ function App() {
   const [agentSearchQuery, setAgentSearchQuery] = useState('');
   const [isAgentDropdownOpen, setIsAgentDropdownOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'sold', 'no_sale'
+  const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
   const [productsTabMode, setProductsTabMode] = useState('warehouse'); // 'warehouse' or 'agents_stock'
   const [selectedProductStockDetails, setSelectedProductStockDetails] = useState(null); // stores product name for detailed stock modal
   const [tahlillarOpen, setTahlillarOpen] = useState(false);
@@ -9058,22 +9059,41 @@ function App() {
                   border: '1px solid var(--border-color)',
                   borderRadius: '12px',
                   padding: '16px 20px',
-                  gap: '20px',
+                  gap: '16px',
                   flexWrap: 'wrap',
                   position: 'relative' // relative context for dropdown positioning
                 }}>
                   {/* Left block: Filters Wrapper */}
-                  <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap', alignItems: 'flex-end', flexGrow: 1, minWidth: '280px' }}>
+                  <div style={{ 
+                    display: 'flex', 
+                    gap: '12px', 
+                    flexWrap: 'wrap', 
+                    alignItems: 'flex-end', 
+                    flexGrow: 1, 
+                    width: '100%',
+                    maxWidth: '100%'
+                  }}>
                     
-                    {/* 1. Custom Combobox (Filter dropdown) */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', position: 'relative', zIndex: 100, minWidth: '240px', flexGrow: 1 }}>
-                      <span style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                    {/* 1. Custom Combobox (Agent Filter dropdown) */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '4px', 
+                      position: 'relative', 
+                      zIndex: 100, 
+                      flex: '1 1 200px', 
+                      maxWidth: '300px' 
+                    }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)' }}>
                         {language === 'uz' ? "Agent bo'yicha filter:" : "Фильтр по агенту:"}
                       </span>
                       
                       {/* Trigger Button */}
                       <div 
-                        onClick={() => setIsAgentDropdownOpen(!isAgentDropdownOpen)}
+                        onClick={() => {
+                          setIsAgentDropdownOpen(!isAgentDropdownOpen);
+                          setIsStatusDropdownOpen(false); // close other dropdown
+                        }}
                         style={{
                           display: 'flex',
                           alignItems: 'center',
@@ -9175,78 +9195,109 @@ function App() {
                       )}
                     </div>
 
-                    {/* 2. Status Filter Segmented Control */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', minWidth: '220px', flexGrow: 1 }}>
-                      <span style={{ fontSize: '11.5px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                    {/* 2. Status Filter Combobox/Dropdown */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '4px', 
+                      position: 'relative', 
+                      zIndex: 99, 
+                      flex: '1 1 180px', 
+                      maxWidth: '300px' 
+                    }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)' }}>
                         {language === 'uz' ? "Status bo'yicha filter:" : "Фильтр по статусу:"}
                       </span>
-                      <div style={{
-                        display: 'flex',
-                        backgroundColor: 'var(--bg-primary)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '8px',
-                        padding: '3px',
-                        gap: '4px'
-                      }}>
-                        <button
-                          onClick={() => setStatusFilter('all')}
-                          style={{
-                            flex: 1,
-                            padding: '6px 8px',
-                            borderRadius: '6px',
-                            border: 'none',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            backgroundColor: statusFilter === 'all' ? 'var(--accent-color)' : 'transparent',
-                            color: statusFilter === 'all' ? '#fff' : 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {language === 'uz' ? "Barchasi" : "Все"}
-                        </button>
-                        <button
-                          onClick={() => setStatusFilter('sold')}
-                          style={{
-                            flex: 1,
-                            padding: '6px 8px',
-                            borderRadius: '6px',
-                            border: 'none',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            backgroundColor: statusFilter === 'sold' ? '#10b981' : 'transparent',
-                            color: statusFilter === 'sold' ? '#fff' : 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {language === 'uz' ? "Sotildi" : "Продано"}
-                        </button>
-                        <button
-                          onClick={() => setStatusFilter('no_sale')}
-                          style={{
-                            flex: 1,
-                            padding: '6px 8px',
-                            borderRadius: '6px',
-                            border: 'none',
-                            fontSize: '11px',
-                            fontWeight: '600',
-                            backgroundColor: statusFilter === 'no_sale' ? '#f59e0b' : 'transparent',
-                            color: statusFilter === 'no_sale' ? '#fff' : 'var(--text-secondary)',
-                            cursor: 'pointer',
-                            transition: 'all 0.15s ease'
-                          }}
-                        >
-                          {language === 'uz' ? "Sotuvsiz" : "Без покупки"}
-                        </button>
+                      
+                      {/* Trigger Button */}
+                      <div 
+                        onClick={() => {
+                          setIsStatusDropdownOpen(!isStatusDropdownOpen);
+                          setIsAgentDropdownOpen(false); // close other dropdown
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          fontSize: '12.5px',
+                          fontWeight: '600',
+                          userSelect: 'none',
+                          transition: 'border-color 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+                        onMouseOut={(e) => e.currentTarget.style.borderColor = isStatusDropdownOpen ? 'var(--accent-color)' : 'var(--border-color)'}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          🎯 {statusFilter === 'all' 
+                            ? (language === 'uz' ? "Barchasi" : "Все") 
+                            : statusFilter === 'sold' 
+                              ? (language === 'uz' ? "Sotildi" : "Продано") 
+                              : (language === 'uz' ? "Sotuvsiz" : "Без покупки")}
+                        </span>
+                        <span>{isStatusDropdownOpen ? '▲' : '▼'}</span>
                       </div>
+
+                      {/* Dropdown Menu Overlay */}
+                      {isStatusDropdownOpen && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 4px)',
+                          left: 0,
+                          width: '100%',
+                          backgroundColor: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.15)',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}>
+                          {[
+                            { key: 'all', label: language === 'uz' ? "Barchasi" : "Все", color: 'var(--accent-color)' },
+                            { key: 'sold', label: language === 'uz' ? "Sotildi" : "Продано", color: '#10b981' },
+                            { key: 'no_sale', label: language === 'uz' ? "Sotuvsiz" : "Без покупки", color: '#f59e0b' }
+                          ].map(opt => (
+                            <div
+                              key={opt.key}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setStatusFilter(opt.key);
+                                setIsStatusDropdownOpen(false);
+                              }}
+                              style={{
+                                padding: '10px 14px',
+                                fontSize: '12.5px',
+                                color: statusFilter === opt.key ? opt.color : 'var(--text-primary)',
+                                backgroundColor: statusFilter === opt.key ? 'var(--accent-light)' : 'transparent',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.15s',
+                                fontWeight: statusFilter === opt.key ? '700' : '500',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
+                              onMouseOut={(e) => e.currentTarget.style.backgroundColor = statusFilter === opt.key ? 'var(--accent-light)' : 'transparent'}
+                            >
+                              <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: opt.color }}></span>
+                              {opt.label}
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
 
                   </div>
 
                   {/* Right block: Selected Agent stats cards */}
-                  <div style={{
-                    display: 'flex',
+                  {/* Desktop Stats (visible on min-width 769px) */}
+                  <div className="desktop-only-flex" style={{
                     alignItems: 'center',
                     gap: '12px',
                     flexWrap: 'wrap'
@@ -9328,6 +9379,42 @@ function App() {
                     </div>
                   </div>
 
+                  {/* Mobile Stats List (visible on max-width 768px) */}
+                  <div className="mobile-only-flex" style={{
+                    flexDirection: 'column',
+                    gap: '8px',
+                    width: '100%',
+                    borderTop: '1px solid var(--border-color)',
+                    paddingTop: '12px',
+                    marginTop: '8px'
+                  }}>
+                    {[
+                      { label: language === 'uz' ? "Tashriflar soni:" : "Кол-во визитов:", value: totalVisits, color: 'var(--text-primary)', icon: '📊' },
+                      { label: language === 'uz' ? "Sotuvlar soni:" : "Кол-во продаж:", value: soldVisits, color: '#10b981', icon: '✅' },
+                      { label: language === 'uz' ? "Sotuvsiz tashriflar:" : "Визиты без покупки:", value: noSaleVisits, color: '#f59e0b', icon: '⚠️' },
+                      { label: language === 'uz' ? "Umumiy tushum:" : "Общая сумма:", value: `${totalSalesValue.toLocaleString()} UZS`, color: 'var(--accent-color)', icon: '💰', isBoldVal: true }
+                    ].map((item, index) => (
+                      <div key={index} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        backgroundColor: 'var(--bg-primary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '6px',
+                        padding: '8px 12px',
+                        fontSize: '11.5px',
+                        color: 'var(--text-primary)'
+                      }}>
+                        <span style={{ color: 'var(--text-secondary)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          {item.icon} {item.label}
+                        </span>
+                        <span style={{ fontWeight: item.isBoldVal || item.color !== 'var(--text-primary)' ? '800' : '700', color: item.color }}>
+                          {item.value}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
                 </div>
 
                 {/* Main container: Full Width Visits History */}
@@ -9359,7 +9446,7 @@ function App() {
                       {language === 'uz' ? "Tashriflar topilmadi." : "Визиты не найдены."}
                     </div>
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {statusFilteredVisits.map(visit => {
                         const isSold = visit.status === 'sold';
                         let products = [];
@@ -9385,35 +9472,35 @@ function App() {
                             style={{
                               backgroundColor: 'var(--bg-primary)',
                               border: '1px solid var(--border-color)',
-                              borderRadius: '8px',
-                              padding: '10px 16px',
+                              borderRadius: '6px',
+                              padding: '6px 12px',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'space-between',
-                              gap: '16px',
+                              gap: '12px',
                               cursor: isSold ? 'pointer' : 'default',
                               boxShadow: '0 1px 2px rgba(0, 0, 0, 0.02)'
                             }}
                           >
                             {/* Left part: Store info */}
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flexGrow: 1, minWidth: 0 }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1, minWidth: 0 }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                                 <span style={{ 
                                   fontWeight: '700', 
                                   color: isSold ? 'var(--accent-color)' : 'var(--text-primary)', 
-                                  fontSize: '13px',
+                                  fontSize: '12px',
                                   textDecoration: isSold ? 'underline' : 'none',
                                   whiteSpace: 'nowrap',
                                   overflow: 'hidden',
                                   textOverflow: 'ellipsis',
-                                  maxWidth: '220px'
+                                  maxWidth: '180px'
                                 }}>
                                   {visit.storeName}
                                 </span>
                                 <span style={{
-                                  padding: '2px 6px',
+                                  padding: '1.5px 5px',
                                   borderRadius: '4px',
-                                  fontSize: '9px',
+                                  fontSize: '8.5px',
                                   fontWeight: 'bold',
                                   textTransform: 'uppercase',
                                   backgroundColor: isSold ? 'rgba(16, 185, 129, 0.12)' : 'rgba(245, 158, 11, 0.12)',
@@ -9424,7 +9511,7 @@ function App() {
                                 </span>
                               </div>
                               
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', color: 'var(--text-muted)' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--text-muted)' }}>
                                 <span>📅 {visit.date}</span>
                                 <span>•</span>
                                 <span>🕒 {visit.time}</span>
@@ -9432,10 +9519,10 @@ function App() {
 
                               {!isSold && visit.reason && (
                                 <div style={{ 
-                                  fontSize: '11px', 
+                                  fontSize: '10px', 
                                   color: 'var(--text-secondary)', 
                                   fontStyle: 'italic', 
-                                  marginTop: '2px'
+                                  marginTop: '1px'
                                 }}>
                                   {language === 'uz' ? "Sabab: " : "Причина: "}{visit.reason}
                                 </div>
@@ -9443,20 +9530,20 @@ function App() {
                             </div>
 
                             {/* Right part: financial and click CTA */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexShrink: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                               {isSold && (
-                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
-                                  <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '1px' }}>
+                                  <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
                                     {language === 'uz' ? "Summa:" : "Сумма:"}
                                   </span>
-                                  <span style={{ fontSize: '12.5px', color: 'var(--text-primary)', fontWeight: '700' }}>
+                                  <span style={{ fontSize: '11.5px', color: 'var(--text-primary)', fontWeight: '700' }}>
                                     {totalAmount.toLocaleString()} UZS
                                   </span>
                                 </div>
                               )}
                               
                               {isSold && (
-                                <span style={{ color: 'var(--accent-color)', fontWeight: 'bold', fontSize: '14px', paddingLeft: '4px' }}>
+                                <span style={{ color: 'var(--accent-color)', fontWeight: 'bold', fontSize: '12px', paddingLeft: '2px' }}>
                                   ❯
                                 </span>
                               )}
