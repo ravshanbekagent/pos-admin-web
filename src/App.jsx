@@ -8397,15 +8397,31 @@ function App() {
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       {filteredVisits.map((visit, index) => {
-                        const totalSum = visit.status === 'sold' && visit.items 
-                          ? visit.items.reduce((sum, item) => sum + ((item.qty || 1) * (item.price || 0)), 0)
+                        let products = [];
+                        try {
+                          if (visit.items) {
+                            const parsed = typeof visit.items === 'string' ? JSON.parse(visit.items) : visit.items;
+                            if (parsed && typeof parsed === 'object') {
+                              if (parsed.products) {
+                                products = parsed.products || [];
+                              } else if (Array.isArray(parsed)) {
+                                products = parsed;
+                              }
+                            }
+                          }
+                        } catch (e) {
+                          console.warn("Failed to parse items:", e);
+                        }
+
+                        const totalSum = visit.status === 'sold' && products.length > 0
+                          ? products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0)
                           : 0;
 
                         return (
                           <div 
                             key={index} 
                             onClick={() => {
-                              if (visit.status === 'sold' && visit.items && visit.items.length > 0) {
+                              if (visit.status === 'sold' && products.length > 0) {
                                 setSelectedHistoryVisit(visit);
                               }
                             }}
@@ -8480,124 +8496,344 @@ function App() {
                 })()}
 
                 {/* History Visit Products Detail Modal */}
-                {selectedHistoryVisit && (
-                  <div style={{
-                    position: 'fixed',
-                    top: 0,
-                    left: 0,
-                    width: '100%',
-                    height: '100%',
-                    backgroundColor: 'rgba(15, 23, 42, 0.65)',
-                    backdropFilter: 'blur(4px)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    zIndex: 999999,
-                    padding: '16px'
-                  }}>
+                {selectedHistoryVisit && (() => {
+                  const visit = selectedHistoryVisit;
+                  let products = [];
+                  let tindaPayload = null;
+
+                  try {
+                    if (visit.items) {
+                      const parsed = typeof visit.items === 'string' ? JSON.parse(visit.items) : visit.items;
+                      if (parsed && typeof parsed === 'object') {
+                        if (parsed.products) {
+                          products = parsed.products || [];
+                          tindaPayload = parsed.tindaPayload || null;
+                        } else if (Array.isArray(parsed)) {
+                          products = parsed;
+                        }
+                      }
+                    }
+                  } catch (e) {
+                    console.warn("Failed to parse items:", e);
+                  }
+
+                  // Fallbacks for details
+                  const displaySalesId = tindaPayload?.sales_id || tindaPayload?.id || `VISIT-${visit.id || 'N/A'}`;
+                  const displayReceiptNo = tindaPayload?.receipt_number || tindaPayload?.receiptNumber || 'N/A';
+                  const displayDate = tindaPayload?.date 
+                    ? new Date(tindaPayload.date).toLocaleString('uz-UZ') 
+                    : `${visit.date} ${visit.time}`;
+                  const displayDiscount = tindaPayload?.discountAmount || 0;
+                  
+                  const displayStoreName = tindaPayload?.store?.name || visit.storeName;
+                  const displayAddress = tindaPayload?.store?.address || 'N/A';
+                  const displayManager = tindaPayload?.store?.manager || 'N/A';
+                  
+                  const displayCashNo = tindaPayload?.pos?.posNumber || '1';
+                  const displayFiscalCard = tindaPayload?.pos?.fiscalCardId || 'N/A';
+                  const displayModel = tindaPayload?.pos?.posHardwareModel || 'N/A';
+                  const displayApplet = tindaPayload?.appletVersion || '0401';
+                  const displayFmId = tindaPayload?.pos?.fmId || tindaPayload?.pos?.fiscalCardId || 'N/A';
+                  const displaySerial = tindaPayload?.pos?.posHardwareSerialNumber || visit.serialNumber || 'N/A';
+                  const displayUserName = tindaPayload?.userName || 'N/A';
+
+                  const paymentInfo = tindaPayload?.payments && tindaPayload.payments[0]
+                    ? `${tindaPayload.payments[0].paymentType === 'CASHLESS' ? (language === 'uz' ? "Naqd pulsiz" : "Безналичный") : tindaPayload.payments[0].paymentType}: ${parseFloat(tindaPayload.payments[0].paymentAmount).toLocaleString('uz-UZ')} UZS`
+                    : (language === 'uz' ? "Terminal to'lovi" : "Терминальный платеж");
+
+                  const computedFullCost = products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0);
+                  const computedVat = computedFullCost * 0.12 / 1.12; // 12% standard VAT included
+
+                  return (
                     <div style={{
-                      backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '16px',
+                      position: 'fixed',
+                      top: 0,
+                      left: 0,
                       width: '100%',
-                      maxWidth: '520px',
-                      padding: '24px',
-                      boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+                      height: '100%',
+                      backgroundColor: 'rgba(15, 23, 42, 0.65)',
+                      backdropFilter: 'blur(4px)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      zIndex: 999999,
+                      padding: '16px'
                     }}>
-                      {/* Modal Header */}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '12px' }}>
-                        <div>
-                          <h3 style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
-                            {selectedHistoryVisit.storeName}
+                      <div style={{
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '16px',
+                        width: '100%',
+                        maxWidth: '860px',
+                        maxHeight: '90vh',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden',
+                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2)'
+                      }}>
+                        {/* Modal Header */}
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center', 
+                          padding: '18px 24px', 
+                          borderBottom: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)'
+                        }}>
+                          <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                            {language === 'uz' ? "Tafsilotlar" : "Details"}
                           </h3>
-                          <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                            🕒 {selectedHistoryVisit.time} ({selectedHistoryVisit.date})
-                          </span>
-                        </div>
-                        <button 
-                          onClick={() => setSelectedHistoryVisit(null)}
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--text-muted)',
-                            fontSize: '20px',
-                            cursor: 'pointer',
-                            padding: '4px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center'
-                          }}
-                        >
-                          ×
-                        </button>
-                      </div>
-
-                      {/* Modal Body: Products List */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '300px', overflowY: 'auto', paddingRight: '4px', marginBottom: '20px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
-                          <span>{language === 'uz' ? "Mahsulot" : "Товар"}</span>
-                          <div style={{ display: 'flex', gap: '32px' }}>
-                            <span style={{ width: '60px', textAlign: 'right' }}>{language === 'uz' ? "Soni" : "Кол-wo"}</span>
-                            <span style={{ width: '90px', textAlign: 'right' }}>{language === 'uz' ? "Jami" : "Всего"}</span>
-                          </div>
+                          <button 
+                            onClick={() => setSelectedHistoryVisit(null)}
+                            style={{
+                              background: 'none',
+                              border: 'none',
+                              color: 'var(--text-muted)',
+                              fontSize: '20px',
+                              cursor: 'pointer',
+                              padding: '4px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            ×
+                          </button>
                         </div>
 
-                        {(selectedHistoryVisit.items || []).map((item, idx) => (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '13px', color: 'var(--text-primary)', borderBottom: '1px dashed var(--border-color)', paddingBottom: '8px', paddingTop: '4px' }}>
-                            <span style={{ fontWeight: '500', wordBreak: 'break-word', flex: 1, paddingRight: '12px' }}>
-                              {item.productName}
-                            </span>
-                            <div style={{ display: 'flex', gap: '32px', flexShrink: 0 }}>
-                              <span style={{ width: '60px', textAlign: 'right', color: 'var(--text-secondary)' }}>
-                                {item.qty} {language === 'uz' ? "dona" : "шт."}
-                              </span>
-                              <span style={{ width: '90px', textAlign: 'right', fontWeight: '600' }}>
-                                {((item.qty || 1) * (item.price || 0)).toLocaleString()} UZS
-                              </span>
+                        {/* Modal Scrollable Content */}
+                        <div style={{ padding: '20px 24px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                          
+                          {/* SECTION 1: Transaction & Store Info */}
+                          <div style={{
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            backgroundColor: 'var(--bg-primary)',
+                            padding: '16px',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '24px'
+                          }}>
+                            {/* Column 1 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Sales ID:</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600', wordBreak: 'break-all' }}>{displaySalesId}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Chek raqami:" : "Receipt number:"}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayReceiptNo}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Sana:" : "Date:"}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDate}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Chegirma summasi:" : "Discount amount:"}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDiscount.toLocaleString()} UZS</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "To'lov turi:" : "Payment:"}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{paymentInfo}</span>
+                              </div>
+                            </div>
+
+                            {/* Column 2 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Do'kon nomi:" : "Store name:"}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayStoreName}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Manzil:" : "Address:"}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '500' }}>{displayAddress}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>{language === 'uz' ? "Mas'ul shaxs:" : "Manager:"}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayManager}</span>
+                              </div>
                             </div>
                           </div>
-                        ))}
-                      </div>
 
-                      {/* Modal Footer */}
-                      <div style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        borderTop: '1px solid var(--border-color)',
-                        paddingTop: '16px',
-                        fontWeight: '700',
-                        fontSize: '15px'
-                      }}>
-                        <span style={{ color: 'var(--text-primary)' }}>
-                          {language === 'uz' ? "Umumiy summa:" : "Общая сумма:"}
-                        </span>
-                        <span style={{ color: '#10b981' }}>
-                          {(selectedHistoryVisit.items || []).reduce((sum, item) => sum + ((item.qty || 1) * (item.price || 0)), 0).toLocaleString()} UZS
-                        </span>
-                      </div>
-
-                      {/* Close Button */}
-                      <div style={{ marginTop: '20px', display: 'flex', justifyContent: 'flex-end' }}>
-                        <button 
-                          onClick={() => setSelectedHistoryVisit(null)}
-                          style={{
-                            padding: '8px 20px',
-                            backgroundColor: 'var(--accent-color)',
-                            color: '#fff',
-                            border: 'none',
+                          {/* SECTION 2: POS Details */}
+                          <div style={{
+                            border: '1px solid var(--border-color)',
                             borderRadius: '8px',
-                            fontSize: '13px',
-                            fontWeight: '600',
-                            cursor: 'pointer'
-                          }}
-                        >
-                          {language === 'uz' ? "Yopish" : "Закрыть"}
-                        </button>
+                            backgroundColor: 'var(--bg-primary)',
+                            padding: '16px',
+                            display: 'grid',
+                            gridTemplateColumns: '1fr 1fr',
+                            gap: '24px'
+                          }}>
+                            {/* Column 1 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Kassa raqami:" : "Cash desk number:"}</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayCashNo}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Fiscal card ID:</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayFiscalCard}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>Model:</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayModel}</span>
+                              </div>
+                            </div>
+
+                            {/* Column 2 */}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Applet version:</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayApplet}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Fiscal module ID:</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayFmId}</span>
+                              </div>
+                              <div style={{ display: 'flex' }}>
+                                <span style={{ color: 'var(--text-muted)', width: '110px', flexShrink: 0 }}>Serial number:</span>
+                                <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displaySerial}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* SECTION 3: Cashier / User details */}
+                          <div style={{
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            backgroundColor: 'var(--bg-primary)',
+                            padding: '12px 16px',
+                            display: 'flex',
+                            fontSize: '12px'
+                          }}>
+                            <span style={{ color: 'var(--text-muted)', width: '130px', flexShrink: 0 }}>{language === 'uz' ? "Kassir ismi:" : "User name:"}</span>
+                            <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayUserName}</span>
+                          </div>
+
+                          {/* SECTION 4: Product list table */}
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <h4 style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', margin: 0, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                📋 {language === 'uz' ? "Mahsulotlar ro'yxati" : "Product list"}
+                              </h4>
+                              <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                                {language === 'uz' ? "Mahsulotlar soni:" : "Number of products:"} {products.length}
+                              </span>
+                            </div>
+
+                            <div style={{ 
+                              border: '1px solid var(--border-color)', 
+                              borderRadius: '8px', 
+                              overflow: 'hidden',
+                              backgroundColor: 'var(--bg-primary)'
+                            }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px', textAlign: 'left' }}>
+                                <thead>
+                                  <tr style={{ backgroundColor: 'var(--bg-secondary)', borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontWeight: '700' }}>
+                                    <th style={{ padding: '10px 12px', width: '40px' }}>#</th>
+                                    <th style={{ padding: '10px 12px', width: '120px' }}>PRODUCT ID</th>
+                                    <th style={{ padding: '10px 12px' }}>NAME</th>
+                                    <th style={{ padding: '10px 12px' }}>LABEL</th>
+                                    <th style={{ padding: '10px 12px', width: '70px', textAlign: 'center' }}>COUNT</th>
+                                    <th style={{ padding: '10px 12px', width: '110px', textAlign: 'right' }}>PRICE FOR UNIT</th>
+                                    <th style={{ padding: '10px 12px', width: '60px', textAlign: 'center' }}>VAT</th>
+                                    <th style={{ padding: '10px 12px', width: '110px', textAlign: 'right' }}>TOTAL PRICE</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {products.map((item, idx) => {
+                                    const totalItemPrice = (item.qty || item.quantity || 1) * (item.price || 0);
+                                    return (
+                                      <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-primary)' }}>
+                                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)' }}>{idx + 1}</td>
+                                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '11px' }}>{item.productId || 'N/A'}</td>
+                                        <td style={{ padding: '10px 12px', fontWeight: '600' }}>{item.productName}</td>
+                                        <td style={{ padding: '10px 12px', color: 'var(--text-muted)', fontFamily: 'monospace', fontSize: '10px', wordBreak: 'break-all' }}>
+                                          {item.markedLabel || item.barcode || 'N/A'}
+                                        </td>
+                                        <td style={{ padding: '10px 12px', textAlign: 'center', fontWeight: '600' }}>{item.qty || item.quantity || 1}</td>
+                                        <td style={{ padding: '10px 12px', textAlign: 'right' }}>{parseFloat(item.price || 0).toLocaleString('uz-UZ')}</td>
+                                        <td style={{ padding: '10px 12px', textAlign: 'center', color: 'var(--text-muted)' }}>12%</td>
+                                        <td style={{ padding: '10px 12px', textAlign: 'right', fontWeight: '600' }}>{totalItemPrice.toLocaleString('uz-UZ')}</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+
+                          {/* SECTION 5: Financial Summary Table */}
+                          <div style={{
+                            alignSelf: 'flex-end',
+                            width: '280px',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '8px',
+                            backgroundColor: 'var(--bg-primary)',
+                            padding: '12px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            fontSize: '12px'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Boshlang'ich narx:" : "Full cost:"}</span>
+                              <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{computedFullCost.toLocaleString('uz-UZ')} UZS</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Chegirma summasi:" : "Discount amount:"}</span>
+                              <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{displayDiscount.toLocaleString('uz-UZ')} UZS</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span style={{ color: 'var(--text-muted)' }}>{language === 'uz' ? "Shundan QQS (12%):" : "VAT including (12%):"}</span>
+                              <span style={{ color: 'var(--text-primary)', fontWeight: '600' }}>{computedVat.toLocaleString('uz-UZ')} UZS</span>
+                            </div>
+                            <div style={{ 
+                              display: 'flex', 
+                              justifyContent: 'space-between', 
+                              borderTop: '1px solid var(--border-color)', 
+                              paddingTop: '6px', 
+                              marginTop: '2px',
+                              fontWeight: '800',
+                              fontSize: '13px'
+                            }}>
+                              <span style={{ color: 'var(--text-primary)' }}>{language === 'uz' ? "Jami summa:" : "Total:"}</span>
+                              <span style={{ color: '#10b981' }}>{(computedFullCost - displayDiscount).toLocaleString('uz-UZ')} UZS</span>
+                            </div>
+                          </div>
+
+                        </div>
+
+                        {/* Modal Footer (Close Button) */}
+                        <div style={{ 
+                          display: 'flex', 
+                          justifyContent: 'flex-end', 
+                          padding: '16px 24px', 
+                          borderTop: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)'
+                        }}>
+                          <button 
+                            onClick={() => setSelectedHistoryVisit(null)}
+                            style={{
+                              padding: '8px 24px',
+                              backgroundColor: 'var(--accent-color)',
+                              color: '#fff',
+                              border: 'none',
+                              borderRadius: '8px',
+                              fontSize: '13px',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              boxShadow: '0 4px 6px -1px rgba(13, 148, 136, 0.2)'
+                            }}
+                          >
+                            {language === 'uz' ? "Yopish" : "Close"}
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
               </div>
             </div>
           )}
@@ -14082,11 +14318,17 @@ function App() {
                           const todayStr = getTodayDateString();
                           const todayTime = new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' });
                           
-                          const mappedItems = (selectedPendingPayment.products || []).map(p => ({
-                            productName: p.productName || "Mahsulot",
-                            qty: p.quantity || 1,
-                            price: p.price || 0
-                          }));
+                          const mappedItems = {
+                            products: (selectedPendingPayment.products || []).map(p => ({
+                              productName: p.productName || "Mahsulot",
+                              qty: p.quantity || p.qty || 1,
+                              price: p.price || 0,
+                              productId: p.productId || p.id || 1,
+                              barcode: p.barcode || '',
+                              markedLabel: p.markedLabel || (p.markedLabels && p.markedLabels[0]) || ''
+                            })),
+                            tindaPayload: selectedPendingPayment.payload || null
+                          };
 
                           const existingIdx = prev.findIndex(v => v.storeId === parseInt(selectedStoreForBinding) && v.date === todayStr);
                           let updated = [...prev];
