@@ -3525,6 +3525,53 @@ function App() {
     }
   };
 
+  const handleMoveToPendingPayments = async (callbackData) => {
+    try {
+      const sn = terminalSn || callbackData.serial_number || (callbackData.pos && callbackData.pos.posHardwareSerialNumber);
+      if (!sn) {
+        throw new Error(language === 'uz' ? "Terminal seriya raqami topilmadi!" : "Серийный номер терминала не найден!");
+      }
+
+      const res = await fetch(`${API_URL}/tinda/unassign-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          serialNumber: sn,
+          payload: callbackData
+        })
+      });
+
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to move payment');
+      }
+
+      setTindaPendingCallbackData(null);
+      setIsWaitingForTindaCallback(false);
+      showAlert(language === 'uz' ? "To'lov kutilayotgan ro'yxatga o'tkazildi!" : "Оплата перемещена в очередь ожидающих!", 'success');
+      
+      // Fetch updated pending payments immediately
+      if (token && currentUserId) {
+        const fetchRes = await fetch(`${API_URL}/tinda/pending-payments/${currentUserId}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (fetchRes.ok) {
+          const data = await fetchRes.json();
+          setPendingPayments(data);
+        }
+      }
+      
+      // Open the pending modal
+      setShowPendingModal(true);
+    } catch (err) {
+      console.error("Error moving payment to pending:", err);
+      showAlert(err.message, 'error');
+    }
+  };
+
   const handleTindaTestPayment = (subtotal, discountAmount, finalTotal) => {
     setTindaPaymentStatus('connecting');
     setTindaErrorMessage('');
@@ -12273,11 +12320,7 @@ function App() {
                       {/* Confirm/Reject Buttons */}
                       <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
                         <button
-                          onClick={() => {
-                            setTindaPendingCallbackData(null);
-                            setIsWaitingForTindaCallback(false);
-                            showAlert(language === 'uz' ? "To'lov bekor qilindi" : "Оплата отклонена", 'info');
-                          }}
+                          onClick={() => handleMoveToPendingPayments(tindaPendingCallbackData)}
                           style={{
                             flex: 1,
                             padding: '12px',
@@ -12289,7 +12332,7 @@ function App() {
                             cursor: 'pointer'
                           }}
                         >
-                          {language === 'uz' ? "Rad etish" : "Отклонить"}
+                          {language === 'uz' ? "Boshqa do'kon" : "Другой магазин"}
                         </button>
                         <button
                           onClick={() => handleConfirmTindaCallbackPayment(tindaPendingCallbackData)}
