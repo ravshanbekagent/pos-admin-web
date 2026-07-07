@@ -30,7 +30,8 @@ import {
   Loader,
   Clock,
   Upload,
-  Download
+  Download,
+  Map
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { 
@@ -1296,6 +1297,7 @@ function App() {
   const [selectedAssignStoreIds, setSelectedAssignStoreIds] = useState([]);
   const [assignStoreSearchQuery, setAssignStoreSearchQuery] = useState('');
   const [showAddSelfStoreModal, setShowAddSelfStoreModal] = useState(false);
+  const [showAgentStoresMapModal, setShowAgentStoresMapModal] = useState(false);
   const [selfStoreSearchQuery, setSelfStoreSearchQuery] = useState('');
   const [showEditAssignmentModal, setShowEditAssignmentModal] = useState(false);
   const [selectedAssignmentForEdit, setSelectedAssignmentForEdit] = useState(null);
@@ -7628,31 +7630,56 @@ function App() {
                             {language === 'uz' ? "Biriktirilgan do'konlar (Kanal)" : 'Закрепленные магазины (Канал)'}
                           </h3>
                           {userRole === 'agent' && (
-                            <button
-                              onClick={() => {
-                                setSelfStoreSearchQuery('');
-                                setShowAddSelfStoreModal(true);
-                              }}
-                              style={{
-                                border: 'none',
-                                backgroundColor: 'var(--accent-color)',
-                                color: '#ffffff',
-                                borderRadius: '50%',
-                                width: '28px',
-                                height: '28px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                cursor: 'pointer',
-                                boxShadow: 'var(--shadow-sm)',
-                                transition: 'transform 0.2s',
-                                padding: 0
-                              }}
-                              title={language === 'uz' ? "Do'kon qo'shish" : "Добавить магазин"}
-                              className="add-self-store-btn"
-                            >
-                              <Plus size={16} />
-                            </button>
+                            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                              <button
+                                onClick={() => setShowAgentStoresMapModal(true)}
+                                style={{
+                                  border: 'none',
+                                  backgroundColor: 'var(--accent-light)',
+                                  color: 'var(--accent-color)',
+                                  borderRadius: '50%',
+                                  width: '28px',
+                                  height: '28px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  boxShadow: 'var(--shadow-sm)',
+                                  transition: 'transform 0.2s',
+                                  padding: 0
+                                }}
+                                title={language === 'uz' ? "Xaritada barchasini ko'rish" : "Показать все на карте"}
+                                className="show-all-map-btn"
+                              >
+                                <Map size={16} />
+                              </button>
+
+                              <button
+                                onClick={() => {
+                                  setSelfStoreSearchQuery('');
+                                  setShowAddSelfStoreModal(true);
+                                }}
+                                style={{
+                                  border: 'none',
+                                  backgroundColor: 'var(--accent-color)',
+                                  color: '#ffffff',
+                                  borderRadius: '50%',
+                                  width: '28px',
+                                  height: '28px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  boxShadow: 'var(--shadow-sm)',
+                                  transition: 'transform 0.2s',
+                                  padding: 0
+                                }}
+                                title={language === 'uz' ? "Do'kon qo'shish" : "Добавить магазин"}
+                                className="add-self-store-btn"
+                              >
+                                <Plus size={16} />
+                              </button>
+                            </div>
                           )}
                         </div>
                         <div style={{ 
@@ -12578,6 +12605,188 @@ function App() {
                   {t('save')}
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal: Agent Stores Map */}
+      {showAgentStoresMapModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }} className="fade-in">
+          <div style={{
+            width: '900px',
+            maxWidth: '95vw',
+            height: '650px',
+            maxHeight: '90vh',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '24px',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
+                {language === 'uz' ? "Biriktirilgan do'konlar xaritasi" : "Карта закрепленных магазинов"}
+              </h3>
+              <button 
+                onClick={() => setShowAgentStoresMapModal(false)}
+                style={{
+                  border: 'none',
+                  background: 'none',
+                  color: 'var(--text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '24px',
+                  lineHeight: '1',
+                  padding: 0
+                }}
+              >
+                &times;
+              </button>
+            </div>
+            
+            <div style={{ flexGrow: 1, position: 'relative', borderRadius: '12px', overflow: 'hidden', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)' }}>
+              {(() => {
+                const mapStores = agentStores
+                  .filter(store => isAssignmentActive(store.date, store.durationDays || 1))
+                  .map((store, index) => {
+                    const todayStr = getTodayDateString();
+                    const isVisited = visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
+                    return {
+                      id: store.id,
+                      name: store.storeName,
+                      address: store.address || '',
+                      phone: store.phone || '',
+                      ownerName: store.ownerName || '',
+                      latitude: store.latitude,
+                      longitude: store.longitude,
+                      map_link: store.map_link,
+                      visited: isVisited,
+                      index: index + 1
+                    };
+                  })
+                  .filter(store => store.latitude && store.longitude && !isNaN(store.latitude) && !isNaN(store.longitude));
+
+                if (mapStores.length === 0) {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', gap: '12px', padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                      <MapPin size={48} style={{ color: 'var(--text-muted)' }} />
+                      <div style={{ fontSize: '15px', fontWeight: '600' }}>
+                        {language === 'uz' ? "Do'konlar GPS koordinatalari mavjud emas" : "GPS координаты магазинов отсутствуют"}
+                      </div>
+                      <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                        {language === 'uz' ? "Xaritada ko'rsatish uchun kamida bitta do'konda GPS koordinatalari kiritilgan bo'lishi lozim." : "Для отображения на карте необходимо, чтобы хотя бы у одного магазина были введены GPS координаты."}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Generate Leaflet srcDoc
+                const leafletHtml = `
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <meta charset="utf-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                    <style>
+                      html, body { height: 100%; margin: 0; padding: 0; }
+                      #map { height: 100%; width: 100%; }
+                      .custom-popup .leaflet-popup-content-wrapper {
+                        background: #1e293b;
+                        color: #f8fafc;
+                        border-radius: 8px;
+                        padding: 4px;
+                      }
+                      .custom-popup .leaflet-popup-tip { background: #1e293b; }
+                      .popup-title { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: #38bdf8; }
+                      .popup-info { font-size: 12px; margin-bottom: 4px; color: #cbd5e1; }
+                      .popup-link { display: inline-block; margin-top: 8px; color: #38bdf8; text-decoration: none; font-weight: 600; font-size: 12px; }
+                      .popup-link:hover { text-decoration: underline; }
+                    </style>
+                  </head>
+                  <body>
+                    <div id="map"></div>
+                    <script>
+                      const stores = ${JSON.stringify(mapStores)};
+                      const map = L.map('map').setView([41.3113, 69.2797], 13);
+                      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        maxZoom: 19,
+                        attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                      }).addTo(map);
+                      const markers = [];
+                      stores.forEach(function(store) {
+                        const markerHtml = store.visited 
+                          ? '<div style="background-color: #10b981; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; text-align: center;">✓</div>'
+                          : '<div style="background-color: #3b82f6; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; text-align: center;">' + store.index + '</div>';
+                        const customIcon = L.divIcon({
+                          html: markerHtml,
+                          className: 'custom-div-icon',
+                          iconSize: [28, 28],
+                          iconAnchor: [14, 14],
+                          popupAnchor: [0, -14]
+                        });
+                        const popupContent = '<div class="custom-popup">' +
+                          '<div class="popup-title">' + store.name + '</div>' +
+                          '<div class="popup-info"><strong>Manzil:</strong> ' + store.address + '</div>' +
+                          (store.ownerName ? '<div class="popup-info"><strong>Egasi:</strong> ' + store.ownerName + '</div>' : '') +
+                          (store.phone ? '<div class="popup-info"><strong>Telefon:</strong> ' + store.phone + '</div>' : '') +
+                          '<div class="popup-info"><strong>Status:</strong> ' + (store.visited ? '<span style="color: #10b981;">Tashrif buyurilgan</span>' : '<span style="color: #cbd5e1;">Kutilmoqda</span>') + '</div>' +
+                          '<a href="' + (store.map_link || 'https://maps.google.com/?q=' + store.latitude + ',' + store.longitude) + '" target="_blank" class="popup-link">Google Maps orqali ochish</a>' +
+                          '</div>';
+                        const marker = L.marker([store.latitude, store.longitude], { icon: customIcon })
+                          .bindPopup(popupContent)
+                          .addTo(map);
+                        markers.push(marker);
+                      });
+                      if (markers.length > 0) {
+                        const group = new L.featureGroup(markers);
+                        map.fitBounds(group.getBounds().pad(0.15));
+                      }
+                    </script>
+                  </body>
+                  </html>
+                `;
+
+                return (
+                  <iframe 
+                    srcDoc={leafletHtml}
+                    style={{ width: '100%', height: '100%', border: 'none' }}
+                    title="Agent Stores Map"
+                  />
+                );
+              })()}
+            </div>
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px' }}>
+              <button 
+                onClick={() => setShowAgentStoresMapModal(false)}
+                style={{
+                  padding: '10px 24px',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '13px'
+                }}
+              >
+                {language === 'uz' ? 'Yopish' : 'Закрыть'}
+              </button>
             </div>
           </div>
         </div>
