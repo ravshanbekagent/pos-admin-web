@@ -1299,6 +1299,8 @@ function App() {
   const [showAddSelfStoreModal, setShowAddSelfStoreModal] = useState(false);
   const [showAgentStoresMapModal, setShowAgentStoresMapModal] = useState(false);
   const [selfStoreSearchQuery, setSelfStoreSearchQuery] = useState('');
+  const [selectedAddSelfStoreIds, setSelectedAddSelfStoreIds] = useState([]);
+  const [isLoadingSelfStores, setIsLoadingSelfStores] = useState(false);
   const [showEditAssignmentModal, setShowEditAssignmentModal] = useState(false);
   const [selectedAssignmentForEdit, setSelectedAssignmentForEdit] = useState(null);
   const [editAssignmentQty, setEditAssignmentQty] = useState('');
@@ -2937,6 +2939,82 @@ function App() {
       console.error(err);
       showAlert(err.message, 'error');
     });
+  };
+
+  const handleToggleSelectStore = (storeId) => {
+    setSelectedAddSelfStoreIds(prev => {
+      if (prev.includes(storeId)) {
+        return prev.filter(id => id !== storeId);
+      } else {
+        return [...prev, storeId];
+      }
+    });
+  };
+
+  const handleBulkAddSelfStores = () => {
+    if (selectedAddSelfStoreIds.length === 0) return;
+    
+    setIsLoadingSelfStores(true);
+    
+    const promises = selectedAddSelfStoreIds.map(storeId => {
+      const store = inactiveAgentStores.find(s => s.id === storeId);
+      if (!store) return Promise.resolve();
+      
+      return fetch(`${API_URL}/stores/${store.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: store.name,
+          owner_name: store.owner_name,
+          phone: store.phone,
+          address: store.address,
+          map_link: store.map_link,
+          location_lat: String(store.latitude || store.location_lat || ''),
+          location_lng: String(store.longitude || store.location_lng || ''),
+          agent_id: activeAgent.id,
+          assigned_date: getTodayDateString(),
+          duration_days: 1,
+          order: store.order || 1
+        })
+      }).then(res => {
+        if (!res.ok) throw new Error(language === 'uz' ? `"${store.name}" do'konini faollashtirishda xatolik` : `Ошибка при активации магазина "${store.name}"`);
+        return res.json();
+      });
+    });
+    
+    Promise.all(promises)
+      .then(() => {
+        showAlert(
+          language === 'uz' ? "Do'konlar vazifalar ro'yxatiga qo'shildi" : "Магазины добавлены в список задач",
+          'success'
+        );
+        
+        setVisitedStores(prev => {
+          const todayStr = getTodayDateString();
+          const updated = prev.filter(v => !(selectedAddSelfStoreIds.includes(v.storeId) && v.date === todayStr));
+          localStorage.setItem('visited_stores', JSON.stringify(updated));
+          return updated;
+        });
+        
+        setCloudVisits(prev => {
+          const todayStr = getTodayDateString();
+          return prev.filter(v => !(selectedAddSelfStoreIds.includes(v.storeId) && v.date === todayStr));
+        });
+
+        loadCloudData(token);
+        setShowAddSelfStoreModal(false);
+        setSelectedAddSelfStoreIds([]);
+      })
+      .catch(err => {
+        console.error(err);
+        showAlert(err.message, 'error');
+      })
+      .finally(() => {
+        setIsLoadingSelfStores(false);
+      });
   };
 
   const [draggedStoreIndex, setDraggedStoreIndex] = useState(null);
@@ -7657,6 +7735,7 @@ function App() {
                               <button
                                 onClick={() => {
                                   setSelfStoreSearchQuery('');
+                                  setSelectedAddSelfStoreIds([]);
                                   setShowAddSelfStoreModal(true);
                                 }}
                                 style={{
@@ -12807,7 +12886,7 @@ function App() {
           zIndex: 9999
         }} className="fade-in">
           <div style={{
-            width: '450px',
+            width: '500px',
             maxWidth: '90vw',
             backgroundColor: 'var(--bg-secondary)',
             border: '1px solid var(--border-color)',
@@ -12838,7 +12917,7 @@ function App() {
               </button>
             </div>
 
-            <div style={{ marginBottom: '16px' }}>
+            <div style={{ marginBottom: '12px' }}>
               <input
                 type="text"
                 placeholder={language === 'uz' ? "Do'kon nomi yoki manzili..." : "Название или адрес магазина..."}
@@ -12855,6 +12934,71 @@ function App() {
                   boxSizing: 'border-box'
                 }}
               />
+            </div>
+
+            {/* Select All and count container */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              marginBottom: '12px',
+              padding: '0 4px',
+              fontSize: '13px'
+            }}>
+              {inactiveAgentStores.filter(s => {
+                const query = selfStoreSearchQuery.toLowerCase();
+                return (s.name || '').toLowerCase().includes(query) || 
+                       (s.address || '').toLowerCase().includes(query) || 
+                       (s.owner_name || '').toLowerCase().includes(query);
+              }).length > 0 && (
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-primary)', fontWeight: '500' }}>
+                  <input
+                    type="checkbox"
+                    checked={
+                      (() => {
+                        const filtered = inactiveAgentStores.filter(s => {
+                          const query = selfStoreSearchQuery.toLowerCase();
+                          return (s.name || '').toLowerCase().includes(query) || 
+                                 (s.address || '').toLowerCase().includes(query) || 
+                                 (s.owner_name || '').toLowerCase().includes(query);
+                        });
+                        return filtered.length > 0 && filtered.every(s => selectedAddSelfStoreIds.includes(s.id));
+                      })()
+                    }
+                    onChange={() => {
+                      const filtered = inactiveAgentStores.filter(s => {
+                        const query = selfStoreSearchQuery.toLowerCase();
+                        return (s.name || '').toLowerCase().includes(query) || 
+                               (s.address || '').toLowerCase().includes(query) || 
+                               (s.owner_name || '').toLowerCase().includes(query);
+                      });
+                      const filteredIds = filtered.map(s => s.id);
+                      const allSelected = filtered.every(s => selectedAddSelfStoreIds.includes(s.id));
+                      if (allSelected) {
+                        setSelectedAddSelfStoreIds(prev => prev.filter(id => !filteredIds.includes(id)));
+                      } else {
+                        setSelectedAddSelfStoreIds(prev => {
+                          const next = [...prev];
+                          filteredIds.forEach(id => {
+                            if (!next.includes(id)) next.push(id);
+                          });
+                          return next;
+                        });
+                      }
+                    }}
+                    style={{
+                      cursor: 'pointer',
+                      width: '16px',
+                      height: '16px',
+                      accentColor: 'var(--accent-color)'
+                    }}
+                  />
+                  <span>{language === 'uz' ? "Hammasini tanlash" : "Выбрать все"}</span>
+                </label>
+              )}
+              <span style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>
+                {language === 'uz' ? `Tanlandi: ${selectedAddSelfStoreIds.length} ta` : `Выбрано: ${selectedAddSelfStoreIds.length}`}
+              </span>
             </div>
 
             <div style={{ 
@@ -12883,29 +13027,38 @@ function App() {
                 }).map(store => (
                   <div 
                     key={store.id}
-                    onClick={() => handleAddSelfStoreAssignment(store)}
+                    onClick={() => handleToggleSelectStore(store.id)}
                     style={{
                       display: 'flex',
-                      justifyContent: 'space-between',
                       alignItems: 'center',
                       padding: '12px',
                       borderRadius: '8px',
-                      border: '1px solid var(--border-color)',
-                      backgroundColor: 'var(--bg-primary)',
+                      border: selectedAddSelfStoreIds.includes(store.id)
+                        ? '1px solid var(--accent-color)'
+                        : '1px solid var(--border-color)',
+                      backgroundColor: selectedAddSelfStoreIds.includes(store.id)
+                        ? 'var(--accent-light)'
+                        : 'var(--bg-primary)',
                       cursor: 'pointer',
                       transition: 'all 0.2s ease',
-                      boxShadow: 'var(--shadow-sm)'
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--accent-color)';
-                      e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)';
-                      e.currentTarget.style.backgroundColor = 'var(--bg-primary)';
+                      boxShadow: 'var(--shadow-sm)',
+                      gap: '12px'
                     }}
                   >
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1, marginRight: '12px', textAlign: 'left' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedAddSelfStoreIds.includes(store.id)}
+                      onChange={() => handleToggleSelectStore(store.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{
+                        cursor: 'pointer',
+                        width: '18px',
+                        height: '18px',
+                        accentColor: 'var(--accent-color)',
+                        flexShrink: 0
+                      }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1, textAlign: 'left' }}>
                       <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
                         {store.name}
                       </span>
@@ -12913,27 +13066,54 @@ function App() {
                         👤 {store.owner_name} • 📍 {store.address}
                       </span>
                     </div>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleAddSelfStoreAssignment(store);
-                      }}
-                      style={{
-                        border: 'none',
-                        backgroundColor: 'var(--accent-color)',
-                        color: '#ffffff',
-                        padding: '6px 12px',
-                        borderRadius: '6px',
-                        fontSize: '12px',
-                        fontWeight: '600',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      {language === 'uz' ? "Qo'shish" : "Добавить"}
-                    </button>
                   </div>
                 ))
               )}
+            </div>
+
+            {/* Footer containing Bulk Add button */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+              <button
+                onClick={() => setShowAddSelfStoreModal(false)}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--bg-tertiary)',
+                  color: 'var(--text-primary)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontSize: '13px'
+                }}
+              >
+                {language === 'uz' ? 'Yopish' : 'Закрыть'}
+              </button>
+              <button
+                onClick={handleBulkAddSelfStores}
+                disabled={selectedAddSelfStoreIds.length === 0 || isLoadingSelfStores}
+                style={{
+                  padding: '8px 16px',
+                  backgroundColor: 'var(--accent-color)',
+                  color: '#ffffff',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: selectedAddSelfStoreIds.length > 0 ? 'pointer' : 'default',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  opacity: selectedAddSelfStoreIds.length > 0 ? 1 : 0.6,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {isLoadingSelfStores ? (
+                  language === 'uz' ? "Qo'shilmoqda..." : "Добавление..."
+                ) : (
+                  language === 'uz' 
+                    ? `Tanlanganlarni qo'shish (${selectedAddSelfStoreIds.length})` 
+                    : `Добавить выбранные (${selectedAddSelfStoreIds.length})`
+                )}
+              </button>
             </div>
           </div>
         </div>
