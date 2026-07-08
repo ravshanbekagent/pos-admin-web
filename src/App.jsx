@@ -31,7 +31,8 @@ import {
   Clock,
   Upload,
   Download,
-  Map
+  Map,
+  Calendar
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { 
@@ -613,6 +614,58 @@ function App() {
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   const [sales, setSales] = useState(initialSales);
+  const [debts, setDebts] = useState([
+    {
+      id: 1,
+      sale_id: 101,
+      agent_id: 2,
+      store_id: 57196,
+      total_amount: 1000000,
+      paid_amount: 200000,
+      remaining_amount: 800000,
+      due_date: getTodayDateString(-5),
+      status: 'overdue',
+      createdAt: getTodayDateString(-10) + 'T12:00:00.000Z',
+      store: { name: 'Premium Smoke Shop' },
+      agent: { name: 'Sherzod Alimov' },
+      sale: {
+        items: [
+          { product: { name: 'IQOS Iluma One (Pebble Grey)' }, quantity: 2, unit_price: 350000 },
+          { product: { name: 'Heets Amber Selection' }, quantity: 15, unit_price: 20000 }
+        ]
+      },
+      payments: [
+        { amount: 200000, payment_method: 'naqd', createdAt: getTodayDateString(-8) + 'T15:30:00.000Z' }
+      ]
+    },
+    {
+      id: 2,
+      sale_id: 102,
+      agent_id: 3,
+      store_id: 14489,
+      total_amount: 1500000,
+      paid_amount: 1000000,
+      remaining_amount: 500000,
+      due_date: getTodayDateString(10),
+      status: 'active',
+      createdAt: getTodayDateString(-2) + 'T10:00:00.000Z',
+      store: { name: "G'ofur Ota Mini Market" },
+      agent: { name: 'Malika Qodirova' },
+      sale: {
+        items: [
+          { product: { name: 'IQOS Terea Silver' }, quantity: 50, unit_price: 22000 },
+          { product: { name: 'Fiit Regular' }, quantity: 20, unit_price: 20000 }
+        ]
+      },
+      payments: [
+        { amount: 1000000, payment_method: 'click', createdAt: getTodayDateString(-2) + 'T10:05:00.000Z' }
+      ]
+    }
+  ]);
+  const [overdueDebtsCount, setOverdueDebtsCount] = useState(1);
+  const [selectedDebtDetail, setSelectedDebtDetail] = useState(null);
+  const [receivePaymentAmount, setReceivePaymentAmount] = useState('');
+  const [debtPaymentMethod, setDebtPaymentMethod] = useState('naqd');
   const [assignments, setAssignments] = useState([
     { id: 1, agentId: 2, agentName: "Sherzod Alimov", productName: "IQOS Iluma One (Pebble Grey)", qty: 50, remainingQty: 50, date: getTodayDateString() },
     { id: 2, agentId: 2, agentName: "Sherzod Alimov", productName: "Heets Amber Selection", qty: 200, remainingQty: 200, date: getTodayDateString() },
@@ -637,6 +690,8 @@ function App() {
   const [selectedTahlilStoreDetails, setSelectedTahlilStoreDetails] = useState(null);
   const [selectedTahlilAgentStore, setSelectedTahlilAgentStore] = useState(null);
   const [selectedTahlilProductDetails, setSelectedTahlilProductDetails] = useState(null);
+  const [debtStatusFilter, setDebtStatusFilter] = useState('all');
+  const [debtSearchQuery, setDebtSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('bugun');
   const [startDate, setStartDate] = useState(() => getTodayDateString(0));
   const [endDate, setEndDate] = useState(() => getTodayDateString(0));
@@ -791,6 +846,24 @@ function App() {
       setAdmins(mappedAdmins);
       setSales(mappedSales);
       loadVisitsFromCloud();
+
+      // Fetch Debts
+      try {
+        const debtsUrl = isAgent 
+          ? `${API_URL}/debts/agent/${localStorage.getItem('currentUserId') || currentUserId}`
+          : `${API_URL}/debts`;
+        const debtsRes = await fetch(debtsUrl, {
+          headers: { 'Authorization': `Bearer ${authToken}` }
+        });
+        if (debtsRes.ok) {
+          const debtsData = await debtsRes.json();
+          setDebts(debtsData);
+          const overdueCount = debtsData.filter(d => d.status === 'overdue' && parseFloat(d.remaining_amount) > 0).length;
+          setOverdueDebtsCount(overdueCount);
+        }
+      } catch (err) {
+        console.error("Failed to fetch debts:", err);
+      }
 
       // 5. Dynamic Store Assignments loading
       const loadedStoreAssignments = mappedStores
@@ -988,7 +1061,12 @@ function App() {
   const [cashierCart, setCashierCart] = useState([]);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [searchProductQuery, setSearchProductQuery] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('Naqd');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('tinda');
+  const [nasiyaDueDate, setNasiyaDueDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    return d.toISOString().split('T')[0];
+  });
   const [cashierDiscount, setCashierDiscount] = useState(0);
   const [customDiscountInput, setCustomDiscountInput] = useState('');
   const [showPaymentSection, setShowPaymentSection] = useState(false);
@@ -3365,14 +3443,10 @@ function App() {
     setCashierDiscount(0);
     setCustomDiscountInput('');
     setShowPaymentSection(false);
-    // Load integrated payments
-    const stored = localStorage.getItem('payment_integrations');
-    const integrations = stored ? JSON.parse(stored) : ['Naqd', 'Click', 'Payme'];
-    if (integrations.length > 0) {
-      setSelectedPaymentMethod(integrations[0]);
-    } else {
-      setSelectedPaymentMethod('');
-    }
+    setSelectedPaymentMethod('tinda');
+    const d = new Date();
+    d.setDate(d.getDate() + 30);
+    setNasiyaDueDate(d.toISOString().split('T')[0]);
   };
 
   const handleAddProductToCart = (product) => {
@@ -3446,6 +3520,60 @@ function App() {
     }
   };
 
+  const handleRecordDebtPayment = async (debtId, amount, paymentMethod) => {
+    if (!amount || parseFloat(amount) <= 0) {
+      showAlert(language === 'uz' ? "Iltimos, to'g'ri summa kiriting!" : "Пожалуйста, введите корректную сумму!", 'error');
+      return;
+    }
+    try {
+      const res = await fetch(`${API_URL}/debts/${debtId}/payments`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token
+        },
+        body: JSON.stringify({
+          amount: parseFloat(amount),
+          payment_method: paymentMethod
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || 'Payment failed');
+      }
+      showAlert(language === 'uz' ? "To'lov muvaffaqiyatli qabul qilindi!" : "Платеж успешно принят!", 'success');
+      setReceivePaymentAmount('');
+      
+      // Reload all data
+      await loadCloudData(token);
+      
+      // Update selected detail if modal is open
+      setSelectedDebtDetail(prev => {
+        if (!prev) return null;
+        const newPaid = parseFloat(prev.paid_amount) + parseFloat(amount);
+        const newRemaining = Math.max(0, parseFloat(prev.remaining_amount) - parseFloat(amount));
+        const newStatus = newRemaining === 0 ? 'paid' : prev.status;
+        const newPayments = [
+          ...prev.payments,
+          {
+            amount: parseFloat(amount),
+            payment_method: paymentMethod,
+            createdAt: new Date().toISOString()
+          }
+        ];
+        return {
+          ...prev,
+          paid_amount: newPaid,
+          remaining_amount: newRemaining,
+          status: newStatus,
+          payments: newPayments
+        };
+      });
+    } catch (err) {
+      showAlert(err.message, 'error');
+    }
+  };
+
   const handleCreateCashierSale = async () => {
     if (cashierCart.length === 0) {
       showAlert(language === 'uz' ? "Savatcha bo'sh!" : "Корзина пуста!", 'error');
@@ -3479,6 +3607,9 @@ function App() {
         payment_gateway: selectedPaymentMethod.toLowerCase(),
         items: items
       };
+      if (selectedPaymentMethod.toLowerCase() === 'nasiya') {
+        payload.due_date = nasiyaDueDate;
+      }
 
       const res = await fetch(`${API_URL}/sales`, {
         method: 'POST',
@@ -4485,6 +4616,30 @@ function App() {
             </button>
           )}
 
+          {userRole === 'agent' && (
+            <button 
+              onClick={() => setActiveTab('nasiya')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '12px',
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'nasiya' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'nasiya' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontWeight: '500',
+                textAlign: 'left',
+                transition: 'all var(--transition-fast)'
+              }}
+            >
+              <Calendar size={18} />
+              <span>{language === 'uz' ? "Nasiya ro'yxati" : "Список кредитов"}</span>
+            </button>
+          )}
+
           {userRole !== 'agent' && (
             <button 
               onClick={() => setActiveTab('sales')}
@@ -4506,6 +4661,45 @@ function App() {
             >
               <FileText size={18} />
               <span>{t('sales_history')}</span>
+            </button>
+          )}
+
+          {userRole !== 'agent' && (
+            <button 
+              onClick={() => setActiveTab('nasiya')}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                width: '100%',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                backgroundColor: activeTab === 'nasiya' ? 'var(--accent-light)' : 'transparent',
+                color: activeTab === 'nasiya' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                cursor: 'pointer',
+                fontWeight: '500',
+                textAlign: 'left',
+                transition: 'all var(--transition-fast)'
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <Calendar size={18} />
+                <span>{language === 'uz' ? "Nasiya paneli" : "Панель кредитов"}</span>
+              </div>
+              {overdueDebtsCount > 0 && (
+                <span className="overdue-pulse-badge" style={{
+                  backgroundColor: '#ef4444',
+                  color: '#fff',
+                  borderRadius: '10px',
+                  padding: '2px 8px',
+                  fontSize: '11px',
+                  fontWeight: '700',
+                  boxShadow: '0 0 8px rgba(239, 68, 68, 0.6)'
+                }}>
+                  {overdueDebtsCount}
+                </span>
+              )}
             </button>
           )}
 
@@ -4821,6 +5015,7 @@ function App() {
             {activeTab === 'agent_history' && (language === 'uz' ? 'Tarix' : 'История')}
             {activeTab === 'admin_agent_history' && (language === 'uz' ? 'Agent tarixi' : 'История агентов')}
             {activeTab === 'sales' && t('sales_history_title')}
+            {activeTab === 'nasiya' && (language === 'uz' ? "Nasiya Boshqaruvi" : "Управление кредитами")}
             {activeTab === 'tahlil_umumiy' && t('general_analytics')}
             {activeTab === 'tahlil_dokon' && t('store_analytics')}
             {activeTab === 'tahlil_agent' && t('agent_analytics')}
@@ -9868,6 +10063,381 @@ function App() {
             </div>
           )}
 
+          {/* VIEW: NASIYA PANEL */}
+          {activeTab === 'nasiya' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              
+              {/* Metrics Grid */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '20px'
+              }}>
+                {/* Metric 1 */}
+                <div style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    backgroundColor: 'rgba(99, 102, 241, 0.1)',
+                    color: '#6366f1',
+                    padding: '12px',
+                    borderRadius: '8px'
+                  }}>
+                    <Calendar size={24} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      {language === 'uz' ? "Jami Qoldiq Qarz" : "Общий остаток долга"}
+                    </span>
+                    <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      {(() => {
+                        const userRelatedDebts = debts.filter(d => {
+                          const isAgentObj = userRole === 'agent';
+                          return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                        });
+                        return userRelatedDebts.reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
+                      })().toLocaleString()} UZS
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metric 2 */}
+                <div style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px',
+                  position: 'relative'
+                }}>
+                  {(() => {
+                    const userRelatedDebts = debts.filter(d => {
+                      const isAgentObj = userRole === 'agent';
+                      return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                    });
+                    const overdueAmt = userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
+                    return overdueAmt > 0 && (
+                      <div style={{
+                        position: 'absolute',
+                        top: '10px',
+                        right: '10px',
+                        width: '8px',
+                        height: '8px',
+                        borderRadius: '50%',
+                        backgroundColor: '#ef4444',
+                        animation: 'pulse-btn 1.5s infinite'
+                      }} />
+                    );
+                  })()}
+                  <div style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                    color: '#ef4444',
+                    padding: '12px',
+                    borderRadius: '8px'
+                  }}>
+                    <AlertTriangle size={24} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      {language === 'uz' ? "Muddati O'tgan Summa" : "Просроченная сумма"}
+                    </span>
+                    <span style={{
+                      fontSize: '18px',
+                      fontWeight: '700',
+                      color: (() => {
+                        const userRelatedDebts = debts.filter(d => {
+                          const isAgentObj = userRole === 'agent';
+                          return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                        });
+                        return userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0) > 0 ? '#ef4444' : 'var(--text-primary)';
+                      })()
+                    }}>
+                      {(() => {
+                        const userRelatedDebts = debts.filter(d => {
+                          const isAgentObj = userRole === 'agent';
+                          return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                        });
+                        return userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
+                      })().toLocaleString()} UZS
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metric 3 */}
+                <div style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    color: 'var(--success-color)',
+                    padding: '12px',
+                    borderRadius: '8px'
+                  }}>
+                    <Check size={24} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      {language === 'uz' ? "Qaytarilgan Summa" : "Возвращенная сумма"}
+                    </span>
+                    <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      {(() => {
+                        const userRelatedDebts = debts.filter(d => {
+                          const isAgentObj = userRole === 'agent';
+                          return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                        });
+                        return userRelatedDebts.reduce((sum, d) => sum + parseFloat(d.paid_amount || 0), 0);
+                      })().toLocaleString()} UZS
+                    </span>
+                  </div>
+                </div>
+
+                {/* Metric 4 */}
+                <div style={{
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '20px',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px'
+                }}>
+                  <div style={{
+                    backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                    color: '#f59e0b',
+                    padding: '12px',
+                    borderRadius: '8px'
+                  }}>
+                    <TrendingUp size={24} />
+                  </div>
+                  <div>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      {language === 'uz' ? "Qarzdor Do'konlar" : "Магазины-должники"}
+                    </span>
+                    <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      {(() => {
+                        const userRelatedDebts = debts.filter(d => {
+                          const isAgentObj = userRole === 'agent';
+                          return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                        });
+                        return new Set(userRelatedDebts.filter(d => parseFloat(d.remaining_amount || 0) > 0).map(d => d.store_id)).size;
+                      })()} {language === 'uz' ? "ta" : "маг."}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Filters & Actions */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '16px',
+                flexWrap: 'wrap',
+                backgroundColor: 'var(--bg-secondary)',
+                padding: '16px',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)'
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
+                  <div style={{
+                    position: 'relative',
+                    flex: 1
+                  }}>
+                    <input
+                      type="text"
+                      placeholder={language === 'uz' ? "Do'kon yoki agent nomi bo'yicha qidirish..." : "Поиск по магазину или агенту..."}
+                      value={debtSearchQuery}
+                      onChange={(e) => setDebtSearchQuery(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 16px 10px 40px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                        transition: 'all var(--transition-fast)'
+                      }}
+                    />
+                    <Search size={18} style={{
+                      position: 'absolute',
+                      left: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'var(--text-secondary)'
+                    }} />
+                  </div>
+
+                  <select
+                    value={debtStatusFilter}
+                    onChange={(e) => setDebtStatusFilter(e.target.value)}
+                    style={{
+                      padding: '10px 16px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      backgroundColor: 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      outline: 'none',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <option value="all">{language === 'uz' ? "Barchasi" : "Все"}</option>
+                    <option value="active">{language === 'uz' ? "Faol qarzlar" : "Активные"}</option>
+                    <option value="overdue">{language === 'uz' ? "Muddati o'tganlar" : "Просроченные"}</option>
+                    <option value="paid">{language === 'uz' ? "Qoplanganlar" : "Погашенные"}</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Table List */}
+              <div style={{
+                backgroundColor: 'var(--bg-secondary)',
+                borderRadius: '12px',
+                border: '1px solid var(--border-color)',
+                overflow: 'hidden'
+              }}>
+                <div style={{ overflowX: 'auto' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.02)' }}>
+                        <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Do'kon nomi" : "Магазин"}
+                        </th>
+                        <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Agent" : "Агент"}
+                        </th>
+                        <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Sana / Muddati" : "Дата / Срок"}
+                        </th>
+                        <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Jami summa" : "Сумма долга"}
+                        </th>
+                        <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Qoldiq" : "Остаток"}
+                        </th>
+                        <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Holat" : "Статус"}
+                        </th>
+                        <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', textAlign: 'right' }}>
+                          {language === 'uz' ? "Amallar" : "Действия"}
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const displayedDebts = debts.filter(d => {
+                          const isAgentObj = userRole === 'agent';
+                          const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                          const storeName = d.store?.name || '';
+                          const agentName = d.agent?.name || '';
+                          const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || agentName.toLowerCase().includes(debtSearchQuery.toLowerCase());
+                          const matchesStatus = debtStatusFilter === 'all' || d.status === debtStatusFilter;
+                          return matchesUser && matchesSearch && matchesStatus;
+                        });
+
+                        if (displayedDebts.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                {language === 'uz' ? "Hech qanday nasiya topilmadi." : "Кредиты не найдены."}
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return displayedDebts.map(debt => {
+                          const isOverdue = debt.status === 'overdue' && parseFloat(debt.remaining_amount) > 0;
+                          return (
+                            <tr
+                              key={debt.id}
+                              style={{
+                                borderBottom: '1px solid var(--border-color)',
+                                transition: 'background-color var(--transition-fast)',
+                                backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.03)' : 'transparent',
+                                borderLeft: isOverdue ? '4px solid #ef4444' : '4px solid transparent'
+                              }}
+                            >
+                              <td style={{ padding: '16px', fontWeight: '600' }}>{debt.store?.name || `Store #${debt.store_id}`}</td>
+                              <td style={{ padding: '16px', color: 'var(--text-secondary)' }}>{debt.agent?.name || `Agent #${debt.agent_id}`}</td>
+                              <td style={{ padding: '16px' }}>
+                                <div style={{ fontSize: '13px', fontWeight: '500' }}>
+                                  {debt.due_date}
+                                </div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                  {language === 'uz' ? 'Berildi' : 'Выдан'}: {debt.createdAt?.split('T')[0]}
+                                </div>
+                              </td>
+                              <td style={{ padding: '16px', fontWeight: '500' }}>
+                                {parseFloat(debt.total_amount).toLocaleString()} UZS
+                              </td>
+                              <td style={{ padding: '16px', fontWeight: '600', color: parseFloat(debt.remaining_amount) > 0 ? 'var(--accent-color)' : 'var(--text-secondary)' }}>
+                                {parseFloat(debt.remaining_amount).toLocaleString()} UZS
+                              </td>
+                              <td style={{ padding: '16px' }}>
+                                <span style={{
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.15)' : debt.status === 'paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                                  color: isOverdue ? '#ef4444' : debt.status === 'paid' ? 'var(--success-color)' : '#3b82f6',
+                                  animation: isOverdue ? 'pulse-btn 1.5s infinite' : 'none'
+                                }}>
+                                  {isOverdue && <AlertTriangle size={12} />}
+                                  {debt.status === 'paid' && <Check size={12} />}
+                                  {debt.status === 'active' && <Clock size={12} />}
+                                  {isOverdue && (language === 'uz' ? 'Muddati o\'tgan' : 'Просрочен')}
+                                  {!isOverdue && debt.status === 'active' && (language === 'uz' ? 'Kutilmoqda' : 'Активен')}
+                                  {debt.status === 'paid' && (language === 'uz' ? 'To\'langan' : 'Погашен')}
+                                </span>
+                              </td>
+                              <td style={{ padding: '16px', textAlign: 'right' }}>
+                                <button
+                                  onClick={() => setSelectedDebtDetail(debt)}
+                                  className="action-btn"
+                                  style={{
+                                    padding: '6px 12px',
+                                    borderRadius: '6px',
+                                    backgroundColor: 'var(--accent-color)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '13px',
+                                    fontWeight: '500',
+                                    boxShadow: 'var(--shadow-sm)'
+                                  }}
+                                >
+                                  {language === 'uz' ? "Batafsil" : "Детали"}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
+          
           {/* VIEW: TAHLIL - UMUMIY */}
           {activeTab === 'tahlil_umumiy' && (
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
@@ -13389,6 +13959,384 @@ function App() {
         </div>
       )}
 
+      {/* Modal: Nasiya Details & Payment Recording */}
+      {selectedDebtDetail && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999
+        }} className="fade-in">
+          <div style={{
+            width: '750px',
+            maxHeight: '90vh',
+            overflowY: 'auto',
+            backgroundColor: 'var(--bg-secondary)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '32px',
+            boxShadow: 'var(--shadow-lg)',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '24px'
+          }}>
+            {/* Modal Header */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <div>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                  {selectedDebtDetail.store?.name || `Do'kon #${selectedDebtDetail.store_id}`}
+                </h3>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                  {language === 'uz' ? 'Nasiya tafsilotlari va to\'lovlar tarixi' : 'Детали кредита и история платежей'}
+                </p>
+              </div>
+              <span style={{
+                fontSize: '12px',
+                fontWeight: '700',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                backgroundColor: selectedDebtDetail.status === 'overdue' ? 'rgba(239, 68, 68, 0.15)' : selectedDebtDetail.status === 'paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                color: selectedDebtDetail.status === 'overdue' ? '#ef4444' : selectedDebtDetail.status === 'paid' ? 'var(--success-color)' : '#3b82f6'
+              }}>
+                {selectedDebtDetail.status === 'overdue' && (language === 'uz' ? "MUDDATI O'TGAN" : "ПРОСРОЧЕН")}
+                {selectedDebtDetail.status === 'paid' && (language === 'uz' ? "TO'LANGAN" : "ПОГАШЕН")}
+                {['active', 'pending'].includes(selectedDebtDetail.status) && (language === 'uz' ? "KUTILMOQDA" : "АКТИВЕН")}
+              </span>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(4, 1fr)',
+              gap: '16px',
+              backgroundColor: 'var(--bg-primary)',
+              padding: '16px',
+              borderRadius: '12px',
+              border: '1px solid var(--border-color)'
+            }}>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>
+                  {language === 'uz' ? "Jami summa" : "Сумма долга"}
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-primary)', marginTop: '4px', display: 'block' }}>
+                  {parseFloat(selectedDebtDetail.total_amount).toLocaleString()} UZS
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>
+                  {language === 'uz' ? "To'langan" : "Оплачено"}
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--success-color)', marginTop: '4px', display: 'block' }}>
+                  {parseFloat(selectedDebtDetail.paid_amount).toLocaleString()} UZS
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>
+                  {language === 'uz' ? "Qoldiq" : "Остаток"}
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: '700', color: 'var(--accent-color)', marginTop: '4px', display: 'block' }}>
+                  {parseFloat(selectedDebtDetail.remaining_amount).toLocaleString()} UZS
+                </span>
+              </div>
+              <div>
+                <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>
+                  {language === 'uz' ? "Muddati" : "Срок"}
+                </span>
+                <span style={{ fontSize: '14px', fontWeight: '700', color: selectedDebtDetail.status === 'overdue' ? '#ef4444' : 'var(--text-primary)', marginTop: '4px', display: 'block' }}>
+                  {selectedDebtDetail.due_date}
+                </span>
+              </div>
+            </div>
+
+            {/* General Info */}
+            <div style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div>
+                <strong>{language === 'uz' ? "Mas'ul Agent:" : "Ответственный агент:"}</strong> {selectedDebtDetail.agent?.name || `Agent #${selectedDebtDetail.agent_id}`}
+                {selectedDebtDetail.agent?.phone && ` (${selectedDebtDetail.agent.phone})`}
+              </div>
+              <div>
+                <strong>{language === 'uz' ? "Sotilgan sana:" : "Дата продажи:"}</strong> {selectedDebtDetail.createdAt?.split('T')[0] || selectedDebtDetail.given_date}
+              </div>
+              {selectedDebtDetail.store?.address && (
+                <div>
+                  <strong>{language === 'uz' ? "Do'kon manzili:" : "Адрес магазина:"}</strong> {selectedDebtDetail.store.address}
+                </div>
+              )}
+            </div>
+
+            {/* Products List (Olgan maxsulotlari) */}
+            <div>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '10px' }}>
+                {language === 'uz' ? "Sotib olingan mahsulotlar" : "Купленные товары"}
+              </h4>
+              <div style={{
+                maxHeight: '180px',
+                overflowY: 'auto',
+                border: '1px solid var(--border-color)',
+                borderRadius: '8px'
+              }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.02)', color: 'var(--text-secondary)' }}>
+                      <th style={{ padding: '8px 12px' }}>{language === 'uz' ? "Mahsulot" : "Товар"}</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'center' }}>{language === 'uz' ? "Soni" : "Кол-во"}</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'right' }}>{language === 'uz' ? "Narxi" : "Цена"}</th>
+                      <th style={{ padding: '8px 12px', textAlign: 'right' }}>{language === 'uz' ? "Jami" : "Итого"}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {selectedDebtDetail.sale?.items && selectedDebtDetail.sale.items.length > 0 ? (
+                      selectedDebtDetail.sale.items.map(item => (
+                        <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                          <td style={{ padding: '8px 12px', fontWeight: '500' }}>{item.product?.name || `Mahsulot #${item.product_id}`}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>{item.quantity} {item.product?.unit || ''}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>{parseFloat(item.unit_price).toLocaleString()} UZS</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>
+                            {(parseFloat(item.unit_price) * parseInt(item.quantity)).toLocaleString()} UZS
+                          </td>
+                        </tr>
+                      ))
+                    ) : selectedDebtDetail.sale?.items_json ? (
+                      (() => {
+                        try {
+                          const parsedItems = JSON.parse(selectedDebtDetail.sale.items_json);
+                          return parsedItems.map((item, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: '500' }}>{item.productName || item.product?.name || `Mahsulot`}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center' }}>{item.qty || item.quantity}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right' }}>{parseFloat(item.price || item.unit_price).toLocaleString()} UZS</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>
+                                {(parseFloat(item.price || item.unit_price) * parseInt(item.qty || item.quantity)).toLocaleString()} UZS
+                              </td>
+                            </tr>
+                          ));
+                        } catch (e) {
+                          return (
+                            <tr>
+                              <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                                {language === 'uz' ? "Mahsulotlar ma'lumoti yuklanmadi." : "Не удалось загрузить информацию о товарах."}
+                              </td>
+                            </tr>
+                          );
+                        }
+                      })()
+                    ) : (
+                      <tr>
+                        <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                          {language === 'uz' ? "Mahsulotlar ro'yxati bo'sh" : "Список товаров пуст"}
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Payments History & Record Form Section */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+              
+              {/* Left Column: Payments History */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  {language === 'uz' ? "To'lovlar tarixi" : "История платежей"}
+                </h4>
+                <div style={{
+                  maxHeight: '180px',
+                  overflowY: 'auto',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  backgroundColor: 'rgba(0,0,0,0.01)'
+                }}>
+                  {selectedDebtDetail.payments && selectedDebtDetail.payments.length > 0 ? (
+                    selectedDebtDetail.payments.map((p, idx) => (
+                      <div key={p.id || idx} style={{
+                        display: 'flex',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        padding: '8px',
+                        borderBottom: idx < selectedDebtDetail.payments.length - 1 ? '1px solid var(--border-color)' : 'none',
+                        fontSize: '12px'
+                      }}>
+                        <div>
+                          <span style={{ fontWeight: '600', color: 'var(--success-color)' }}>
+                            +{parseFloat(p.amount).toLocaleString()} UZS
+                          </span>
+                          <span style={{
+                            marginLeft: '8px',
+                            fontSize: '10px',
+                            textTransform: 'uppercase',
+                            backgroundColor: 'rgba(0,0,0,0.05)',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            color: 'var(--text-secondary)'
+                          }}>
+                            {p.payment_method || 'naqd'}
+                          </span>
+                        </div>
+                        <span style={{ color: 'var(--text-secondary)' }}>
+                          {p.paid_at?.split('T')[0] || p.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0]}
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <div style={{ padding: '16px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                      {language === 'uz' ? "Hali to'lov qilinmagan." : "Платежей еще не было."}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Right Column: Record Payment Form */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                  {language === 'uz' ? "Yangi to'lov qabul qilish" : "Принять новый платеж"}
+                </h4>
+                {parseFloat(selectedDebtDetail.remaining_amount) > 0 ? (
+                  <div style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '12px',
+                    padding: '12px',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '8px',
+                    backgroundColor: 'rgba(99, 102, 241, 0.02)'
+                  }}>
+                    {/* Amount Input */}
+                    <div>
+                      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                        {language === 'uz' ? "To'lov summasi (UZS):" : "Сумма платежа (UZS):"}
+                      </label>
+                      <input
+                        type="number"
+                        placeholder={language === 'uz' ? "Summani kiriting..." : "Введите сумму..."}
+                        value={receivePaymentAmount}
+                        onChange={(e) => setReceivePaymentAmount(e.target.value)}
+                        max={selectedDebtDetail.remaining_amount}
+                        style={{
+                          width: '100%',
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '13px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+
+                    {/* Payment Method Selector */}
+                    <div>
+                      <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                        {language === 'uz' ? "To'lov turi:" : "Способ оплаты:"}
+                      </label>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        {['naqd', 'click', 'payme'].map(method => (
+                          <button
+                            key={method}
+                            type="button"
+                            onClick={() => setDebtPaymentMethod(method)}
+                            style={{
+                              flex: 1,
+                              padding: '6px 0',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              borderRadius: '6px',
+                              border: debtPaymentMethod === method ? '1px solid var(--accent-color)' : '1px solid var(--border-color)',
+                              backgroundColor: debtPaymentMethod === method ? 'var(--accent-light)' : 'transparent',
+                              color: debtPaymentMethod === method ? 'var(--accent-color)' : 'var(--text-secondary)',
+                              cursor: 'pointer',
+                              textTransform: 'uppercase',
+                              transition: 'all var(--transition-fast)'
+                            }}
+                          >
+                            {method}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button
+                      type="button"
+                      onClick={() => handleRecordDebtPayment(selectedDebtDetail.id, receivePaymentAmount, debtPaymentMethod)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 0',
+                        fontSize: '13px',
+                        fontWeight: '600',
+                        backgroundColor: 'var(--success-color)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        boxShadow: 'var(--shadow-sm)',
+                        transition: 'opacity var(--transition-fast)'
+                      }}
+                      onMouseOver={(e) => e.target.style.opacity = 0.9}
+                      onMouseOut={(e) => e.target.style.opacity = 1}
+                    >
+                      {language === 'uz' ? "To'lovni saqlash" : "Сохранить платеж"}
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{
+                    padding: '24px',
+                    textAlign: 'center',
+                    border: '1px dashed var(--success-color)',
+                    borderRadius: '8px',
+                    color: 'var(--success-color)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                    fontSize: '13px',
+                    fontWeight: '600',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}>
+                    <Check size={24} />
+                    <span>
+                      {language === 'uz' ? "Ushbu nasiya to'liq yopilgan!" : "Этот кредит полностью погашен!"}
+                    </span>
+                  </div>
+                )}
+
+              </div>
+            </div>
+
+            {/* Modal Footer / Close Button */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedDebtDetail(null);
+                  setReceivePaymentAmount('');
+                }}
+                style={{
+                  padding: '10px 24px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-secondary)',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  fontSize: '13px'
+                }}
+              >
+                {t('close')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: Agent Store Sales Details */}
       {selectedTahlilAgentStore && (() => {
         const selAgent = agents.find(a => a.id === selectedTahlilAgentId);
@@ -14417,30 +15365,105 @@ function App() {
                 backgroundColor: 'var(--bg-secondary)',
                 padding: '16px',
                 borderRadius: '8px',
-                border: '1px solid var(--border-color)'
+                border: '1px solid var(--border-color)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '12px'
               }}>
-                <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '12px' }}>
+                <h3 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
                   {language === 'uz' ? "To'lov turi" : "Способ оплаты"}
                 </h3>
-                <div style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '12px', 
-                  padding: '14px 16px', 
-                  borderRadius: '8px', 
-                  border: '2px solid var(--accent-color)', 
-                  backgroundColor: 'rgba(13, 148, 136, 0.08)' 
-                }}>
-                  <CreditCard size={20} style={{ color: 'var(--accent-color)' }} />
-                  <div>
-                    <span style={{ fontWeight: '700', fontSize: '14px', color: 'var(--text-primary)', display: 'block' }}>
-                      Tinda Terminal Payment
-                    </span>
-                    <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
-                      {language === 'uz' ? "To'lov avtomatik ravishda smart-terminal orqali qabul qilinadi." : "Оплата автоматически принимается через смарт-терминал."}
-                    </span>
-                  </div>
+                
+                {/* Method selector buttons */}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    onClick={() => setSelectedPaymentMethod('tinda')}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: selectedPaymentMethod === 'tinda' ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
+                      backgroundColor: selectedPaymentMethod === 'tinda' ? 'rgba(13, 148, 136, 0.08)' : 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontSize: '13px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <CreditCard size={18} style={{ color: selectedPaymentMethod === 'tinda' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
+                    Tinda Terminal
+                  </button>
+                  <button
+                    onClick={() => setSelectedPaymentMethod('nasiya')}
+                    style={{
+                      flex: 1,
+                      padding: '12px',
+                      borderRadius: '8px',
+                      border: selectedPaymentMethod === 'nasiya' ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
+                      backgroundColor: selectedPaymentMethod === 'nasiya' ? 'rgba(13, 148, 136, 0.08)' : 'var(--bg-primary)',
+                      color: 'var(--text-primary)',
+                      fontWeight: '700',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      fontSize: '13px',
+                      transition: 'all 0.2s'
+                    }}
+                  >
+                    <Calendar size={18} style={{ color: selectedPaymentMethod === 'nasiya' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
+                    {language === 'uz' ? "Nasiya (Qarz)" : "Насия (В долг)"}
+                  </button>
                 </div>
+
+                {/* Conditional helper fields */}
+                {selectedPaymentMethod === 'tinda' ? (
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    padding: '12px', 
+                    borderRadius: '6px', 
+                    backgroundColor: 'rgba(13, 148, 136, 0.04)',
+                    fontSize: '12px',
+                    color: 'var(--text-secondary)'
+                  }}>
+                    {language === 'uz' ? "To'lov avtomatik ravishda smart-terminal orqali qabul qilinadi." : "Оплата автоматически принимается через смарт-терминал."}
+                  </div>
+                ) : (
+                  <div style={{ 
+                    display: 'flex', 
+                    flexDirection: 'column',
+                    gap: '6px',
+                    padding: '12px', 
+                    borderRadius: '6px', 
+                    backgroundColor: 'rgba(234, 179, 8, 0.06)',
+                    border: '1px dashed rgba(234, 179, 8, 0.3)'
+                  }}>
+                    <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                      {language === 'uz' ? "Nasiya qaytarish muddati:" : "Срок возврата долга:"}
+                    </label>
+                    <input
+                      type="date"
+                      value={nasiyaDueDate}
+                      onChange={(e) => setNasiyaDueDate(e.target.value)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                        fontWeight: '600'
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Order Summary & Confirm */}
@@ -14495,23 +15518,29 @@ function App() {
                       </button>
                       <button
                         onClick={() => {
-                          handleTindaPayment(subtotal, discountAmount, finalTotal);
+                          if (selectedPaymentMethod === 'nasiya') {
+                            handleCreateCashierSale();
+                          } else {
+                            handleTindaPayment(subtotal, discountAmount, finalTotal);
+                          }
                         }}
-                        disabled={!tindaTerminalIp}
+                        disabled={selectedPaymentMethod === 'tinda' && !tindaTerminalIp}
                         style={{
                           flexGrow: 2,
                           padding: '14px',
-                          backgroundColor: !tindaTerminalIp ? 'var(--text-muted)' : 'var(--accent-color)',
+                          backgroundColor: (selectedPaymentMethod === 'tinda' && !tindaTerminalIp) ? 'var(--text-muted)' : 'var(--accent-color)',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '8px',
                           fontWeight: '700',
-                          cursor: !tindaTerminalIp ? 'not-allowed' : 'pointer',
+                          cursor: (selectedPaymentMethod === 'tinda' && !tindaTerminalIp) ? 'not-allowed' : 'pointer',
                           fontSize: '14px',
                           boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)'
                         }}
                       >
-                        ✓ {language === 'uz' ? "Tinda orqali to'lash" : "Оплатить через Tinda"}
+                        ✓ {selectedPaymentMethod === 'nasiya' 
+                            ? (language === 'uz' ? "Nasiya rasmiylashtirish" : "Оформить в долг") 
+                            : (language === 'uz' ? "Tinda orqali to'lash" : "Оплатить через Tinda")}
                       </button>
                     </div>
 
