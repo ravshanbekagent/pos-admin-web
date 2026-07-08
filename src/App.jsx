@@ -32,7 +32,8 @@ import {
   Upload,
   Download,
   Map,
-  Calendar
+  Calendar,
+  AlertTriangle
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { 
