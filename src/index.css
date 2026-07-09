@@ -521,6 +521,9 @@ tr.hoverable-row:hover {
 }
 
 /* Cashier layout mobile overrides to prevent aggressive flex-wrapping */
+div.cashier-overlay-fixed[style*="display: flex"],
+div.cashier-overlay-fixed[style*="display:flex"],
+div.cashier-overlay-fixed,
 .cashier-overlay-fixed {
   display: flex !important;
   flex-direction: column !important;
