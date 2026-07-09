@@ -15839,14 +15839,17 @@ function App() {
                   boxShadow: 'var(--shadow-xl)'
                 }}
               >
-                <div style={{
-                  padding: '16px 20px',
-                  borderBottom: '1px solid var(--border-color)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexShrink: 0
-                }}>
+                 <div 
+                  className="cashier-modal-header"
+                  style={{
+                    padding: '16px 20px',
+                    borderBottom: '1px solid var(--border-color)',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexShrink: 0
+                  }}
+                >
                   <h3 style={{ fontSize: '15px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
                     {language === 'uz' ? "Mahsulotlarni tanlash" : "Выбор товаров"}
                   </h3>
@@ -15868,7 +15871,7 @@ function App() {
                   </button>
                 </div>
 
-                <div style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
+                <div className="cashier-modal-search" style={{ padding: '12px 16px', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
                   <input
                     type="text"
                     placeholder={language === 'uz' ? "Qidirish..." : "Поиск..."}
@@ -15887,14 +15890,17 @@ function App() {
                   />
                 </div>
 
-                <div style={{
-                  padding: '12px 16px',
-                  overflowY: 'auto',
-                  flexGrow: 1,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: '8px'
-                }}>
+                <div 
+                  className="cashier-modal-list"
+                  style={{
+                    padding: '12px 16px',
+                    overflowY: 'auto',
+                    flexGrow: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px'
+                  }}
+                >
                   {agentProducts
                     .filter(p => {
                       const name = (p.productName || p.name || '').toLowerCase();
@@ -15967,14 +15973,17 @@ function App() {
                     })}
                 </div>
 
-                <div style={{
-                  padding: '16px 20px',
-                  borderTop: '1px solid var(--border-color)',
-                  display: 'flex',
-                  gap: '10px',
-                  flexShrink: 0,
-                  backgroundColor: 'var(--bg-secondary)'
-                }}>
+                <div 
+                  className="cashier-modal-footer"
+                  style={{
+                    padding: '16px 20px',
+                    borderTop: '1px solid var(--border-color)',
+                    display: 'flex',
+                    gap: '10px',
+                    flexShrink: 0,
+                    backgroundColor: 'var(--bg-secondary)'
+                  }}
+                >
                   <button
                     onClick={() => {
                       setSelectedModalProducts([]);

@@ -645,3 +645,88 @@ tr.hoverable-row:hover {
     font-size: 12px !important;
   }
 }
+
+/* Mobil kassa modali uchun universal flex/wrap overrides */
+@media (max-width: 768px) {
+  .cashier-modal-overlay {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    position: fixed !important;
+    inset: 0 !important;
+    padding: 8px !important;
+    z-index: 11000 !important;
+  }
+
+  .cashier-modal-container {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    width: 95% !important;
+    max-width: 440px !important;
+    max-height: 90vh !important;
+    border-radius: 12px !important;
+    padding: 0 !important; /* Reset padding to 0 so subcomponents span full width */
+    overflow: hidden !important;
+    margin: auto !important;
+    box-sizing: border-box !important;
+  }
+
+  .cashier-modal-header {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    padding: 14px 16px !important;
+    box-sizing: border-box !important;
+    gap: 0 !important;
+  }
+
+  .cashier-modal-header h3 {
+    font-size: 15px !important;
+    font-weight: 700 !important;
+    margin: 0 !important;
+  }
+
+  .cashier-modal-search {
+    width: 100% !important;
+    padding: 10px 12px !important;
+    box-sizing: border-box !important;
+  }
+
+  .cashier-modal-search input {
+    width: 100% !important;
+    padding: 10px !important;
+    font-size: 13px !important;
+  }
+
+  .cashier-modal-list {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    overflow-y: auto !important;
+    flex-grow: 1 !important;
+    gap: 8px !important;
+    padding: 12px !important;
+    box-sizing: border-box !important;
+    width: 100% !important;
+  }
+
+  .cashier-modal-footer {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    padding: 12px !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    background-color: var(--bg-secondary) !important;
+  }
+
+  .cashier-modal-footer button {
+    padding: 10px !important;
+    font-size: 12px !important;
+  }
+}
