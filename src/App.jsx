@@ -1329,6 +1329,7 @@ function App() {
   const recordSoldVisit = (store, cart) => {
     if (!store) return;
     const newVisit = {
+      id: 'L-' + Date.now() + '-' + Math.floor(Math.random() * 1000),
       storeId: store.id,
       storeName: store.storeName,
       status: 'sold',
@@ -8897,12 +8898,25 @@ function App() {
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                               <div>
-                                <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>
-                                  {visit.storeName}
-                                </span>
-                                <span style={{ fontSize: '11px', color: 'var(--text-muted)', marginLeft: '8px' }}>
-                                  🕒 {visit.time}
-                                </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                                  <span style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '14px' }}>
+                                    {visit.storeName}
+                                  </span>
+                                  <span style={{
+                                    fontSize: '10px',
+                                    fontWeight: '700',
+                                    color: '#64748b',
+                                    backgroundColor: 'rgba(100, 116, 139, 0.08)',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    border: '1px solid rgba(100, 116, 139, 0.15)'
+                                  }}>
+                                    #{visit.id || 'N/A'}
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '4px' }}>
+                                  🕒 {visit.time} ({visit.date})
+                                </div>
                               </div>
                               <div>
                                 {visit.status === 'sold' ? (
@@ -9021,9 +9035,22 @@ function App() {
                             <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', margin: '0 0 6px 0' }}>
                               {visit.storeName}
                             </h3>
-                            <span style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                              🕒 {visit.time} ({visit.date})
-                            </span>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
+                              <span style={{
+                                fontSize: '11px',
+                                fontWeight: '700',
+                                color: '#38bdf8',
+                                backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                                padding: '2px 8px',
+                                borderRadius: '4px',
+                                border: '1px solid rgba(56, 189, 248, 0.2)'
+                              }}>
+                                ID: #{visit.id || 'N/A'}
+                              </span>
+                              <span style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                🕒 {visit.time} ({visit.date})
+                              </span>
+                            </div>
                           </div>
                           <button 
                             onClick={() => setSelectedHistoryVisit(null)}
