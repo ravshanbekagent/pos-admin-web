@@ -15025,14 +15025,17 @@ function App() {
               </div>
             ) : (
               /* STANDARD SCANNER & CART WORKFLOW */
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                flexGrow: 1,
-                overflow: 'hidden',
-                padding: '16px',
-                gap: '16px'
-              }}>
+              <div
+                className="cashier-content-column"
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  flexGrow: 1,
+                  overflow: 'hidden',
+                  padding: '16px',
+                  gap: '16px'
+                }}
+              >
               {/* Barcode & Search Trigger Inputs */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', flexShrink: 0 }}>
                 <div className="cashier-input-row flex-nowrap-mobile" style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -15311,14 +15314,17 @@ function App() {
           )
         ) : (
             /* ==================== SCREEN 2: PAYMENT & DISCOUNT SELECTION ==================== */
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              flexGrow: 1,
-              overflowY: 'auto',
-              padding: '16px',
-              gap: '20px'
-            }}>
+            <div
+              className="cashier-content-column"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flexGrow: 1,
+                overflowY: 'auto',
+                padding: '16px',
+                gap: '20px'
+              }}
+            >
               {/* Discount Section */}
               <div style={{
                 backgroundColor: 'var(--bg-secondary)',

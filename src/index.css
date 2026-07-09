@@ -520,4 +520,15 @@ tr.hoverable-row:hover {
   }
 }
 
+/* Cashier layout mobile overrides to prevent aggressive flex-wrapping */
+.cashier-overlay-fixed {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+}
 
+.cashier-content-column {
+  display: flex !important;
+  flex-direction: column !important;
+  flex-wrap: nowrap !important;
+}
