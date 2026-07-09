@@ -1068,6 +1068,9 @@ function App() {
     d.setDate(d.getDate() + 30);
     return d.toISOString().split('T')[0];
   });
+  const [nasiyaInitialPayment, setNasiyaInitialPayment] = useState('');
+  const [nasiyaDebtorName, setNasiyaDebtorName] = useState('');
+  const [nasiyaDebtorPhone, setNasiyaDebtorPhone] = useState('');
   const [cashierDiscount, setCashierDiscount] = useState(0);
   const [customDiscountInput, setCustomDiscountInput] = useState('');
   const [showPaymentSection, setShowPaymentSection] = useState(false);
@@ -3610,6 +3613,9 @@ function App() {
       };
       if (selectedPaymentMethod.toLowerCase() === 'nasiya') {
         payload.due_date = nasiyaDueDate;
+        payload.initial_payment = parseFloat(nasiyaInitialPayment) || 0;
+        payload.debtor_name = nasiyaDebtorName || null;
+        payload.debtor_phone = nasiyaDebtorPhone || null;
       }
 
       const res = await fetch(`${API_URL}/sales`, {
@@ -3633,6 +3639,9 @@ function App() {
       recordSoldVisit(activeCashierStore, cashierCart);
       setActiveCashierStore(null);
       setCashierCart([]);
+      setNasiyaInitialPayment('');
+      setNasiyaDebtorName('');
+      setNasiyaDebtorPhone('');
       setShowPaymentSection(false);
 
     } catch (err) {
@@ -10345,7 +10354,10 @@ function App() {
                           const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
                           const storeName = d.store?.name || '';
                           const agentName = d.agent?.name || '';
-                          const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || agentName.toLowerCase().includes(debtSearchQuery.toLowerCase());
+                          const debtorName = d.debtor_name || '';
+                          const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
+                                                agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
+                                                debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
                           const matchesStatus = debtStatusFilter === 'all' || d.status === debtStatusFilter;
                           return matchesUser && matchesSearch && matchesStatus;
                         });
@@ -10372,7 +10384,14 @@ function App() {
                                 borderLeft: isOverdue ? '4px solid #ef4444' : '4px solid transparent'
                               }}
                             >
-                              <td style={{ padding: '16px', fontWeight: '600' }}>{debt.store?.name || `Store #${debt.store_id}`}</td>
+                              <td style={{ padding: '16px', fontWeight: '600' }}>
+                                <div>{debt.store?.name || `Store #${debt.store_id}`}</div>
+                                {debt.debtor_name && (
+                                  <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--accent-color)', marginTop: '4px' }}>
+                                    👤 {debt.debtor_name}
+                                  </div>
+                                )}
+                              </td>
                               <td style={{ padding: '16px', color: 'var(--text-secondary)' }}>{debt.agent?.name || `Agent #${debt.agent_id}`}</td>
                               <td style={{ padding: '16px' }}>
                                 <div style={{ fontSize: '13px', fontWeight: '500' }}>
@@ -14069,6 +14088,16 @@ function App() {
                   <strong>{language === 'uz' ? "Do'kon manzili:" : "Адрес магазина:"}</strong> {selectedDebtDetail.store.address}
                 </div>
               )}
+              {selectedDebtDetail.debtor_name && (
+                <div>
+                  <strong>{language === 'uz' ? "Qarzdor ismi:" : "Имя должника:"}</strong> {selectedDebtDetail.debtor_name}
+                </div>
+              )}
+              {selectedDebtDetail.debtor_phone && (
+                <div>
+                  <strong>{language === 'uz' ? "Qarzdor telefoni:" : "Телефон должника:"}</strong> {selectedDebtDetail.debtor_phone}
+                </div>
+              )}
             </div>
 
             {/* Products List (Olgan maxsulotlari) */}
@@ -15436,35 +15465,112 @@ function App() {
                   }}>
                     {language === 'uz' ? "To'lov naqd pul orqali qabul qilinadi." : "Оплата принимается наличными."}
                   </div>
-                ) : (
-                  <div style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column',
-                    gap: '6px',
-                    padding: '12px', 
-                    borderRadius: '6px', 
-                    backgroundColor: 'rgba(234, 179, 8, 0.06)',
-                    border: '1px dashed rgba(234, 179, 8, 0.3)'
-                  }}>
-                    <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
-                      {language === 'uz' ? "Nasiya qaytarish muddati:" : "Срок возврата долга:"}
-                    </label>
-                    <input
-                      type="date"
-                      value={nasiyaDueDate}
-                      onChange={(e) => setNasiyaDueDate(e.target.value)}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        border: '1px solid var(--border-color)',
-                        backgroundColor: 'var(--bg-primary)',
-                        color: 'var(--text-primary)',
-                        fontSize: '13px',
-                        fontWeight: '600'
-                      }}
-                    />
-                  </div>
-                )}
+                ) : (() => {
+                  const subtotal = cashierCart.reduce((acc, item) => acc + (item.price * item.quantity), 0);
+                  const discountPercentage = customDiscountEnabled && customDiscountInput ? parseFloat(customDiscountInput) || 0 : cashierDiscount;
+                  const discountAmount = Math.round(subtotal * (discountPercentage / 100));
+                  const finalTotal = subtotal - discountAmount;
+                  const remaining = Math.max(0, finalTotal - (parseFloat(nasiyaInitialPayment) || 0));
+
+                  return (
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      gap: '12px',
+                      padding: '16px', 
+                      borderRadius: '8px', 
+                      backgroundColor: 'rgba(234, 179, 8, 0.05)',
+                      border: '1px dashed rgba(234, 179, 8, 0.3)'
+                    }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                          {language === 'uz' ? "Nasiya qaytarish muddati:" : "Срок возврата долга:"}
+                        </label>
+                        <input
+                          type="date"
+                          value={nasiyaDueDate}
+                          onChange={(e) => setNasiyaDueDate(e.target.value)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '13px',
+                            fontWeight: '600'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            {language === 'uz' ? "Boshlang'ich to'lov (ixtiyoriy):" : "Первоначальный взнос (опционально):"}
+                          </label>
+                          {parseFloat(nasiyaInitialPayment) > 0 && (
+                            <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--accent-color)' }}>
+                              {language === 'uz' ? `Qoldiq: ${remaining.toLocaleString('uz-UZ')} so'm` : `Остаток: ${remaining.toLocaleString('uz-UZ')} сум`}
+                            </span>
+                          )}
+                        </div>
+                        <input
+                          type="number"
+                          placeholder="0"
+                          value={nasiyaInitialPayment}
+                          onChange={(e) => setNasiyaInitialPayment(e.target.value)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                          {language === 'uz' ? "Qarzdor ismi (ixtiyoriy):" : "Имя должника (опционально):"}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder={language === 'uz' ? "Ism familiya..." : "Имя фамилия..."}
+                          value={nasiyaDebtorName}
+                          onChange={(e) => setNasiyaDebtorName(e.target.value)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                          {language === 'uz' ? "Telefon raqami (ixtiyoriy):" : "Номер телефона (опционально):"}
+                        </label>
+                        <input
+                          type="text"
+                          placeholder="+998"
+                          value={nasiyaDebtorPhone}
+                          onChange={(e) => setNasiyaDebtorPhone(e.target.value)}
+                          style={{
+                            padding: '8px 12px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--border-color)',
+                            backgroundColor: 'var(--bg-primary)',
+                            color: 'var(--text-primary)',
+                            fontSize: '13px'
+                          }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
 
               {/* Order Summary & Confirm */}
