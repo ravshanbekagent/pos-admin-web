@@ -297,7 +297,7 @@ tr.hoverable-row:hover {
   }
 
   /* Modals: make them fill the screen nicely with safety margins */
-  div[style*="position: fixed"][style*="z-index"] > div[style*="background-color: var(--bg-secondary)"] {
+  div[style*="position: fixed"][style*="z-index"] > div[style*="background-color: var(--bg-secondary)"]:not(.cashier-header) {
     width: 95% !important;
     max-width: 95% !important;
     padding: 16px !important;

@@ -1053,8 +1053,16 @@ function App() {
     return stored ? stored === 'true' : true;
   });
   const [discountsList, setDiscountsList] = useState(() => {
-    const stored = localStorage.getItem('discountsList');
-    return stored ? JSON.parse(stored) : [10, 20, 50];
+    try {
+      const stored = localStorage.getItem('discountsList');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse discountsList", e);
+    }
+    return [10, 20, 50];
   });
 
   // Agent Cashier (POS) and Payment Integration States
@@ -1075,8 +1083,16 @@ function App() {
   const [customDiscountInput, setCustomDiscountInput] = useState('');
   const [showPaymentSection, setShowPaymentSection] = useState(false);
   const [paymentIntegrations, setPaymentIntegrations] = useState(() => {
-    const stored = localStorage.getItem('payment_integrations');
-    return stored ? JSON.parse(stored) : ['Naqd', 'Click', 'Payme'];
+    try {
+      const stored = localStorage.getItem('payment_integrations');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch (e) {
+      console.error("Failed to parse payment_integrations", e);
+    }
+    return ['Naqd', 'Click', 'Payme'];
   });
   const [showProductModal, setShowProductModal] = useState(false);
   const [selectedModalProducts, setSelectedModalProducts] = useState([]);
@@ -11609,7 +11625,7 @@ function App() {
                     gap: '12px', 
                     marginTop: '12px'
                   }}>
-                    {discountsList.map(disc => (
+                    {(Array.isArray(discountsList) ? discountsList : []).map(disc => (
                       <div 
                         key={disc}
                         style={{
@@ -14708,7 +14724,7 @@ function App() {
           overflow: 'hidden'
         }} className="fade-in cashier-overlay-fixed">
           {/* Header */}
-          <div style={{
+          <div className="cashier-header" style={{
             display: 'flex',
             justifyContent: 'space-between',
             alignItems: 'center',
@@ -15519,7 +15535,7 @@ function App() {
                 
                 {/* Predefined discount buttons */}
                 <div className="discount-grid" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
-                  {[0, ...discountsList].map(disc => {
+                  {[0, ...(Array.isArray(discountsList) ? discountsList : [])].map(disc => {
                     const isSelected = !customDiscountInput && cashierDiscount === disc;
                     return (
                       <button
