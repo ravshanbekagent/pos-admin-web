@@ -15600,22 +15600,22 @@ function App() {
                     flexDirection: 'column',
                     gap: '12px'
                   }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
+                    <div className="cashier-summary-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: 'var(--text-secondary)' }}>
                       <span>{language === 'uz' ? "Savatcha summasi" : "Сумма корзины"}</span>
                       <span>{subtotal.toLocaleString('uz-UZ')} so'm</span>
                     </div>
                     {discountAmount > 0 && (
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#ef4444' }}>
+                      <div className="cashier-summary-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', color: '#ef4444' }}>
                         <span>{language === 'uz' ? `Chegirma (${discountPercentage}%)` : `Скидка (${discountPercentage}%)`}</span>
                         <span>-{discountAmount.toLocaleString('uz-UZ')} so'm</span>
                       </div>
                     )}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
+                    <div className="cashier-summary-row" style={{ display: 'flex', justifyContent: 'space-between', fontSize: '16px', fontWeight: '800', color: 'var(--text-primary)', borderTop: '1px solid var(--border-color)', paddingTop: '10px' }}>
                       <span>{language === 'uz' ? "To'lanishi kerak" : "К оплате"}</span>
                       <span style={{ color: 'var(--accent-color)' }}>{finalTotal.toLocaleString('uz-UZ')} so'm</span>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+                    <div className="cashier-checkout-actions" style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
                       <button
                         onClick={() => setShowPaymentSection(false)}
                         style={{

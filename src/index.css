@@ -745,4 +745,49 @@ tr.hoverable-row:hover {
     padding: 10px !important;
     font-size: 12px !important;
   }
+
+  /* Checkout (To'lov) ekrani uchun universal flex/wrap overrides */
+  div.cashier-content-column[style*="display: flex"],
+  div.cashier-content-column[style*="display:flex"],
+  .cashier-content-column {
+    display: flex !important;
+    flex-direction: column !important;
+    flex-wrap: nowrap !important;
+    flex-grow: 1 !important;
+    overflow-y: auto !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+  }
+
+  /* Payment method buttons row overrides */
+  div.cashier-content-column div.payment-method-row[style*="display: flex"],
+  div.payment-method-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+  }
+
+  /* Checkout footer action buttons overrides */
+  div.cashier-content-column div.cashier-checkout-actions[style*="display: flex"],
+  .cashier-checkout-actions {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+  }
+
+  /* Summary row items overrides */
+  div.cashier-content-column div.cashier-summary-row[style*="display: flex"],
+  div.cashier-content-column div.cashier-summary-row[style*="justify-content: space-between"],
+  div.cashier-content-column div.cashier-summary-row[style*="justifyContent: 'space-between'"],
+  .cashier-summary-row {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
 }
