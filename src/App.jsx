@@ -14706,7 +14706,7 @@ function App() {
           flexDirection: 'column',
           boxSizing: 'border-box',
           overflow: 'hidden'
-        }} className="fade-in">
+        }} className="fade-in cashier-overlay-fixed">
           {/* Header */}
           <div style={{
             display: 'flex',
