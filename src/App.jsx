@@ -1091,9 +1091,10 @@ function App() {
   const [tindaDefaultPackage, setTindaDefaultPackage] = useState(() => localStorage.getItem('tinda_default_package') || '242030');
   const [tindaTestMode, setTindaTestMode] = useState(() => localStorage.getItem('tinda_test_mode') === 'true');
   const [tindaAutoTerminalMode, setTindaAutoTerminalMode] = useState(() => localStorage.getItem('tinda_auto_terminal_mode') === 'true');
+  const [tindaAskPaymentModeOnStoreClick, setTindaAskPaymentModeOnStoreClick] = useState(() => localStorage.getItem('tinda_ask_payment_mode_on_store_click') === 'true');
+  const [cashierSessionPaymentMode, setCashierSessionPaymentMode] = useState(null); // 'tinda' or 'manual' or null
   const [selectedTindaAgent, setSelectedTindaAgent] = useState(null);
 
-  // Tinda Transaction Live States
   const [tindaPaymentStatus, setTindaPaymentStatus] = useState(null); // 'connecting', 'logging_in', 'waiting_card', 'success', 'error'
   const [tindaErrorMessage, setTindaErrorMessage] = useState('');
   const [tindaSocket, setTindaSocket] = useState(null);
@@ -3441,6 +3442,7 @@ function App() {
 
   const handleOpenCashier = (store) => {
     setActiveCashierStore(store);
+    setCashierSessionPaymentMode(null);
     setCashierCart([]);
     setBarcodeInput('');
     setSearchProductQuery('');
@@ -12064,6 +12066,50 @@ function App() {
                     </label>
                   </div>
 
+                  {/* Toggle Switch 2: Har safar do'konga kirganda to'lov turini so'rash */}
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px', borderRadius: '8px', backgroundColor: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}>
+                    <div>
+                      <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '4px' }}>
+                        {language === 'uz' ? "Do'konga kirganda rejimni so'rash" : "Запрашивать режим при входе в магазин"}
+                      </h4>
+                      <p style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {language === 'uz' 
+                          ? "Yoqilganda, agent do'konga kirganda Avto-Terminal yoki Qo'lda to'lov (Naqd/Nasiya) qilish rejimini tanlash oynasi ko'rsatiladi." 
+                          : "При включении при входе агента в магазин будет отображаться окно выбора режима: Авто-Терминал или Ручная оплата."}
+                      </p>
+                    </div>
+                    <label style={{ position: 'relative', display: 'inline-block', width: '48px', height: '24px', cursor: 'pointer' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={tindaAskPaymentModeOnStoreClick}
+                        onChange={(e) => {
+                          const val = e.target.checked;
+                          setTindaAskPaymentModeOnStoreClick(val);
+                          localStorage.setItem('tinda_ask_payment_mode_on_store_click', val ? 'true' : 'false');
+                          showAlert(language === 'uz' ? "Rejim tanlash sozlamasi o'zgartirildi!" : "Настройка выбора режима изменена!", 'success');
+                        }}
+                        style={{ opacity: 0, width: 0, height: 0 }}
+                      />
+                      <span style={{
+                        position: 'absolute',
+                        top: 0, left: 0, right: 0, bottom: 0,
+                        backgroundColor: tindaAskPaymentModeOnStoreClick ? 'var(--accent-color)' : '#ccc',
+                        transition: '.4s',
+                        borderRadius: '24px'
+                      }}>
+                        <span style={{
+                          position: 'absolute',
+                          height: '18px', width: '18px',
+                          left: tindaAskPaymentModeOnStoreClick ? '26px' : '3px',
+                          bottom: '3px',
+                          backgroundColor: 'white',
+                          transition: '.4s',
+                          borderRadius: '50%'
+                        }} />
+                      </span>
+                    </label>
+                  </div>
+
                   {/* Webhook Configuration Guide Card */}
                   <div style={{
                     marginTop: '16px',
@@ -14698,9 +14744,143 @@ function App() {
 
           {!showPaymentSection ? (
             /* ==================== SCREEN 1: CART & PRODUCT ADDITION ==================== */
-            tindaAutoTerminalMode ? (
-              /* AUTO TERMINAL PANEL */
+            tindaAskPaymentModeOnStoreClick && cashierSessionPaymentMode === null ? (
+              /* PAYMENT MODE SELECTION PANEL ON MOBILE / DESKTOP */
               <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                flexGrow: 1,
+                padding: '24px 16px',
+                gap: '20px',
+                alignItems: 'center',
+                justifyContent: 'center',
+                backgroundColor: 'var(--bg-primary)',
+                overflowY: 'auto'
+              }}>
+                <div style={{
+                  maxWidth: '440px',
+                  width: '100%',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  padding: '24px',
+                  textAlign: 'center',
+                  boxShadow: 'var(--box-shadow-md)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '20px'
+                }}>
+                  <div>
+                    <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', marginBottom: '8px' }}>
+                      {language === 'uz' ? "To'lov rejimini tanlang" : "Выберите режим оплаты"}
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
+                      {language === 'uz'
+                        ? "Ushbu do'kon uchun amalga oshiriladigan to'lov usulini tanlang:"
+                        : "Выберите метод оплаты для этого магазина:"}
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', width: '100%' }}>
+                    {/* Option 1: Auto Terminal */}
+                    <button
+                      onClick={() => setCashierSessionPaymentMode('tinda')}
+                      className="cashier-selection-btn"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        border: '2px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.2s ease',
+                        width: '100%'
+                      }}
+                    >
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--accent-color)',
+                        flexShrink: 0
+                      }}>
+                        {/* Terminal Icon */}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
+                          <line x1="12" y1="18" x2="12.01" y2="18"></line>
+                        </svg>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '14px' }}>
+                          {language === 'uz' ? "Avto-Terminal (Tinda)" : "Авто-Терминал (Tinda)"}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                          {language === 'uz' ? "Terminal orqali avtomatik to'lov kutish" : "Автоматическое ожидание оплаты через терминал"}
+                        </div>
+                      </div>
+                    </button>
+
+                    {/* Option 2: Manual Cashier */}
+                    <button
+                      onClick={() => setCashierSessionPaymentMode('manual')}
+                      className="cashier-selection-btn"
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '12px',
+                        padding: '16px',
+                        borderRadius: '8px',
+                        border: '2px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.2s ease',
+                        width: '100%'
+                      }}
+                    >
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        backgroundColor: 'rgba(13, 148, 136, 0.1)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'var(--accent-color)',
+                        flexShrink: 0
+                      }}>
+                        {/* Cash Register Icon */}
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                          <line x1="12" y1="4" x2="12" y2="20"></line>
+                          <line x1="2" y1="12" x2="22" y2="12"></line>
+                        </svg>
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '14px' }}>
+                          {language === 'uz' ? "Naqd yoki Nasiya (Qo'lda)" : "Наличные или Долг (Вручную)"}
+                        </div>
+                        <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                          {language === 'uz' ? "Shtrix-kod skaneri va savatcha orqali sotuv" : "Продажи через сканер штрих-кода и корзину"}
+                        </div>
+                      </div>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              (tindaAskPaymentModeOnStoreClick ? cashierSessionPaymentMode === 'tinda' : tindaAutoTerminalMode) ? (
+                /* AUTO TERMINAL PANEL */
+                <div style={{
                 display: 'flex',
                 flexDirection: 'column',
                 flexGrow: 1,
@@ -15312,7 +15492,8 @@ function App() {
               </div>
             </div>
           )
-        ) : (
+        )
+      ) : (
             /* ==================== SCREEN 2: PAYMENT & DISCOUNT SELECTION ==================== */
             <div
               className="cashier-content-column"

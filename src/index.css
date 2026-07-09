@@ -791,3 +791,18 @@ tr.hoverable-row:hover {
     gap: 0 !important;
   }
 }
+
+/* To'lov turi tanlash tugmalari stillari */
+.cashier-selection-btn {
+  transition: all 0.25s ease !important;
+}
+
+.cashier-selection-btn:hover {
+  border-color: var(--accent-color) !important;
+  background-color: var(--accent-light) !important;
+  transform: translateY(-2px);
+}
+
+.cashier-selection-btn:active {
+  transform: scale(0.98);
+}
