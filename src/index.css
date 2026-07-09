@@ -658,6 +658,11 @@ tr.hoverable-row:hover {
     z-index: 11000 !important;
   }
 
+  /* Specificity: div[style] selectorlarini sindirish uchun yuqori spetsifiklikda yozamiz */
+  div.cashier-modal-overlay div.cashier-modal-container[style*="display: flex"],
+  div.cashier-modal-overlay div.cashier-modal-container[style*="display:flex"],
+  div.cashier-modal-container[style*="display: flex"],
+  div.cashier-modal-container[style*="display:flex"],
   .cashier-modal-container {
     display: flex !important;
     flex-direction: column !important;
@@ -672,6 +677,11 @@ tr.hoverable-row:hover {
     box-sizing: border-box !important;
   }
 
+  /* Header override */
+  div.cashier-modal-container div.cashier-modal-header[style*="display: flex"],
+  div.cashier-modal-container div.cashier-modal-header[style*="display:flex"],
+  div.cashier-modal-container div.cashier-modal-header[style*="justify-content: space-between"],
+  div.cashier-modal-container div.cashier-modal-header[style*="justifyContent: 'space-between'"],
   .cashier-modal-header {
     display: flex !important;
     flex-direction: row !important;
@@ -702,6 +712,9 @@ tr.hoverable-row:hover {
     font-size: 13px !important;
   }
 
+  /* List override */
+  div.cashier-modal-container div.cashier-modal-list[style*="display: flex"],
+  div.cashier-modal-container div.cashier-modal-list[style*="display:flex"],
   .cashier-modal-list {
     display: flex !important;
     flex-direction: column !important;
@@ -714,6 +727,9 @@ tr.hoverable-row:hover {
     width: 100% !important;
   }
 
+  /* Footer override */
+  div.cashier-modal-container div.cashier-modal-footer[style*="display: flex"],
+  div.cashier-modal-container div.cashier-modal-footer[style*="display:flex"],
   .cashier-modal-footer {
     display: flex !important;
     flex-direction: row !important;
