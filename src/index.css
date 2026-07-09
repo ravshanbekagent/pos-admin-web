@@ -532,3 +532,116 @@ tr.hoverable-row:hover {
   flex-direction: column !important;
   flex-wrap: nowrap !important;
 }
+
+/* Modal mahsulot qatori stillari */
+.cashier-modal-product-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.cashier-modal-product-item .product-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cashier-modal-product-item .product-price {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.cashier-modal-product-item .product-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* Mobil qurilmalar (max-width: 480px) uchun kassa modal va to'lov oynalari moslashtirishlari */
+@media (max-width: 480px) {
+  .cashier-content-column {
+    padding: 10px !important;
+    gap: 12px !important;
+  }
+
+  .cashier-modal-overlay {
+    padding: 8px !important;
+  }
+
+  .cashier-modal-container {
+    max-height: 94vh !important;
+    border-radius: 16px !important;
+    width: 100% !important;
+  }
+
+  /* Mahsulot modal elementlari mobil moslashuvi */
+  .cashier-modal-product-item {
+    gap: 8px !important;
+    padding: 8px 10px !important;
+  }
+
+  .cashier-modal-product-item .product-title {
+    font-size: 12px !important;
+  }
+
+  .cashier-modal-product-item .product-price {
+    font-size: 10px !important;
+  }
+
+  .cashier-modal-product-item .product-badge {
+    font-size: 9px !important;
+    padding: 1px 4px !important;
+  }
+
+  .cashier-modal-product-item input[type="checkbox"] {
+    width: 16px !important;
+    height: 16px !important;
+  }
+
+  /* Chegirma tugmalari uchun 4 ustunli grid */
+  .discount-grid {
+    display: grid !important;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 6px !important;
+    width: 100% !important;
+    margin-bottom: 12px !important;
+  }
+
+  .discount-grid button {
+    padding: 8px 2px !important;
+    font-size: 11px !important;
+    text-align: center !important;
+    justify-content: center !important;
+    white-space: nowrap !important;
+  }
+
+  /* To'lov turi tugmalari */
+  .payment-method-row {
+    display: flex !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .payment-method-row button {
+    padding: 10px 4px !important;
+    font-size: 11px !important;
+    gap: 4px !important;
+  }
+
+  /* Nasiya shakli va inputlari */
+  .nasiya-form-container {
+    padding: 12px !important;
+    gap: 8px !important;
+  }
+
+  .nasiya-form-container input {
+    padding: 6px 10px !important;
+    font-size: 12px !important;
+  }
+}

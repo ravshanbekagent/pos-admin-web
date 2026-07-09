@@ -15337,7 +15337,7 @@ function App() {
                 </h3>
                 
                 {/* Predefined discount buttons */}
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
+                <div className="discount-grid" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '14px' }}>
                   {[0, ...discountsList].map(disc => {
                     const isSelected = !customDiscountInput && cashierDiscount === disc;
                     return (
@@ -15411,7 +15411,7 @@ function App() {
                 </h3>
                 
                 {/* Method selector buttons */}
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div className="payment-method-row" style={{ display: 'flex', gap: '10px' }}>
                   <button
                     onClick={() => setSelectedPaymentMethod('naqd')}
                     style={{
@@ -15479,15 +15479,18 @@ function App() {
                   const remaining = Math.max(0, finalTotal - (parseFloat(nasiyaInitialPayment) || 0));
 
                   return (
-                    <div style={{ 
-                      display: 'flex', 
-                      flexDirection: 'column',
-                      gap: '12px',
-                      padding: '16px', 
-                      borderRadius: '8px', 
-                      backgroundColor: 'rgba(234, 179, 8, 0.05)',
-                      border: '1px dashed rgba(234, 179, 8, 0.3)'
-                    }}>
+                    <div 
+                      className="nasiya-form-container"
+                      style={{ 
+                        display: 'flex', 
+                        flexDirection: 'column',
+                        gap: '12px',
+                        padding: '16px', 
+                        borderRadius: '8px', 
+                        backgroundColor: 'rgba(234, 179, 8, 0.05)',
+                        border: '1px dashed rgba(234, 179, 8, 0.3)'
+                      }}
+                    >
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <label style={{ fontSize: '12px', fontWeight: '600', color: 'var(--text-primary)' }}>
                           {language === 'uz' ? "Nasiya qaytarish muddati:" : "Срок возврата долга:"}
@@ -15820,19 +15823,22 @@ function App() {
               zIndex: 11000,
               padding: '16px',
               boxSizing: 'border-box'
-            }} className="fade-in">
-              <div style={{
-                width: '100%',
-                maxWidth: '450px',
-                maxHeight: '85vh',
-                backgroundColor: 'var(--bg-secondary)',
-                borderRadius: '12px',
-                border: '1px solid var(--border-color)',
-                display: 'flex',
-                flexDirection: 'column',
-                overflow: 'hidden',
-                boxShadow: 'var(--shadow-xl)'
-              }}>
+            }} className="fade-in cashier-modal-overlay">
+              <div 
+                className="cashier-modal-container"
+                style={{
+                  width: '100%',
+                  maxWidth: '450px',
+                  maxHeight: '85vh',
+                  backgroundColor: 'var(--bg-secondary)',
+                  borderRadius: '12px',
+                  border: '1px solid var(--border-color)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  overflow: 'hidden',
+                  boxShadow: 'var(--shadow-xl)'
+                }}
+              >
                 <div style={{
                   padding: '16px 20px',
                   borderBottom: '1px solid var(--border-color)',
@@ -15914,18 +15920,11 @@ function App() {
                               setSelectedModalProducts(prev => [...prev, pId]);
                             }
                           }}
+                          className="cashier-modal-product-item"
                           style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '12px',
-                            padding: '12px',
-                            borderRadius: '8px',
-                            border: '1px solid var(--border-color)',
                             backgroundColor: isChecked ? 'rgba(13, 148, 136, 0.05)' : 'var(--bg-secondary)',
                             cursor: isOutOfStock ? 'not-allowed' : 'pointer',
-                            opacity: isOutOfStock ? 0.5 : 1,
-                            transition: 'all 0.2s ease',
-                            textAlign: 'left'
+                            opacity: isOutOfStock ? 0.5 : 1
                           }}
                         >
                           <input
@@ -15942,21 +15941,20 @@ function App() {
                           />
 
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flexGrow: 1 }}>
-                            <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                            <span className="product-title">
                               {prod.productName}
                             </span>
                             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                              <span className="product-price">
                                 {parseFloat(prod.price || 0).toLocaleString('uz-UZ')} so'm
                               </span>
-                              <span style={{ 
-                                fontSize: '10px', 
-                                fontWeight: '700', 
-                                color: isOutOfStock ? 'var(--danger-color)' : 'var(--success-color)',
-                                backgroundColor: isOutOfStock ? 'rgba(239, 68, 68, 0.1)' : 'var(--success-light)',
-                                padding: '1px 6px',
-                                borderRadius: '4px'
-                              }}>
+                              <span 
+                                className="product-badge"
+                                style={{ 
+                                  color: isOutOfStock ? 'var(--danger-color)' : 'var(--success-color)',
+                                  backgroundColor: isOutOfStock ? 'rgba(239, 68, 68, 0.1)' : 'var(--success-light)',
+                                }}
+                              >
                                 {isOutOfStock 
                                   ? (language === 'uz' ? "Tugagan" : "Закончился")
                                   : (language === 'uz' ? `Qoldiq: ${liveRemaining} ${prod.unit || 'dona'}` : `Ост: ${liveRemaining} ${prod.unit || 'шт'}`)
