@@ -1333,11 +1333,18 @@ function App() {
       storeName: store.storeName,
       status: 'sold',
       reason: '',
-      items: cart.map(item => ({
-        productName: item.productName || "Mahsulot",
-        qty: item.quantity,
-        price: item.price
-      })),
+      items: {
+        products: cart.map(item => ({
+          productName: item.productName || "Mahsulot",
+          qty: item.quantity,
+          price: item.price
+        })),
+        paymentMethod: selectedPaymentMethod,
+        initialPayment: selectedPaymentMethod === 'nasiya' ? (parseFloat(nasiyaInitialPayment) || 0) : 0,
+        debtorName: selectedPaymentMethod === 'nasiya' ? (nasiyaDebtorName || '') : '',
+        debtorPhone: selectedPaymentMethod === 'nasiya' ? (nasiyaDebtorPhone || '') : '',
+        discount: cashierDiscount
+      },
       date: getTodayDateString(),
       time: new Date().toLocaleTimeString('uz-UZ', { hour: '2-digit', minute: '2-digit' })
     };
@@ -8761,6 +8768,7 @@ function App() {
                     >
                       <option value="all">{language === 'uz' ? "Barcha holatlar" : "Все статусы"}</option>
                       <option value="sold">{language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена"}</option>
+                      <option value="nasiya">{language === 'uz' ? "Nasiya savdolar" : "Продажи в долг"}</option>
                       <option value="no_sale">{language === 'uz' ? "Sotuvsiz tashrif" : "Без продажи"}</option>
                     </select>
                   </div>
@@ -8768,16 +8776,15 @@ function App() {
 
                 {(() => {
                   const todayStr = getTodayDateString();
-                  // Merge local visitedStores and cloudVisits by storeId + date to avoid duplicates, prioritizing local ones if they are newer
+                  // Merge local visitedStores and cloudVisits by storeId + date + time + status to avoid duplicates, prioritizing local ones if they are newer
                   const allVisits = [...visitedStores];
                   
                   (cloudVisits || []).forEach(cv => {
-                    const exists = allVisits.some(v => v.storeId === cv.storeId && v.date === cv.date);
+                    const exists = allVisits.some(v => v.storeId === cv.storeId && v.date === cv.date && v.time === cv.time && v.status === cv.status);
                     if (!exists) {
                       allVisits.push(cv);
                     } else if (cv.status === 'sold') {
-                      // Prioritize cloud 'sold' status over local empty status if both exist for today
-                      const idx = allVisits.findIndex(v => v.storeId === cv.storeId && v.date === cv.date);
+                      const idx = allVisits.findIndex(v => v.storeId === cv.storeId && v.date === cv.date && v.time === cv.time && v.status === cv.status);
                       if (idx !== -1 && allVisits[idx].status !== 'sold') {
                         allVisits[idx] = cv;
                       }
@@ -8797,7 +8804,31 @@ function App() {
 
                   // Apply status filter
                   if (historyStatusFilter === 'sold') {
-                    filteredVisits = filteredVisits.filter(v => v.status === 'sold');
+                    filteredVisits = filteredVisits.filter(v => {
+                      let isNasiya = false;
+                      try {
+                        if (v.items) {
+                          const parsed = typeof v.items === 'string' ? JSON.parse(v.items) : v.items;
+                          if (parsed && parsed.paymentMethod === 'nasiya') {
+                            isNasiya = true;
+                          }
+                        }
+                      } catch (e) {}
+                      return v.status === 'sold' && !isNasiya;
+                    });
+                  } else if (historyStatusFilter === 'nasiya') {
+                    filteredVisits = filteredVisits.filter(v => {
+                      let isNasiya = false;
+                      try {
+                        if (v.items) {
+                          const parsed = typeof v.items === 'string' ? JSON.parse(v.items) : v.items;
+                          if (parsed && parsed.paymentMethod === 'nasiya') {
+                            isNasiya = true;
+                          }
+                        }
+                      } catch (e) {}
+                      return v.status === 'sold' && isNasiya;
+                    });
                   } else if (historyStatusFilter === 'no_sale') {
                     filteredVisits = filteredVisits.filter(v => v.status !== 'sold');
                   }
@@ -8817,12 +8848,16 @@ function App() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                       {filteredVisits.map((visit, index) => {
                         let products = [];
+                        let paymentMethod = 'naqd';
+                        let initialPayment = 0;
                         try {
                           if (visit.items) {
                             const parsed = typeof visit.items === 'string' ? JSON.parse(visit.items) : visit.items;
                             if (parsed && typeof parsed === 'object') {
                               if (parsed.products) {
                                 products = parsed.products || [];
+                                paymentMethod = parsed.paymentMethod || 'naqd';
+                                initialPayment = parsed.initialPayment || 0;
                               } else if (Array.isArray(parsed)) {
                                 products = parsed;
                               }
@@ -8835,6 +8870,9 @@ function App() {
                         const totalSum = visit.status === 'sold' && products.length > 0
                           ? products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0)
                           : 0;
+
+                        const isNasiya = paymentMethod === 'nasiya';
+                        const remainingSum = Math.max(0, totalSum - initialPayment);
 
                         return (
                           <div 
@@ -8852,7 +8890,7 @@ function App() {
                               display: 'flex',
                               flexDirection: 'column',
                               gap: '12px',
-                              cursor: (visit.status === 'sold' && visit.items && visit.items.length > 0) ? 'pointer' : 'default',
+                              cursor: (visit.status === 'sold' && visit.items) ? 'pointer' : 'default',
                               transition: 'all 0.2s ease'
                             }}
                             className={visit.status === 'sold' ? 'hoverable-history-card' : ''}
@@ -8873,24 +8911,30 @@ function App() {
                                       <span style={{
                                         fontSize: '12px',
                                         fontWeight: '700',
-                                        color: '#10b981',
-                                        backgroundColor: 'rgba(16, 185, 129, 0.08)',
+                                        color: isNasiya ? '#ef4444' : '#10b981',
+                                        backgroundColor: isNasiya ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
                                         padding: '4px 10px',
                                         borderRadius: '6px',
-                                        border: '1px solid rgba(16, 185, 129, 0.2)'
+                                        border: isNasiya ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)'
                                       }}>
-                                        {totalSum.toLocaleString()} UZS
+                                        {isNasiya 
+                                          ? `${totalSum.toLocaleString()} UZS (Qoldiq: ${remainingSum.toLocaleString()} UZS)` 
+                                          : `${totalSum.toLocaleString()} UZS`
+                                        }
                                       </span>
                                     )}
                                     <span style={{
-                                      backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                      color: '#10b981',
+                                      backgroundColor: isNasiya ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
+                                      color: isNasiya ? '#ef4444' : '#10b981',
                                       padding: '4px 10px',
                                       borderRadius: '20px',
                                       fontSize: '11px',
                                       fontWeight: '600'
                                     }}>
-                                      {language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена"}
+                                      {isNasiya 
+                                        ? (language === 'uz' ? "Qarz" : "Долг") 
+                                        : (language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена")
+                                      }
                                     </span>
                                   </div>
                                 ) : (
@@ -8918,12 +8962,22 @@ function App() {
                 {selectedHistoryVisit && (() => {
                   const visit = selectedHistoryVisit;
                   let products = [];
+                  let paymentMethod = 'naqd';
+                  let initialPayment = 0;
+                  let debtorName = '';
+                  let debtorPhone = '';
+                  let discount = 0;
                   try {
                     if (visit.items) {
                       const parsed = typeof visit.items === 'string' ? JSON.parse(visit.items) : visit.items;
                       if (parsed && typeof parsed === 'object') {
                         if (parsed.products) {
                           products = parsed.products || [];
+                          paymentMethod = parsed.paymentMethod || 'naqd';
+                          initialPayment = parsed.initialPayment || 0;
+                          debtorName = parsed.debtorName || '';
+                          debtorPhone = parsed.debtorPhone || '';
+                          discount = parsed.discount || 0;
                         } else if (Array.isArray(parsed)) {
                           products = parsed;
                         }
@@ -8934,6 +8988,7 @@ function App() {
                   }
 
                   const totalSum = products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0);
+                  const isNasiya = paymentMethod === 'nasiya';
 
                   return (
                     <div style={{
@@ -9036,7 +9091,7 @@ function App() {
                           paddingTop: '16px',
                           fontWeight: '800',
                           fontSize: '16px',
-                          marginBottom: '20px'
+                          marginBottom: isNasiya ? '12px' : '20px'
                         }}>
                           <span style={{ color: '#fff' }}>
                             {language === 'uz' ? "Umumiy summa:" : "Общая сумма:"}
@@ -9045,6 +9100,41 @@ function App() {
                             {totalSum.toLocaleString()} UZS
                           </span>
                         </div>
+
+                        {/* Nasiya Details Block */}
+                        {isNasiya && (
+                          <div style={{
+                            backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                            border: '1px solid rgba(239, 68, 68, 0.15)',
+                            borderRadius: '10px',
+                            padding: '12px',
+                            marginBottom: '20px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            color: '#cbd5e1'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
+                              <span>{language === 'uz' ? "To'lov turi:" : "Тип оплаты:"}</span>
+                              <span style={{ color: '#ef4444' }}>{language === 'uz' ? "Nasiya (Qarz)" : "В долг (Кредит)"}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{language === 'uz' ? "Boshlang'ich to'lov:" : "Первоначальный взнос:"}</span>
+                              <span style={{ color: '#10b981', fontWeight: '600' }}>{initialPayment.toLocaleString()} UZS</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '6px', marginTop: '2px' }}>
+                              <span style={{ color: '#ef4444' }}>{language === 'uz' ? "Qoldiq qarz:" : "Оставшийся долг:"}</span>
+                              <span style={{ color: '#ef4444' }}>{Math.max(0, totalSum - initialPayment).toLocaleString()} UZS</span>
+                            </div>
+                            {(debtorName || debtorPhone) && (
+                              <div style={{ borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '6px', marginTop: '2px', fontSize: '12px', color: '#94a3b8' }}>
+                                <div>👤 {debtorName || (language === 'uz' ? "Kiritilmagan" : "Не указано")}</div>
+                                {debtorPhone && <div style={{ marginTop: '2px' }}>📞 {debtorPhone}</div>}
+                              </div>
+                            )}
+                          </div>
+                        )}
 
                         {/* Close Button */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
