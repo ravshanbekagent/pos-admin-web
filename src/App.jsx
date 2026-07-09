@@ -8950,7 +8950,7 @@ function App() {
                       zIndex: 999999,
                       padding: '16px'
                     }}>
-                      <div style={{
+                      <div className="history-details-modal" style={{
                         backgroundColor: '#1e293b', // Sleek dark card style as in user's image
                         border: '1px solid rgba(255, 255, 255, 0.1)',
                         borderRadius: '16px',
@@ -8961,7 +8961,7 @@ function App() {
                         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)'
                       }}>
                         {/* Modal Header */}
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
+                        <div className="history-details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                           <div>
                             <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', margin: '0 0 6px 0' }}>
                               {visit.storeName}
@@ -8987,7 +8987,7 @@ function App() {
                         </div>
 
                         {/* Modal Body: Headers */}
-                        <div style={{ 
+                        <div className="history-details-subheader" style={{ 
                           display: 'flex', 
                           justifyContent: 'space-between', 
                           fontSize: '12px', 
@@ -8997,15 +8997,15 @@ function App() {
                           paddingBottom: '8px',
                           marginBottom: '12px'
                         }}>
-                          <span style={{ flex: 1 }}>{language === 'uz' ? "Mahsulot" : "Товар"}</span>
+                          <span style={{ flex: 1, minWidth: 0, textAlign: 'left' }}>{language === 'uz' ? "Mahsulot" : "Товар"}</span>
                           <span style={{ width: '80px', textAlign: 'right' }}>{language === 'uz' ? "Soni" : "Кол-во"}</span>
                           <span style={{ width: '120px', textAlign: 'right' }}>{language === 'uz' ? "Jami" : "Всего"}</span>
                         </div>
 
                         {/* Products list */}
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px', marginBottom: '24px' }}>
+                        <div className="history-details-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px', maxHeight: '240px', overflowY: 'auto', paddingRight: '4px', marginBottom: '24px' }}>
                           {products.map((item, idx) => (
-                            <div key={idx} style={{ 
+                            <div className="history-details-item" key={idx} style={{ 
                               display: 'flex', 
                               justifyContent: 'space-between', 
                               alignItems: 'center', 
@@ -9014,7 +9014,7 @@ function App() {
                               borderBottom: '1px dashed rgba(255, 255, 255, 0.05)', 
                               paddingBottom: '8px'
                             }}>
-                              <span style={{ fontWeight: '600', flex: 1, paddingRight: '12px', color: '#fff' }}>
+                              <span className="history-details-prodname" style={{ fontWeight: '600', flex: 1, paddingRight: '12px', color: '#fff', textAlign: 'left' }}>
                                 {item.productName}
                               </span>
                               <span style={{ width: '80px', textAlign: 'right', color: '#94a3b8' }}>
@@ -9028,7 +9028,7 @@ function App() {
                         </div>
 
                         {/* Total Sum */}
-                        <div style={{
+                        <div className="history-details-total" style={{
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',

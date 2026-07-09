@@ -809,3 +809,54 @@ div.cashier-overlay-fixed,
 .cashier-selection-btn:active {
   transform: scale(0.98);
 }
+
+/* History Visit Details Modal mobile layout overrides to prevent aggressive wrapping */
+@media (max-width: 768px) {
+  div.history-details-modal[style],
+  .history-details-modal {
+    width: 92% !important;
+    max-width: 92% !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+  }
+
+  div.history-details-subheader[style*="display: flex"],
+  div.history-details-subheader[style*="display:flex"],
+  .history-details-subheader {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+
+  div.history-details-item[style*="display: flex"],
+  div.history-details-item[style*="display:flex"],
+  .history-details-item {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  div.history-details-total[style*="display: flex"],
+  div.history-details-total[style*="display:flex"],
+  .history-details-total {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+  }
+
+  .history-details-prodname {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    min-width: 0 !important;
+    flex: 1 !important;
+  }
+}
