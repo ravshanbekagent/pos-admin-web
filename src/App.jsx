@@ -1062,7 +1062,7 @@ function App() {
   const [cashierCart, setCashierCart] = useState([]);
   const [barcodeInput, setBarcodeInput] = useState('');
   const [searchProductQuery, setSearchProductQuery] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('tinda');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('naqd');
   const [nasiyaDueDate, setNasiyaDueDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 30);
@@ -15378,13 +15378,13 @@ function App() {
                 {/* Method selector buttons */}
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button
-                    onClick={() => setSelectedPaymentMethod('tinda')}
+                    onClick={() => setSelectedPaymentMethod('naqd')}
                     style={{
                       flex: 1,
                       padding: '12px',
                       borderRadius: '8px',
-                      border: selectedPaymentMethod === 'tinda' ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
-                      backgroundColor: selectedPaymentMethod === 'tinda' ? 'rgba(13, 148, 136, 0.08)' : 'var(--bg-primary)',
+                      border: selectedPaymentMethod === 'naqd' ? '2px solid var(--accent-color)' : '1px solid var(--border-color)',
+                      backgroundColor: selectedPaymentMethod === 'naqd' ? 'rgba(13, 148, 136, 0.08)' : 'var(--bg-primary)',
                       color: 'var(--text-primary)',
                       fontWeight: '700',
                       cursor: 'pointer',
@@ -15396,8 +15396,8 @@ function App() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    <CreditCard size={18} style={{ color: selectedPaymentMethod === 'tinda' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
-                    Tinda Terminal
+                    <DollarSign size={18} style={{ color: selectedPaymentMethod === 'naqd' ? 'var(--accent-color)' : 'var(--text-secondary)' }} />
+                    {language === 'uz' ? "Naqd" : "Наличные"}
                   </button>
                   <button
                     onClick={() => setSelectedPaymentMethod('nasiya')}
@@ -15424,17 +15424,17 @@ function App() {
                 </div>
 
                 {/* Conditional helper fields */}
-                {selectedPaymentMethod === 'tinda' ? (
+                {selectedPaymentMethod === 'naqd' ? (
                   <div style={{ 
                     display: 'flex', 
                     flexDirection: 'column',
                     padding: '12px', 
                     borderRadius: '6px', 
-                    backgroundColor: 'rgba(13, 148, 136, 0.04)',
+                    backgroundColor: 'rgba(16, 185, 129, 0.04)',
                     fontSize: '12px',
                     color: 'var(--text-secondary)'
                   }}>
-                    {language === 'uz' ? "To'lov avtomatik ravishda smart-terminal orqali qabul qilinadi." : "Оплата автоматически принимается через смарт-терминал."}
+                    {language === 'uz' ? "To'lov naqd pul orqali qabul qilinadi." : "Оплата принимается наличными."}
                   </div>
                 ) : (
                   <div style={{ 
@@ -15522,26 +15522,25 @@ function App() {
                           if (selectedPaymentMethod === 'nasiya') {
                             handleCreateCashierSale();
                           } else {
-                            handleTindaPayment(subtotal, discountAmount, finalTotal);
+                            handleCreateCashierSale();
                           }
                         }}
-                        disabled={selectedPaymentMethod === 'tinda' && !tindaTerminalIp}
                         style={{
                           flexGrow: 2,
                           padding: '14px',
-                          backgroundColor: (selectedPaymentMethod === 'tinda' && !tindaTerminalIp) ? 'var(--text-muted)' : 'var(--accent-color)',
+                          backgroundColor: 'var(--accent-color)',
                           color: '#fff',
                           border: 'none',
                           borderRadius: '8px',
                           fontWeight: '700',
-                          cursor: (selectedPaymentMethod === 'tinda' && !tindaTerminalIp) ? 'not-allowed' : 'pointer',
+                          cursor: 'pointer',
                           fontSize: '14px',
                           boxShadow: '0 4px 10px rgba(13, 148, 136, 0.3)'
                         }}
                       >
                         ✓ {selectedPaymentMethod === 'nasiya' 
                             ? (language === 'uz' ? "Nasiya rasmiylashtirish" : "Оформить в долг") 
-                            : (language === 'uz' ? "Tinda orqali to'lash" : "Оплатить через Tinda")}
+                            : (language === 'uz' ? "Naqd pul orqali to'lash" : "Оплатить наличными")}
                       </button>
                     </div>
 
