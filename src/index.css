@@ -860,3 +860,233 @@ div.cashier-overlay-fixed,
     flex: 1 !important;
   }
 }
+
+/* --- NASIYA RESPONSIVE UTILITIES --- */
+
+.nasiya-metrics-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 20px;
+}
+
+.nasiya-metric-card {
+  background-color: var(--bg-secondary);
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition-fast);
+}
+
+/* Table styling */
+.nasiya-table-container {
+  background-color: var(--bg-secondary);
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.nasiya-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.nasiya-table th {
+  padding: 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  border-bottom: 1px solid var(--border-color);
+  background-color: rgba(0,0,0,0.02);
+}
+
+.nasiya-table td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color);
+  transition: background-color var(--transition-fast);
+}
+
+/* Nasiya Details Modal styling */
+.nasiya-modal-wrapper {
+  width: 750px;
+  max-width: 95vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 32px;
+  box-shadow: var(--shadow-lg);
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.nasiya-modal-quick-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  background-color: var(--bg-primary);
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border-color);
+}
+
+.nasiya-modal-form-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+/* Mobile max-width: 768px overrides */
+@media (max-width: 768px) {
+  /* Metrics: Grid to List/Row-like format, very compact */
+  .nasiya-metrics-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .nasiya-metric-card {
+    padding: 10px 14px !important;
+    border-radius: 8px !important;
+    gap: 12px !important;
+  }
+
+  .nasiya-metric-card svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+
+  .nasiya-metric-card > div:first-child {
+    padding: 6px !important;
+    border-radius: 6px !important;
+  }
+
+  .nasiya-metric-card span {
+    font-size: 11px !important;
+  }
+
+  .nasiya-metric-card span:last-child {
+    font-size: 14px !important;
+    font-weight: 700 !important;
+  }
+
+  /* Filters styling */
+  .nasiya-filters-bar {
+    padding: 10px !important;
+    gap: 10px !important;
+    border-radius: 8px !important;
+  }
+  
+  .nasiya-filters-bar input,
+  .nasiya-filters-bar select {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+    border-radius: 6px !important;
+  }
+
+  /* Table: Responsive cards view */
+  .nasiya-table thead {
+    display: none;
+  }
+
+  .nasiya-table tbody, 
+  .nasiya-table tr, 
+  .nasiya-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .nasiya-table tr {
+    margin-bottom: 10px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 12px;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .nasiya-table td {
+    border: none !important;
+    padding: 4px 0 !important;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px !important;
+  }
+
+  .nasiya-table td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--text-secondary);
+    font-size: 11px;
+    margin-right: 8px;
+  }
+
+  .nasiya-table td.actions-cell {
+    justify-content: flex-end !important;
+    margin-top: 6px;
+    border-top: 1px solid var(--border-color) !important;
+    padding-top: 6px !important;
+  }
+
+  .nasiya-table td.actions-cell::before {
+    display: none;
+  }
+
+  .nasiya-table td.actions-cell button {
+    padding: 4px 10px !important;
+    font-size: 11px !important;
+  }
+
+  /* Selected Debt Detail Modal responsive styling */
+  .nasiya-modal-wrapper {
+    padding: 16px !important;
+    gap: 14px !important;
+    border-radius: 12px !important;
+  }
+
+  .nasiya-modal-wrapper h3 {
+    font-size: 16px !important;
+  }
+
+  .nasiya-modal-wrapper p {
+    font-size: 11px !important;
+  }
+
+  .nasiya-modal-quick-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 10px !important;
+    padding: 10px !important;
+    border-radius: 8px !important;
+  }
+
+  .nasiya-modal-quick-stats span {
+    font-size: 10px !important;
+  }
+
+  .nasiya-modal-quick-stats span:last-child {
+    font-size: 12px !important;
+  }
+
+  .nasiya-modal-form-section {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+
+  .nasiya-modal-products-table th,
+  .nasiya-modal-products-table td {
+    padding: 6px 8px !important;
+    font-size: 11px !important;
+  }
+
+  .nasiya-modal-wrapper button {
+    padding: 8px 16px !important;
+    font-size: 12px !important;
+  }
+}

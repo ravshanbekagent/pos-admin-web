@@ -10288,37 +10288,28 @@ function App() {
             })();
 
             return (
-              <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 
-                {/* Metrics Grid */}
-                <div style={{
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                  gap: '20px'
-                }}>
+                {/* Metrics Container */}
+                <div className="nasiya-metrics-container">
                   {/* Metric 1 */}
-                  <div style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px'
-                  }}>
+                  <div className="nasiya-metric-card">
                     <div style={{
                       backgroundColor: 'rgba(99, 102, 241, 0.1)',
                       color: '#6366f1',
-                      padding: '12px',
-                      borderRadius: '8px'
+                      padding: '10px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
-                      <Calendar size={24} />
+                      <Calendar size={20} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
                         {language === 'uz' ? "Jami Qoldiq Qarz" : "Общий остаток долга"}
                       </span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      <span style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
                         {(() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
                             const isAgentObj = userRole === 'agent';
@@ -10331,16 +10322,7 @@ function App() {
                   </div>
 
                   {/* Metric 2 */}
-                  <div style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px',
-                    position: 'relative'
-                  }}>
+                  <div className="nasiya-metric-card" style={{ position: 'relative' }}>
                     {(() => {
                       const userRelatedDebts = allCombinedDebts.filter(d => {
                         const isAgentObj = userRole === 'agent';
@@ -10350,10 +10332,10 @@ function App() {
                       return overdueAmt > 0 && (
                         <div style={{
                           position: 'absolute',
-                          top: '10px',
-                          right: '10px',
-                          width: '8px',
-                          height: '8px',
+                          top: '8px',
+                          right: '8px',
+                          width: '6px',
+                          height: '6px',
                           borderRadius: '50%',
                           backgroundColor: '#ef4444',
                           animation: 'pulse-btn 1.5s infinite'
@@ -10363,17 +10345,20 @@ function App() {
                     <div style={{
                       backgroundColor: 'rgba(239, 68, 68, 0.1)',
                       color: '#ef4444',
-                      padding: '12px',
-                      borderRadius: '8px'
+                      padding: '10px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
-                      <AlertTriangle size={24} />
+                      <AlertTriangle size={20} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
                         {language === 'uz' ? "Muddati O'tgan Summa" : "Просроченная сумма"}
                       </span>
                       <span style={{
-                        fontSize: '18px',
+                        fontSize: '16px',
                         fontWeight: '700',
                         color: (() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
@@ -10395,28 +10380,23 @@ function App() {
                   </div>
 
                   {/* Metric 3 */}
-                  <div style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px'
-                  }}>
+                  <div className="nasiya-metric-card">
                     <div style={{
                       backgroundColor: 'rgba(16, 185, 129, 0.1)',
                       color: 'var(--success-color)',
-                      padding: '12px',
-                      borderRadius: '8px'
+                      padding: '10px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
-                      <Check size={24} />
+                      <Check size={20} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
                         {language === 'uz' ? "Qaytarilgan Summa" : "Возвращенная сумма"}
                       </span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      <span style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
                         {(() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
                             const isAgentObj = userRole === 'agent';
@@ -10429,28 +10409,23 @@ function App() {
                   </div>
 
                   {/* Metric 4 */}
-                  <div style={{
-                    backgroundColor: 'var(--bg-secondary)',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: '1px solid var(--border-color)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '16px'
-                  }}>
+                  <div className="nasiya-metric-card">
                     <div style={{
                       backgroundColor: 'rgba(245, 158, 11, 0.1)',
                       color: '#f59e0b',
-                      padding: '12px',
-                      borderRadius: '8px'
+                      padding: '10px',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
                     }}>
-                      <TrendingUp size={24} />
+                      <TrendingUp size={20} />
                     </div>
                     <div>
-                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px' }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '2px' }}>
                         {language === 'uz' ? "Qarzdor Do'konlar" : "Магазины-должники"}
                       </span>
-                      <span style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                      <span style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
                         {(() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
                             const isAgentObj = userRole === 'agent';
@@ -10464,41 +10439,39 @@ function App() {
                 </div>
 
                 {/* Filters & Actions */}
-                <div style={{
+                <div className="nasiya-filters-bar" style={{
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'space-between',
-                  gap: '16px',
+                  gap: '12px',
                   flexWrap: 'wrap',
                   backgroundColor: 'var(--bg-secondary)',
-                  padding: '16px',
-                  borderRadius: '12px',
+                  padding: '12px',
+                  borderRadius: '8px',
                   border: '1px solid var(--border-color)'
                 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1, minWidth: '280px' }}>
-                    <div style={{
-                      position: 'relative',
-                      flex: 1
-                    }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '260px' }}>
+                    <div style={{ position: 'relative', flex: 1 }}>
                       <input
                         type="text"
-                        placeholder={language === 'uz' ? "Do'kon yoki agent nomi bo'yicha qidirish..." : "Поиск по магазину или агенту..."}
+                        placeholder={language === 'uz' ? "Qidirish..." : "Поиск..."}
                         value={debtSearchQuery}
                         onChange={(e) => setDebtSearchQuery(e.target.value)}
                         style={{
                           width: '100%',
-                          padding: '10px 16px 10px 40px',
-                          borderRadius: '8px',
+                          padding: '8px 12px 8px 36px',
+                          borderRadius: '6px',
                           border: '1px solid var(--border-color)',
                           backgroundColor: 'var(--bg-primary)',
                           color: 'var(--text-primary)',
                           outline: 'none',
+                          fontSize: '13px',
                           transition: 'all var(--transition-fast)'
                         }}
                       />
-                      <Search size={18} style={{
+                      <Search size={16} style={{
                         position: 'absolute',
-                        left: '12px',
+                        left: '10px',
                         top: '50%',
                         transform: 'translateY(-50%)',
                         color: 'var(--text-secondary)'
@@ -10509,12 +10482,13 @@ function App() {
                       value={debtStatusFilter}
                       onChange={(e) => setDebtStatusFilter(e.target.value)}
                       style={{
-                        padding: '10px 16px',
-                        borderRadius: '8px',
+                        padding: '8px 12px',
+                        borderRadius: '6px',
                         border: '1px solid var(--border-color)',
                         backgroundColor: 'var(--bg-primary)',
                         color: 'var(--text-primary)',
                         outline: 'none',
+                        fontSize: '13px',
                         cursor: 'pointer'
                       }}
                     >
@@ -10527,149 +10501,128 @@ function App() {
                 </div>
 
                 {/* Table List */}
-                <div style={{
-                  backgroundColor: 'var(--bg-secondary)',
-                  borderRadius: '12px',
-                  border: '1px solid var(--border-color)',
-                  overflow: 'hidden'
-                }}>
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.02)' }}>
-                          <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                            {language === 'uz' ? "Do'kon nomi" : "Магазин"}
-                          </th>
-                          <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                            {language === 'uz' ? "Agent" : "Агент"}
-                          </th>
-                          <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                            {language === 'uz' ? "Sana / Muddati" : "Дата / Срок"}
-                          </th>
-                          <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                            {language === 'uz' ? "Jami summa" : "Сумма долга"}
-                          </th>
-                          <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                            {language === 'uz' ? "Qoldiq" : "Остаток"}
-                          </th>
-                          <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)' }}>
-                            {language === 'uz' ? "Holat" : "Статус"}
-                          </th>
-                          <th style={{ padding: '16px', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', textAlign: 'right' }}>
-                            {language === 'uz' ? "Amallar" : "Действия"}
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {(() => {
-                          const displayedDebts = allCombinedDebts.filter(d => {
-                            const isAgentObj = userRole === 'agent';
-                            const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
-                            const storeName = d.store?.name || '';
-                            const agentName = d.agent?.name || '';
-                            const debtorName = d.debtor_name || '';
-                            const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
-                                                  agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
-                                                  debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
-                            const matchesStatus = debtStatusFilter === 'all' || 
-                                                  (debtStatusFilter === 'active' && d.status === 'active') ||
-                                                  (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
-                                                  (debtStatusFilter === 'paid' && d.status === 'paid');
-                            return matchesUser && matchesSearch && matchesStatus;
-                          });
+                <div className="nasiya-table-container">
+                  <table className="nasiya-table">
+                    <thead>
+                      <tr>
+                        <th>{language === 'uz' ? "Do'kon nomi" : "Магазин"}</th>
+                        <th>{language === 'uz' ? "Agent" : "Агент"}</th>
+                        <th>{language === 'uz' ? "Sana / Muddati" : "Дата / Срок"}</th>
+                        <th>{language === 'uz' ? "Jami summa" : "Сумма долга"}</th>
+                        <th>{language === 'uz' ? "Qoldiq" : "Остаток"}</th>
+                        <th>{language === 'uz' ? "Holat" : "Статус"}</th>
+                        <th style={{ textAlign: 'right' }}>{language === 'uz' ? "Amallar" : "Действия"}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const displayedDebts = allCombinedDebts.filter(d => {
+                          const isAgentObj = userRole === 'agent';
+                          const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                          const storeName = d.store?.name || '';
+                          const agentName = d.agent?.name || '';
+                          const debtorName = d.debtor_name || '';
+                          const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
+                                                agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
+                                                debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
+                          const matchesStatus = debtStatusFilter === 'all' || 
+                                                (debtStatusFilter === 'active' && d.status === 'active') ||
+                                                (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
+                                                (debtStatusFilter === 'paid' && d.status === 'paid');
+                          return matchesUser && matchesSearch && matchesStatus;
+                        });
 
-                          if (displayedDebts.length === 0) {
-                            return (
-                              <tr>
-                                <td colSpan="7" style={{ padding: '32px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                  {language === 'uz' ? "Hech qanday nasiya topilmadi." : "Кредиты не найдены."}
-                                </td>
-                              </tr>
-                            );
-                          }
+                        if (displayedDebts.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                                {language === 'uz' ? "Hech qanday nasiya topilmadi." : "Кредиты не найдены."}
+                              </td>
+                            </tr>
+                          );
+                        }
 
-                          return displayedDebts.map(debt => {
-                            const isOverdue = debt.status === 'overdue' && parseFloat(debt.remaining_amount) > 0;
-                            return (
-                              <tr
-                                key={debt.id}
-                                style={{
-                                  borderBottom: '1px solid var(--border-color)',
-                                  transition: 'background-color var(--transition-fast)',
-                                  backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.03)' : 'transparent',
-                                  borderLeft: isOverdue ? '4px solid #ef4444' : '4px solid transparent'
-                                }}
-                              >
-                                <td style={{ padding: '16px', fontWeight: '600' }}>
-                                  <div>{debt.store?.name || `Store #${debt.store_id}`}</div>
-                                  {debt.debtor_name && (
-                                    <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--accent-color)', marginTop: '4px' }}>
-                                      👤 {debt.debtor_name}
-                                    </div>
-                                  )}
-                                </td>
-                                <td style={{ padding: '16px', color: 'var(--text-secondary)' }}>{debt.agent?.name || `Agent #${debt.agent_id}`}</td>
-                                <td style={{ padding: '16px' }}>
-                                  <div style={{ fontSize: '13px', fontWeight: '500' }}>
-                                    {debt.due_date}
+                        return displayedDebts.map(debt => {
+                          const isOverdue = debt.status === 'overdue' && parseFloat(debt.remaining_amount) > 0;
+                          return (
+                            <tr
+                              key={debt.id}
+                              style={{
+                                backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.02)' : 'transparent',
+                                borderLeft: isOverdue ? '4px solid #ef4444' : '4px solid transparent'
+                              }}
+                            >
+                              <td data-label={language === 'uz' ? "Do'kon" : "Магазин"} style={{ fontWeight: '600' }}>
+                                <div>{debt.store?.name || `Store #${debt.store_id}`}</div>
+                                {debt.debtor_name && (
+                                  <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--accent-color)', marginTop: '4px' }}>
+                                    👤 {debt.debtor_name}
                                   </div>
-                                  <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                    {language === 'uz' ? 'Berildi' : 'Выдан'}: {debt.createdAt?.split('T')[0]}
-                                  </div>
-                                </td>
-                                <td style={{ padding: '16px', fontWeight: '500' }}>
-                                  {parseFloat(debt.total_amount).toLocaleString()} UZS
-                                </td>
-                                <td style={{ padding: '16px', fontWeight: '600', color: parseFloat(debt.remaining_amount) > 0 ? 'var(--accent-color)' : 'var(--text-secondary)' }}>
-                                  {parseFloat(debt.remaining_amount).toLocaleString()} UZS
-                                </td>
-                                <td style={{ padding: '16px' }}>
-                                  <span style={{
-                                    fontSize: '11px',
-                                    fontWeight: '700',
-                                    padding: '4px 8px',
+                                )}
+                              </td>
+                              <td data-label={language === 'uz' ? "Agent" : "Агент"} style={{ color: 'var(--text-secondary)' }}>
+                                {debt.agent?.name || `Agent #${debt.agent_id}`}
+                              </td>
+                              <td data-label={language === 'uz' ? "Muddati" : "Срок"}>
+                                <div style={{ fontSize: '13px', fontWeight: '500' }}>
+                                  {debt.due_date}
+                                </div>
+                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                  {language === 'uz' ? 'Berildi' : 'Выдан'}: {debt.createdAt?.split('T')[0]}
+                                </div>
+                              </td>
+                              <td data-label={language === 'uz' ? "Jami" : "Всего"} style={{ fontWeight: '500' }}>
+                                {parseFloat(debt.total_amount).toLocaleString()} UZS
+                              </td>
+                              <td data-label={language === 'uz' ? "Qoldiq" : "Остаток"} style={{ fontWeight: '600', color: parseFloat(debt.remaining_amount) > 0 ? 'var(--accent-color)' : 'var(--text-secondary)' }}>
+                                {parseFloat(debt.remaining_amount).toLocaleString()} UZS
+                              </td>
+                              <td data-label={language === 'uz' ? "Holat" : "Статус"}>
+                                <span style={{
+                                  fontSize: '11px',
+                                  fontWeight: '700',
+                                  padding: '4px 8px',
+                                  borderRadius: '6px',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '4px',
+                                  backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.15)' : debt.status === 'paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                                  color: isOverdue ? '#ef4444' : debt.status === 'paid' ? 'var(--success-color)' : '#3b82f6',
+                                  animation: isOverdue ? 'pulse-btn 1.5s infinite' : 'none'
+                                }}>
+                                  {isOverdue && <AlertTriangle size={12} />}
+                                  {debt.status === 'paid' && <Check size={12} />}
+                                  {(debt.status === 'active' || debt.status === 'pending') && <Clock size={12} />}
+                                  {isOverdue && (language === 'uz' ? 'Muddati o\'tgan' : 'Просрочен')}
+                                  {!isOverdue && (debt.status === 'active' || debt.status === 'pending') && (language === 'uz' ? 'Kutilmoqda' : 'Активен')}
+                                  {debt.status === 'paid' && (language === 'uz' ? 'To\'langan' : 'Погашен')}
+                                </span>
+                              </td>
+                              <td className="actions-cell" style={{ textAlign: 'right' }}>
+                                <button
+                                  onClick={() => setSelectedDebtDetail(debt)}
+                                  className="action-btn"
+                                  style={{
+                                    padding: '6px 12px',
                                     borderRadius: '6px',
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '4px',
-                                    backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.15)' : debt.status === 'paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                                    color: isOverdue ? '#ef4444' : debt.status === 'paid' ? 'var(--success-color)' : '#3b82f6',
-                                    animation: isOverdue ? 'pulse-btn 1.5s infinite' : 'none'
-                                  }}>
-                                    {isOverdue && <AlertTriangle size={12} />}
-                                    {debt.status === 'paid' && <Check size={12} />}
-                                    {(debt.status === 'active' || debt.status === 'pending') && <Clock size={12} />}
-                                    {isOverdue && (language === 'uz' ? 'Muddati o\'tgan' : 'Просрочен')}
-                                    {!isOverdue && (debt.status === 'active' || debt.status === 'pending') && (language === 'uz' ? 'Kutilmoqda' : 'Активен')}
-                                    {debt.status === 'paid' && (language === 'uz' ? 'To\'langan' : 'Погашен')}
-                                  </span>
-                                </td>
-                                <td style={{ padding: '16px', textAlign: 'right' }}>
-                                  <button
-                                    onClick={() => setSelectedDebtDetail(debt)}
-                                    className="action-btn"
-                                    style={{
-                                      padding: '6px 12px',
-                                      borderRadius: '6px',
-                                      backgroundColor: 'var(--accent-color)',
-                                      color: '#fff',
-                                      border: 'none',
-                                      cursor: 'pointer',
-                                      fontSize: '13px',
-                                      fontWeight: '500',
-                                      boxShadow: 'var(--shadow-sm)'
-                                    }}
-                                  >
-                                    {language === 'uz' ? "Batafsil" : "Детали"}
-                                  </button>
-                                </td>
-                              </tr>
-                            );
-                          });
-                        })()}
-                      </tbody>
-                    </table>
-                  </div>
+                                    backgroundColor: 'var(--accent-color)',
+                                    color: '#fff',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    boxShadow: 'var(--shadow-sm)'
+                                  }}
+                                >
+                                  {language === 'uz' ? "Batafsil" : "Детали"}
+                                </button>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
                 </div>
               </div>
             );
@@ -14254,26 +14207,14 @@ function App() {
           justifyContent: 'center',
           zIndex: 9999
         }} className="fade-in">
-          <div style={{
-            width: '750px',
-            maxHeight: '90vh',
-            overflowY: 'auto',
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border-color)',
-            borderRadius: '16px',
-            padding: '32px',
-            boxShadow: 'var(--shadow-lg)',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '24px'
-          }}>
+          <div className="nasiya-modal-wrapper">
             {/* Modal Header */}
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
-                <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)' }}>
+                <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
                   {selectedDebtDetail.store?.name || `Do'kon #${selectedDebtDetail.store_id}`}
                 </h3>
-                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px' }}>
+                <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '4px', margin: 0 }}>
                   {language === 'uz' ? 'Nasiya tafsilotlari va to\'lovlar tarixi' : 'Детали кредита и история платежей'}
                 </p>
               </div>
@@ -14292,15 +14233,7 @@ function App() {
             </div>
 
             {/* Quick Stats Grid */}
-            <div style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(4, 1fr)',
-              gap: '16px',
-              backgroundColor: 'var(--bg-primary)',
-              padding: '16px',
-              borderRadius: '12px',
-              border: '1px solid var(--border-color)'
-            }}>
+            <div className="nasiya-modal-quick-stats">
               <div>
                 <span style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block' }}>
                   {language === 'uz' ? "Jami summa" : "Сумма долга"}
@@ -14363,7 +14296,7 @@ function App() {
 
             {/* Products List (Olgan maxsulotlari) */}
             <div>
-              <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '10px' }}>
+              <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', marginBottom: '10px', marginTop: 0 }}>
                 {language === 'uz' ? "Sotib olingan mahsulotlar" : "Купленные товары"}
               </h4>
               <div style={{
@@ -14372,7 +14305,7 @@ function App() {
                 border: '1px solid var(--border-color)',
                 borderRadius: '8px'
               }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
+                <table className="nasiya-modal-products-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '13px' }}>
                   <thead>
                     <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'rgba(0,0,0,0.02)', color: 'var(--text-secondary)' }}>
                       <th style={{ padding: '8px 12px' }}>{language === 'uz' ? "Mahsulot" : "Товар"}</th>
@@ -14430,11 +14363,11 @@ function App() {
             </div>
 
             {/* Payments History & Record Form Section */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+            <div className="nasiya-modal-form-section">
               
               {/* Left Column: Payments History */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
                   {language === 'uz' ? "To'lovlar tarixi" : "История платежей"}
                 </h4>
                 <div style={{
@@ -14486,7 +14419,7 @@ function App() {
 
               {/* Right Column: Record Payment Form */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>
+                <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
                   {language === 'uz' ? "Yangi to'lov qabul qilish" : "Принять новый платеж"}
                 </h4>
                 {parseFloat(selectedDebtDetail.remaining_amount) > 0 ? (
