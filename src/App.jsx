@@ -10449,129 +10449,255 @@ function App() {
                   </div>
                 </div>
 
-                {/* Table List */}
-                <div className="nasiya-table-container">
-                  <table className="nasiya-table">
-                    <thead>
-                      <tr>
-                        <th>{language === 'uz' ? "Do'kon nomi" : "Магазин"}</th>
-                        <th>{language === 'uz' ? "Agent" : "Агент"}</th>
-                        <th>{language === 'uz' ? "Sana / Muddati" : "Дата / Срок"}</th>
-                        <th>{language === 'uz' ? "Jami summa" : "Сумма долга"}</th>
-                        <th>{language === 'uz' ? "Qoldiq" : "Остаток"}</th>
-                        <th>{language === 'uz' ? "Holat" : "Статус"}</th>
-                        <th style={{ textAlign: 'right' }}>{language === 'uz' ? "Amallar" : "Действия"}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {(() => {
-                        const displayedDebts = allCombinedDebts.filter(d => {
-                          const isAgentObj = userRole === 'agent';
-                          const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
-                          const storeName = d.store?.name || '';
-                          const agentName = d.agent?.name || '';
-                          const debtorName = d.debtor_name || '';
-                          const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
-                                                agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
-                                                debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
-                          const matchesStatus = debtStatusFilter === 'all' || 
-                                                (debtStatusFilter === 'active' && d.status === 'active') ||
-                                                (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
-                                                (debtStatusFilter === 'paid' && d.status === 'paid');
-                          return matchesUser && matchesSearch && matchesStatus;
-                        });
+                {/* Nasiya list container (handles desktop and mobile view toggle) */}
+                <div className="nasiya-list-container" style={{ width: '100%' }}>
+                  {/* Desktop View Table */}
+                  <div className="nasiya-desktop-view">
+                    <div className="nasiya-table-container">
+                      <table className="nasiya-table">
+                        <thead>
+                          <tr>
+                            <th>{language === 'uz' ? "Do'kon nomi" : "Магазин"}</th>
+                            <th>{language === 'uz' ? "Agent" : "Агент"}</th>
+                            <th>{language === 'uz' ? "Sana / Muddati" : "Дата / Срок"}</th>
+                            <th>{language === 'uz' ? "Jami summa" : "Сумма долга"}</th>
+                            <th>{language === 'uz' ? "Qoldiq" : "Остаток"}</th>
+                            <th>{language === 'uz' ? "Holat" : "Статус"}</th>
+                            <th style={{ textAlign: 'right' }}>{language === 'uz' ? "Amallar" : "Действия"}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(() => {
+                            const displayedDebts = allCombinedDebts.filter(d => {
+                              const isAgentObj = userRole === 'agent';
+                              const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                              const storeName = d.store?.name || '';
+                              const agentName = d.agent?.name || '';
+                              const debtorName = d.debtor_name || '';
+                              const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
+                                                    agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
+                                                    debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
+                              const matchesStatus = debtStatusFilter === 'all' || 
+                                                    (debtStatusFilter === 'active' && d.status === 'active') ||
+                                                    (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
+                                                    (debtStatusFilter === 'paid' && d.status === 'paid');
+                              return matchesUser && matchesSearch && matchesStatus;
+                            });
 
-                        if (displayedDebts.length === 0) {
-                          return (
-                            <tr>
-                              <td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                                {language === 'uz' ? "Hech qanday nasiya topilmadi." : "Кредиты не найдены."}
-                              </td>
-                            </tr>
-                          );
-                        }
+                            if (displayedDebts.length === 0) {
+                              return (
+                                <tr>
+                                  <td colSpan="7" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px' }}>
+                                    {language === 'uz' ? "Hech qanday nasiya topilmadi." : "Кредиты не найдены."}
+                                  </td>
+                                </tr>
+                              );
+                            }
 
-                        return displayedDebts.map(debt => {
-                          const isOverdue = debt.status === 'overdue' && parseFloat(debt.remaining_amount) > 0;
-                          return (
-                            <tr
-                              key={debt.id}
-                              style={{
-                                backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.02)' : 'transparent',
-                                borderLeft: isOverdue ? '4px solid #ef4444' : '4px solid transparent'
-                              }}
-                            >
-                              <td data-label={language === 'uz' ? "Do'kon" : "Магазин"} style={{ fontWeight: '600' }}>
-                                <div>{debt.store?.name || `Store #${debt.store_id}`}</div>
-                                {debt.debtor_name && (
-                                  <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--accent-color)', marginTop: '4px' }}>
-                                    👤 {debt.debtor_name}
-                                  </div>
-                                )}
-                              </td>
-                              <td data-label={language === 'uz' ? "Agent" : "Агент"} style={{ color: 'var(--text-secondary)' }}>
-                                {debt.agent?.name || `Agent #${debt.agent_id}`}
-                              </td>
-                              <td data-label={language === 'uz' ? "Muddati" : "Срок"}>
-                                <div style={{ fontSize: '13px', fontWeight: '500' }}>
-                                  {debt.due_date}
-                                </div>
-                                <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
-                                  {language === 'uz' ? 'Berildi' : 'Выдан'}: {debt.createdAt?.split('T')[0]}
-                                </div>
-                              </td>
-                              <td data-label={language === 'uz' ? "Jami" : "Всего"} style={{ fontWeight: '500' }}>
-                                {parseFloat(debt.total_amount).toLocaleString()} UZS
-                              </td>
-                              <td data-label={language === 'uz' ? "Qoldiq" : "Остаток"} style={{ fontWeight: '600', color: parseFloat(debt.remaining_amount) > 0 ? 'var(--accent-color)' : 'var(--text-secondary)' }}>
-                                {parseFloat(debt.remaining_amount).toLocaleString()} UZS
-                              </td>
-                              <td data-label={language === 'uz' ? "Holat" : "Статус"}>
-                                <span style={{
-                                  fontSize: '11px',
-                                  fontWeight: '700',
-                                  padding: '4px 8px',
-                                  borderRadius: '6px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.15)' : debt.status === 'paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
-                                  color: isOverdue ? '#ef4444' : debt.status === 'paid' ? 'var(--success-color)' : '#3b82f6',
-                                  animation: isOverdue ? 'pulse-btn 1.5s infinite' : 'none'
-                                }}>
-                                  {isOverdue && <AlertTriangle size={12} />}
-                                  {debt.status === 'paid' && <Check size={12} />}
-                                  {(debt.status === 'active' || debt.status === 'pending') && <Clock size={12} />}
-                                  {isOverdue && (language === 'uz' ? 'Muddati o\'tgan' : 'Просрочен')}
-                                  {!isOverdue && (debt.status === 'active' || debt.status === 'pending') && (language === 'uz' ? 'Kutilmoqda' : 'Активен')}
-                                  {debt.status === 'paid' && (language === 'uz' ? 'To\'langan' : 'Погашен')}
-                                </span>
-                              </td>
-                              <td className="actions-cell" style={{ textAlign: 'right' }}>
-                                <button
-                                  onClick={() => setSelectedDebtDetail(debt)}
-                                  className="action-btn"
+                            return displayedDebts.map(debt => {
+                              const isOverdue = debt.status === 'overdue' && parseFloat(debt.remaining_amount) > 0;
+                              return (
+                                <tr
+                                  key={debt.id}
                                   style={{
-                                    padding: '6px 12px',
-                                    borderRadius: '6px',
-                                    backgroundColor: 'var(--accent-color)',
-                                    color: '#fff',
-                                    border: 'none',
-                                    cursor: 'pointer',
-                                    fontSize: '12px',
-                                    fontWeight: '500',
-                                    boxShadow: 'var(--shadow-sm)'
+                                    backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.02)' : 'transparent',
+                                    borderLeft: isOverdue ? '4px solid #ef4444' : '4px solid transparent'
                                   }}
                                 >
-                                  {language === 'uz' ? "Batafsil" : "Детали"}
-                                </button>
-                              </td>
-                            </tr>
-                          );
-                        });
-                      })()}
-                    </tbody>
-                  </table>
+                                  <td data-label={language === 'uz' ? "Do'kon" : "Магазин"} style={{ fontWeight: '600' }}>
+                                    <div>{debt.store?.name || `Store #${debt.store_id}`}</div>
+                                    {debt.debtor_name && (
+                                      <div style={{ fontSize: '11px', fontWeight: '600', color: 'var(--accent-color)', marginTop: '4px' }}>
+                                        👤 {debt.debtor_name}
+                                      </div>
+                                    )}
+                                  </td>
+                                  <td data-label={language === 'uz' ? "Agent" : "Агент"} style={{ color: 'var(--text-secondary)' }}>
+                                    {debt.agent?.name || `Agent #${debt.agent_id}`}
+                                  </td>
+                                  <td data-label={language === 'uz' ? "Muddati" : "Срок"}>
+                                    <div style={{ fontSize: '13px', fontWeight: '500' }}>
+                                      {debt.due_date}
+                                    </div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                                      {language === 'uz' ? 'Berildi' : 'Выдан'}: {debt.createdAt?.split('T')[0] || debt.given_date || 'N/A'}
+                                    </div>
+                                  </td>
+                                  <td data-label={language === 'uz' ? "Jami" : "Всего"} style={{ fontWeight: '500' }}>
+                                    {parseFloat(debt.total_amount).toLocaleString()} UZS
+                                  </td>
+                                  <td data-label={language === 'uz' ? "Qoldiq" : "Остаток"} style={{ fontWeight: '600', color: parseFloat(debt.remaining_amount) > 0 ? 'var(--accent-color)' : 'var(--text-secondary)' }}>
+                                    {parseFloat(debt.remaining_amount).toLocaleString()} UZS
+                                  </td>
+                                  <td data-label={language === 'uz' ? "Holat" : "Статус"}>
+                                    <span style={{
+                                      fontSize: '11px',
+                                      fontWeight: '700',
+                                      padding: '4px 8px',
+                                      borderRadius: '6px',
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      backgroundColor: isOverdue ? 'rgba(239, 68, 68, 0.15)' : debt.status === 'paid' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+                                      color: isOverdue ? '#ef4444' : debt.status === 'paid' ? 'var(--success-color)' : '#3b82f6',
+                                      animation: isOverdue ? 'pulse-btn 1.5s infinite' : 'none'
+                                    }}>
+                                      {isOverdue && <AlertTriangle size={12} />}
+                                      {debt.status === 'paid' && <Check size={12} />}
+                                      {(debt.status === 'active' || debt.status === 'pending') && <Clock size={12} />}
+                                      {isOverdue && (language === 'uz' ? 'Muddati o\'tgan' : 'Просрочен')}
+                                      {!isOverdue && (debt.status === 'active' || debt.status === 'pending') && (language === 'uz' ? 'Kutilmoqda' : 'Активен')}
+                                      {debt.status === 'paid' && (language === 'uz' ? 'To\'langan' : 'Погашен')}
+                                    </span>
+                                  </td>
+                                  <td className="actions-cell" style={{ textAlign: 'right' }}>
+                                    <button
+                                      onClick={() => setSelectedDebtDetail(debt)}
+                                      className="action-btn"
+                                      style={{
+                                        padding: '6px 12px',
+                                        borderRadius: '6px',
+                                        backgroundColor: 'var(--accent-color)',
+                                        color: '#fff',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: '12px',
+                                        fontWeight: '500',
+                                        boxShadow: 'var(--shadow-sm)'
+                                      }}
+                                    >
+                                      {language === 'uz' ? "Batafsil" : "Детали"}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            });
+                          })()}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Mobile View - Chiroyli ixcham cardlar (Tarix oynasi kabi) */}
+                  <div className="nasiya-mobile-view" style={{ display: 'none', flexDirection: 'column', gap: '10px', width: '100%' }}>
+                    {(() => {
+                      const displayedDebts = allCombinedDebts.filter(d => {
+                        const isAgentObj = userRole === 'agent';
+                        const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                        const storeName = d.store?.name || '';
+                        const agentName = d.agent?.name || '';
+                        const debtorName = d.debtor_name || '';
+                        const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
+                                              agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
+                                              debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
+                        const matchesStatus = debtStatusFilter === 'all' || 
+                                              (debtStatusFilter === 'active' && d.status === 'active') ||
+                                              (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
+                                              (debtStatusFilter === 'paid' && d.status === 'paid');
+                        return matchesUser && matchesSearch && matchesStatus;
+                      });
+
+                      if (displayedDebts.length === 0) {
+                        return (
+                          <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            {language === 'uz' ? "Hech qanday nasiya topilmadi." : "Кредиты не найдены."}
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', width: '100%' }}>
+                          {displayedDebts.map(debt => {
+                            const isOverdue = debt.status === 'overdue' && parseFloat(debt.remaining_amount) > 0;
+                            
+                            let statusText = '';
+                            let statusBg = '';
+                            let statusColor = '';
+                            
+                            if (isOverdue) {
+                              statusText = language === 'uz' ? 'Muddati o\'tgan' : 'Просрочен';
+                              statusBg = 'rgba(239, 68, 68, 0.1)';
+                              statusColor = '#ef4444';
+                            } else if (debt.status === 'paid') {
+                              statusText = language === 'uz' ? 'To\'langan' : 'Погашен';
+                              statusBg = 'rgba(16, 185, 129, 0.1)';
+                              statusColor = 'var(--success-color)';
+                            } else {
+                              statusText = language === 'uz' ? 'Kutilmoqda' : 'Активен';
+                              statusBg = 'rgba(59, 130, 246, 0.1)';
+                              statusColor = '#3b82f6';
+                            }
+
+                            return (
+                              <div 
+                                key={debt.id}
+                                onClick={() => setSelectedDebtDetail(debt)}
+                                style={{
+                                  backgroundColor: 'var(--bg-secondary)',
+                                  border: isOverdue ? '1px solid rgba(239, 68, 68, 0.3)' : '1px solid var(--border-color)',
+                                  borderLeft: isOverdue ? '4px solid #ef4444' : '4px solid var(--accent-color)',
+                                  borderRadius: '8px',
+                                  padding: '10px 12px',
+                                  boxShadow: 'var(--shadow-sm)',
+                                  cursor: 'pointer',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center',
+                                  transition: 'all 0.2s ease'
+                                }}
+                              >
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '3px', flex: 1, minWidth: 0, paddingRight: '8px' }}>
+                                  <div style={{ fontWeight: '700', color: 'var(--text-primary)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                    {debt.store?.name || `Store #${debt.store_id}`}
+                                  </div>
+                                  
+                                  {debt.debtor_name && (
+                                    <div style={{ fontWeight: '600', color: 'var(--accent-color)', fontSize: '10px', marginTop: '1px' }}>
+                                      👤 {debt.debtor_name}
+                                    </div>
+                                  )}
+                                  
+                                  <div style={{ color: 'var(--text-secondary)', fontSize: '10px', display: 'flex', flexWrap: 'wrap', gap: '2px 8px', marginTop: '2px' }}>
+                                    <span>📅 {debt.createdAt?.split('T')[0] || debt.given_date || 'N/A'}</span>
+                                    <span style={{ color: isOverdue ? '#ef4444' : 'var(--text-secondary)', fontWeight: '500' }}>⌛ {debt.due_date}</span>
+                                  </div>
+
+                                  <div style={{ color: 'var(--text-muted)', fontSize: '9px', marginTop: '1px' }}>
+                                    👤 {debt.agent?.name || `Agent #${debt.agent_id}`}
+                                  </div>
+                                </div>
+
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '6px', flexShrink: 0 }}>
+                                  <span style={{
+                                    fontSize: '9px',
+                                    fontWeight: '700',
+                                    padding: '2px 8px',
+                                    borderRadius: '4px',
+                                    backgroundColor: statusBg,
+                                    color: statusColor,
+                                    whiteSpace: 'nowrap'
+                                  }}>
+                                    {statusText}
+                                  </span>
+
+                                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                                    <span style={{ fontSize: '12px', fontWeight: '700', color: isOverdue ? '#ef4444' : 'var(--text-primary)' }}>
+                                      {parseFloat(debt.remaining_amount).toLocaleString()} UZS
+                                    </span>
+                                    {parseFloat(debt.paid_amount) > 0 && (
+                                      <span style={{ fontSize: '9px', color: 'var(--text-muted)' }}>
+                                        {language === 'uz' ? 'Jami' : 'Всего'}: {parseFloat(debt.total_amount).toLocaleString()}
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
                 </div>
               </div>
             );

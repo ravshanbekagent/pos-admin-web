@@ -990,58 +990,25 @@ div.cashier-overlay-fixed,
     border-radius: 6px !important;
   }
 
-  /* Table: Responsive cards view */
-  .nasiya-table thead {
-    display: none;
-  }
-
-  .nasiya-table tbody, 
-  .nasiya-table tr, 
-  .nasiya-table td {
+  /* Table: Responsive views display toggle */
+  .nasiya-desktop-view {
     display: block;
-    width: 100%;
   }
-
-  .nasiya-table tr {
-    margin-bottom: 10px;
-    background-color: var(--bg-secondary);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    padding: 10px 12px;
-    box-shadow: var(--shadow-sm);
-  }
-
-  .nasiya-table td {
-    border: none !important;
-    padding: 4px 0 !important;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    font-size: 12px !important;
-  }
-
-  .nasiya-table td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: var(--text-secondary);
-    font-size: 11px;
-    margin-right: 8px;
-  }
-
-  .nasiya-table td.actions-cell {
-    justify-content: flex-end !important;
-    margin-top: 6px;
-    border-top: 1px solid var(--border-color) !important;
-    padding-top: 6px !important;
-  }
-
-  .nasiya-table td.actions-cell::before {
+  
+  .nasiya-mobile-view {
     display: none;
   }
-
-  .nasiya-table td.actions-cell button {
-    padding: 4px 10px !important;
-    font-size: 11px !important;
+  
+  @media (max-width: 768px) {
+    .nasiya-desktop-view {
+      display: none !important;
+    }
+    
+    .nasiya-mobile-view {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+    }
   }
 
   /* Selected Debt Detail Modal responsive styling */
