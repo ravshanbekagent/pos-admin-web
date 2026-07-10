@@ -3565,7 +3565,7 @@ function App() {
       return;
     }
     try {
-      const res = await fetch(`${API_URL}/debts/${debtId}/payments`, {
+      const res = await fetch(`${API_URL}/debts/${debtId}/pay`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
