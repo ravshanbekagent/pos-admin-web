@@ -1188,13 +1188,10 @@ function App() {
     ? storeAssignments.filter(ass => ass.agentId !== null && ass.agentId !== undefined && String(ass.agentId) === String(activeAgent.id)).sort((a, b) => (a.order || 0) - (b.order || 0)) 
     : [];
   const activeStores = agentStores.filter(store => 
-    isAssignmentActive(store.date, store.durationDays || 1) &&
-    !cloudVisits.some(v => v.storeId === store.id && v.date === getTodayDateString())
+    isAssignmentActive(store.date, store.durationDays || 1)
   );
   const activeAgentStores = agentStores.filter(store => {
-    const todayStr = getTodayDateString();
-    return isAssignmentActive(store.date, store.durationDays || 1) &&
-           !cloudVisits.some(v => v.storeId === store.id && v.date === todayStr);
+    return isAssignmentActive(store.date, store.durationDays || 1);
   });
 
   const inactiveAgentStores = activeAgent 
@@ -1414,6 +1411,25 @@ function App() {
   const [assignStoreSearchQuery, setAssignStoreSearchQuery] = useState('');
   const [showAddSelfStoreModal, setShowAddSelfStoreModal] = useState(false);
   const [showAgentStoresMapModal, setShowAgentStoresMapModal] = useState(false);
+  const [userLocation, setUserLocation] = useState(null);
+
+  useEffect(() => {
+    if (showAgentStoresMapModal && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          });
+        },
+        (error) => {
+          console.warn("Geolocation query failed or was denied:", error);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  }, [showAgentStoresMapModal]);
+
   const [selfStoreSearchQuery, setSelfStoreSearchQuery] = useState('');
   const [selectedAddSelfStoreIds, setSelectedAddSelfStoreIds] = useState([]);
   const [isLoadingSelfStores, setIsLoadingSelfStores] = useState(false);
@@ -8095,9 +8111,38 @@ function App() {
                                     </span>
 
                                     {/* Chevron icon indicator */}
-                                    <span style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: '600', flexShrink: 0, paddingRight: '8px' }}>
-                                      {language === 'uz' ? "Kassa ➔" : "Касса ➔"}
-                                    </span>
+                                    {/* Chevron icon indicator / Visit indicator */}
+                                    {(() => {
+                                      const todayStr = getTodayDateString();
+                                      const visit = cloudVisits.find(v => v.storeId === store.id && v.date === todayStr);
+                                      if (visit) {
+                                        const isSold = visit.status === 'sold';
+                                        return (
+                                          <span style={{ 
+                                            fontSize: '11px', 
+                                            color: isSold ? '#10b981' : '#f59e0b', 
+                                            fontWeight: '600', 
+                                            flexShrink: 0, 
+                                            padding: '2px 6px',
+                                            borderRadius: '4px',
+                                            backgroundColor: isSold ? 'rgba(16, 185, 129, 0.1)' : 'rgba(245, 158, 11, 0.1)',
+                                            marginRight: '8px',
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '2px'
+                                          }}>
+                                            {isSold 
+                                              ? (language === 'uz' ? "Sotuv ✓" : "Продажа ✓") 
+                                              : (language === 'uz' ? "Tashrif ✓" : "Визит ✓")}
+                                          </span>
+                                        );
+                                      }
+                                      return (
+                                        <span style={{ fontSize: '12px', color: 'var(--accent-color)', fontWeight: '600', flexShrink: 0, paddingRight: '8px' }}>
+                                          {language === 'uz' ? "Kassa ➔" : "Касса ➔"}
+                                        </span>
+                                      );
+                                    })()}
                                   </div>
                                 ))}
                               </div>
@@ -13662,42 +13707,95 @@ function App() {
                       .popup-info { font-size: 12px; margin-bottom: 4px; color: #cbd5e1; }
                       .popup-link { display: inline-block; margin-top: 8px; color: #38bdf8; text-decoration: none; font-weight: 600; font-size: 12px; }
                       .popup-link:hover { text-decoration: underline; }
+                      
+                      @keyframes pulse {
+                        0% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+                        70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
+                        100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+                      }
                     </style>
                   </head>
                   <body>
                     <div id="map"></div>
                     <script>
                       const stores = ${JSON.stringify(mapStores)};
+                      const userLoc = ${JSON.stringify(userLocation)};
+                      
                       const map = L.map('map').setView([41.3113, 69.2797], 13);
                       L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
                         maxZoom: 19,
                         attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                       }).addTo(map);
+                      
                       const markers = [];
+                      
+                      // Calculate distance function
+                      function getDistance(lat1, lon1, lat2, lon2) {
+                        const R = 6371; // km
+                        const dLat = (lat2 - lat1) * Math.PI / 180;
+                        const dLon = (lon2 - lon1) * Math.PI / 180;
+                        const a = 
+                          Math.sin(dLat/2) * Math.sin(dLat/2) +
+                          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                          Math.sin(dLon/2) * Math.sin(dLon/2);
+                        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+                        const d = R * c;
+                        if (d < 1) {
+                          return Math.round(d * 1000) + ' m';
+                        }
+                        return d.toFixed(1) + ' km';
+                      }
+
+                      // 1. Add User (Agent) location marker if available
+                      if (userLoc && userLoc.lat && userLoc.lng) {
+                        const userMarkerHtml = '<div style="background-color: #ef4444; width: 18px; height: 18px; border-radius: 50%; border: 3px solid white; box-shadow: 0 0 10px rgba(239, 68, 68, 0.8); animation: pulse 1.5s infinite; cursor: pointer;"></div>';
+                        const userIcon = L.divIcon({
+                          html: userMarkerHtml,
+                          className: 'user-location-icon',
+                          iconSize: [18, 18],
+                          iconAnchor: [9, 9],
+                          popupAnchor: [0, -9]
+                        });
+                        const userMarker = L.marker([userLoc.lat, userLoc.lng], { icon: userIcon })
+                          .bindPopup(\'<div class="custom-popup"><div class="popup-title" style="color: #ef4444;">Siz (Agent)</div><div class="popup-info">Hozirgi joylashuvingiz</div></div>\')
+                          .addTo(map);
+                        markers.push(userMarker);
+                      }
+
+                      // 2. Add stores markers
                       stores.forEach(function(store) {
                         const markerHtml = store.visited 
-                          ? '<div style="background-color: #10b981; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; text-align: center;">✓</div>'
-                          : '<div style="background-color: #3b82f6; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; text-align: center;">' + store.index + '</div>';
+                          ? \'<div style="background-color: #10b981; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; text-align: center;">✓</div>\'
+                          : \'<div style="background-color: #3b82f6; width: 28px; height: 28px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 5px rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; color: white; font-size: 12px; font-weight: bold; text-align: center;">\' + store.index + \'</div>\';
                         const customIcon = L.divIcon({
                           html: markerHtml,
-                          className: 'custom-div-icon',
+                          className: \'custom-div-icon\',
                           iconSize: [28, 28],
                           iconAnchor: [14, 14],
                           popupAnchor: [0, -14]
                         });
-                        const popupContent = '<div class="custom-popup">' +
-                          '<div class="popup-title">' + store.name + '</div>' +
-                          '<div class="popup-info"><strong>Manzil:</strong> ' + store.address + '</div>' +
-                          (store.ownerName ? '<div class="popup-info"><strong>Egasi:</strong> ' + store.ownerName + '</div>' : '') +
-                          (store.phone ? '<div class="popup-info"><strong>Telefon:</strong> ' + store.phone + '</div>' : '') +
-                          '<div class="popup-info"><strong>Status:</strong> ' + (store.visited ? '<span style="color: #10b981;">Tashrif buyurilgan</span>' : '<span style="color: #cbd5e1;">Kutilmoqda</span>') + '</div>' +
-                          '<a href="' + (store.map_link || 'https://maps.google.com/?q=' + store.latitude + ',' + store.longitude) + '" target="_blank" class="popup-link">Google Maps orqali ochish</a>' +
-                          '</div>';
+                        
+                        let distText = \'\';
+                        if (userLoc && userLoc.lat && userLoc.lng) {
+                          const dist = getDistance(userLoc.lat, userLoc.lng, store.latitude, store.longitude);
+                          distText = \'<div class="popup-info"><strong>Masofa:</strong> <span style="color:#ef4444; font-weight:700;">\' + dist + \'</span></div>\';
+                        }
+
+                        const popupContent = \'<div class="custom-popup">\' +
+                          \'<div class="popup-title">\' + store.name + \'</div>\' +
+                          \'<div class="popup-info"><strong>Manzil:</strong> \' + store.address + \'</div>\' +
+                          distText +
+                          (store.ownerName ? \'<div class="popup-info"><strong>Egasi:</strong> \' + store.ownerName + \'</div>\' : \'\') +
+                          (store.phone ? \'<div class="popup-info"><strong>Telefon:</strong> \' + store.phone + \'</div>\' : \'\') +
+                          \'<div class="popup-info"><strong>Status:</strong> \' + (store.visited ? \'<span style="color: #10b981;">Tashrif buyurilgan</span>\' : \'<span style="color: #cbd5e1;">Kutilmoqda</span>\') + \'</div>\' +
+                          \'<a href="\' + (store.map_link || \'https://maps.google.com/?q=\' + store.latitude + \',\' + store.longitude) + \'" target="_blank" class="popup-link">Google Maps orqali ochish</a>\' +
+                          \'</div>\';
                         const marker = L.marker([store.latitude, store.longitude], { icon: customIcon })
                           .bindPopup(popupContent)
                           .addTo(map);
                         markers.push(marker);
                       });
+                      
                       if (markers.length > 0) {
                         const group = new L.featureGroup(markers);
                         map.fitBounds(group.getBounds().pad(0.15));
