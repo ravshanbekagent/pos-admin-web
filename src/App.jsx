@@ -8908,7 +8908,7 @@ function App() {
                               cursor: (visit.status === 'sold' && visit.items) ? 'pointer' : 'default',
                               transition: 'all 0.2s ease'
                             }}
-                            className={visit.status === 'sold' ? 'hoverable-history-card' : ''}
+                            className={`agent-history-card ${visit.status === 'sold' ? 'hoverable-history-card' : ''}`}
                           >
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                               <div>
