@@ -1282,13 +1282,22 @@ function App() {
               (v.date === sale.date || v.date === 'Bugun')
             );
             
-            if (matchedVisit && matchedVisit.items && matchedVisit.items.length > 0) {
+            let matchedProducts = [];
+            if (matchedVisit && matchedVisit.items) {
+              if (Array.isArray(matchedVisit.items)) {
+                matchedProducts = matchedVisit.items;
+              } else if (matchedVisit.items.products && Array.isArray(matchedVisit.items.products)) {
+                matchedProducts = matchedVisit.items.products;
+              }
+            }
+
+            if (matchedProducts && matchedProducts.length > 0) {
               return {
                 ...sale,
-                items: matchedVisit.items.map(item => ({
+                items: matchedProducts.map(item => ({
                   productName: item.productName || item.name || 'Noma\'lum',
                   qty: item.qty || item.quantity || 1,
-                  price: parseFloat(item.price || 0),
+                  price: parseFloat(item.price || item.unit_price || 0),
                   originalPrice: parseFloat(item.originalPrice || item.original_price || 0)
                 }))
               };
@@ -14315,14 +14324,14 @@ function App() {
                     </tr>
                   </thead>
                   <tbody>
-                    {selectedDebtDetail.sale?.items && selectedDebtDetail.sale.items.length > 0 ? (
+                     {selectedDebtDetail.sale?.items && selectedDebtDetail.sale.items.length > 0 ? (
                       selectedDebtDetail.sale.items.map(item => (
                         <tr key={item.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                          <td style={{ padding: '8px 12px', fontWeight: '500' }}>{item.product?.name || `Mahsulot #${item.product_id}`}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>{item.quantity} {item.product?.unit || ''}</td>
-                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>{parseFloat(item.unit_price).toLocaleString()} UZS</td>
+                          <td style={{ padding: '8px 12px', fontWeight: '500' }}>{item.product?.name || item.productName || `Mahsulot #${item.product_id}`}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'center' }}>{item.quantity || item.qty} {item.product?.unit || item.unit || ''}</td>
+                          <td style={{ padding: '8px 12px', textAlign: 'right' }}>{parseFloat(item.unit_price || item.price || 0).toLocaleString()} UZS</td>
                           <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>
-                            {(parseFloat(item.unit_price) * parseInt(item.quantity)).toLocaleString()} UZS
+                            {(parseFloat(item.unit_price || item.price || 0) * parseInt(item.quantity || item.qty || 1)).toLocaleString()} UZS
                           </td>
                         </tr>
                       ))
@@ -14334,23 +14343,66 @@ function App() {
                             <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
                               <td style={{ padding: '8px 12px', fontWeight: '500' }}>{item.productName || item.product?.name || `Mahsulot`}</td>
                               <td style={{ padding: '8px 12px', textAlign: 'center' }}>{item.qty || item.quantity}</td>
-                              <td style={{ padding: '8px 12px', textAlign: 'right' }}>{parseFloat(item.price || item.unit_price).toLocaleString()} UZS</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right' }}>{parseFloat(item.price || item.unit_price || 0).toLocaleString()} UZS</td>
                               <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>
-                                {(parseFloat(item.price || item.unit_price) * parseInt(item.qty || item.quantity)).toLocaleString()} UZS
+                                {(parseFloat(item.price || item.unit_price || 0) * parseInt(item.qty || item.quantity || 1)).toLocaleString()} UZS
                               </td>
                             </tr>
                           ));
                         } catch (e) {
-                          return (
-                            <tr>
-                              <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>
-                                {language === 'uz' ? "Mahsulotlar ma'lumoti yuklanmadi." : "Не удалось загрузить информацию о товарах."}
-                              </td>
-                            </tr>
-                          );
+                          return null;
                         }
                       })()
-                    ) : (
+                    ) : (() => {
+                      // Fallback 1: Find matched sale from the loaded sales list
+                      const matchedSale = sales.find(s => 
+                        (String(s.id) === String(selectedDebtDetail.sale_id) || 
+                         String(s.id) === String(selectedDebtDetail.id)) && 
+                        s.items && s.items.length > 0
+                      );
+                      if (matchedSale) {
+                        return matchedSale.items.map((item, idx) => (
+                          <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                            <td style={{ padding: '8px 12px', fontWeight: '500' }}>{item.productName || item.product?.name || `Mahsulot`}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'center' }}>{item.qty || item.quantity || 1} {item.unit || ''}</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right' }}>{parseFloat(item.price || item.unit_price || 0).toLocaleString()} UZS</td>
+                            <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>
+                              {(parseFloat(item.price || item.unit_price || 0) * parseInt(item.qty || item.quantity || 1)).toLocaleString()} UZS
+                            </td>
+                          </tr>
+                        ));
+                      }
+
+                      // Fallback 2: Find matched visit from visitedStores or cloudVisits
+                      const matchedVisit = [...cloudVisits, ...visitedStores].find(v => 
+                        (String(v.storeId) === String(selectedDebtDetail.store_id) || 
+                         String(v.id) === String(selectedDebtDetail.id)) && 
+                        v.status === 'sold' && 
+                        v.items
+                      );
+                      if (matchedVisit) {
+                        let vProds = [];
+                        if (Array.isArray(matchedVisit.items)) {
+                          vProds = matchedVisit.items;
+                        } else if (matchedVisit.items.products && Array.isArray(matchedVisit.items.products)) {
+                          vProds = matchedVisit.items.products;
+                        }
+                        
+                        if (vProds.length > 0) {
+                          return vProds.map((item, idx) => (
+                            <tr key={idx} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                              <td style={{ padding: '8px 12px', fontWeight: '500' }}>{item.productName || item.product?.name || `Mahsulot`}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'center' }}>{item.qty || item.quantity || 1} {item.unit || ''}</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right' }}>{parseFloat(item.price || item.unit_price || 0).toLocaleString()} UZS</td>
+                              <td style={{ padding: '8px 12px', textAlign: 'right', fontWeight: '600' }}>
+                                {(parseFloat(item.price || item.unit_price || 0) * parseInt(item.qty || item.quantity || 1)).toLocaleString()} UZS
+                              </td>
+                            </tr>
+                          ));
+                        }
+                      }
+                      return null;
+                    })() || (
                       <tr>
                         <td colSpan="4" style={{ padding: '12px', textAlign: 'center', color: 'var(--text-secondary)' }}>
                           {language === 'uz' ? "Mahsulotlar ro'yxati bo'sh" : "Список товаров пуст"}
