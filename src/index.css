@@ -1276,6 +1276,110 @@ div.cashier-overlay-fixed,
 
 /* Mobile adjustments for Agent History tab and details modal to make it 40% more compact */
 @media (max-width: 480px) {
+  /* Global 40% more compact sizing for the whole application on mobile */
+  html, body, #root {
+    font-size: 10px !important;
+  }
+
+  h1 { font-size: 14px !important; }
+  h2 { font-size: 13px !important; }
+  h3 { font-size: 12px !important; }
+  h4 { font-size: 11px !important; }
+  
+  span, p, label, input, button, select, option, textarea, td, th {
+    font-size: 10px !important;
+  }
+  
+  /* Compact layout containers */
+  .content-body {
+    padding: 8px !important;
+    gap: 10px !important;
+  }
+  
+  /* Compact cards */
+  div[style*="background-color: var(--bg-secondary)"] {
+    padding: 10px !important;
+    border-radius: 8px !important;
+    margin-bottom: 6px !important;
+    gap: 8px !important;
+  }
+  
+  /* Tables styling compacting */
+  table th, table td {
+    padding: 6px 8px !important;
+    font-size: 10px !important;
+  }
+  
+  thead tr {
+    font-size: 10px !important;
+  }
+  
+  /* Grid layouts */
+  div[style*="display: grid"],
+  div[style*="display:grid"] {
+    gap: 8px !important;
+  }
+
+  /* Form spacing */
+  form {
+    gap: 8px !important;
+  }
+  
+  .form-group {
+    margin-bottom: 8px !important;
+  }
+
+  input, select, textarea {
+    padding: 6px 10px !important;
+    height: auto !important;
+    font-size: 10px !important;
+  }
+
+  button {
+    padding: 6px 12px !important;
+    font-size: 10px !important;
+  }
+  
+  /* Dashboard stats grid compact overrides */
+  div[style*="grid-template-columns: repeat(4, 1fr)"],
+  div[style*="grid-template-columns: repeat(auto-fit"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  div[style*="grid-template-columns: repeat(3, 1fr)"] {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 8px !important;
+  }
+
+  /* Buttons inside forms and card actions */
+  div[style*="display: flex"][style*="gap: 12px"],
+  div[style*="display: flex"][style*="gap: 16px"] {
+    gap: 8px !important;
+  }
+  
+  /* Topbar header size reduction */
+  header.top-header {
+    height: 52px !important;
+    padding: 0 10px !important;
+  }
+
+  header.top-header h2 {
+    font-size: 12px !important;
+  }
+  
+  /* Dropdowns */
+  select {
+    padding: 6px 10px !important;
+  }
+
+  /* Badges */
+  span[style*="padding: 3px 8px"],
+  span[style*="padding: 2px 6px"] {
+    padding: 1px 4px !important;
+    font-size: 9px !important;
+  }
+
   /* Tarix sahifasidagi asosiy card */
   .agent-history-card {
     padding: 8px 10px !important;
