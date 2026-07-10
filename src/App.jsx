@@ -8418,11 +8418,25 @@ function App() {
                                               {visit.reason}
                                             </span>
                                           )}
-                                          {isSold && visit.items && (
-                                            <span style={{ fontSize: '10px', color: 'var(--accent-color)', fontWeight: '600' }}>
-                                              {visit.items.reduce((sum, item) => sum + (item.qty * item.price), 0).toLocaleString()} UZS
-                                            </span>
-                                          )}
+                                          {isSold && visit.items && (() => {
+                                            let products = [];
+                                            try {
+                                              const parsed = typeof visit.items === 'string' ? JSON.parse(visit.items) : visit.items;
+                                              if (parsed && typeof parsed === 'object') {
+                                                if (parsed.products) {
+                                                  products = parsed.products || [];
+                                                } else if (Array.isArray(parsed)) {
+                                                  products = parsed;
+                                                }
+                                              }
+                                            } catch (e) {}
+                                            const total = products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0);
+                                            return (
+                                              <span style={{ fontSize: '10px', color: 'var(--accent-color)', fontWeight: '600' }}>
+                                                {total.toLocaleString()} UZS
+                                              </span>
+                                            );
+                                          })()}
                                         </div>
                                       </div>
                                     );
