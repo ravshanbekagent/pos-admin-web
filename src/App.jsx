@@ -9034,34 +9034,34 @@ function App() {
                       padding: '16px'
                     }}>
                       <div className="history-details-modal" style={{
-                        backgroundColor: '#1e293b', // Sleek dark card style as in user's image
-                        border: '1px solid rgba(255, 255, 255, 0.1)',
+                        backgroundColor: 'var(--bg-secondary)', 
+                        border: '1px solid var(--border-color)',
                         borderRadius: '16px',
                         width: '100%',
                         maxWidth: '500px',
                         padding: '24px',
-                        color: '#f8fafc',
-                        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.4)'
+                        color: 'var(--text-primary)',
+                        boxShadow: 'var(--shadow-lg)'
                       }}>
                         {/* Modal Header */}
                         <div className="history-details-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '24px' }}>
                           <div>
-                            <h3 style={{ fontSize: '18px', fontWeight: '800', color: '#fff', margin: '0 0 6px 0' }}>
+                            <h3 style={{ fontSize: '18px', fontWeight: '800', color: 'var(--text-primary)', margin: '0 0 6px 0' }}>
                               {visit.storeName}
                             </h3>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', marginTop: '6px' }}>
                               <span style={{
                                 fontSize: '11px',
                                 fontWeight: '700',
-                                color: '#38bdf8',
-                                backgroundColor: 'rgba(56, 189, 248, 0.08)',
+                                color: 'var(--accent-color)',
+                                backgroundColor: 'var(--accent-light)',
                                 padding: '2px 8px',
                                 borderRadius: '4px',
-                                border: '1px solid rgba(56, 189, 248, 0.2)'
+                                border: '1px solid var(--border-color)'
                               }}>
                                 ID: #{visit.id || 'N/A'}
                               </span>
-                              <span style={{ fontSize: '12px', color: '#94a3b8', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                              <span style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '4px' }}>
                                 🕒 {visit.time} ({visit.date})
                               </span>
                             </div>
@@ -9071,7 +9071,7 @@ function App() {
                             style={{
                               background: 'none',
                               border: 'none',
-                              color: '#94a3b8',
+                              color: 'var(--text-secondary)',
                               fontSize: '22px',
                               cursor: 'pointer',
                               padding: '4px',
@@ -9088,8 +9088,8 @@ function App() {
                           justifyContent: 'space-between', 
                           fontSize: '12px', 
                           fontWeight: '700', 
-                          color: '#64748b', 
-                          borderBottom: '1px solid rgba(255, 255, 255, 0.1)', 
+                          color: 'var(--text-secondary)', 
+                          borderBottom: '1px solid var(--border-color)', 
                           paddingBottom: '8px',
                           marginBottom: '12px'
                         }}>
@@ -9106,17 +9106,17 @@ function App() {
                               justifyContent: 'space-between', 
                               alignItems: 'center', 
                               fontSize: '13px', 
-                              color: '#cbd5e1', 
-                              borderBottom: '1px dashed rgba(255, 255, 255, 0.05)', 
+                              color: 'var(--text-primary)', 
+                              borderBottom: '1px dashed var(--border-color)', 
                               paddingBottom: '8px'
                             }}>
-                              <span className="history-details-prodname" style={{ fontWeight: '600', flex: 1, paddingRight: '12px', color: '#fff', textAlign: 'left' }}>
+                              <span className="history-details-prodname" style={{ fontWeight: '600', flex: 1, paddingRight: '12px', color: 'var(--text-primary)', textAlign: 'left' }}>
                                 {item.productName}
                               </span>
-                              <span style={{ width: '80px', textAlign: 'right', color: '#94a3b8' }}>
+                              <span style={{ width: '80px', textAlign: 'right', color: 'var(--text-secondary)' }}>
                                 {item.qty || item.quantity || 1} {language === 'uz' ? "dona" : "шт."}
                               </span>
-                              <span style={{ width: '120px', textAlign: 'right', fontWeight: '700', color: '#fff' }}>
+                              <span style={{ width: '120px', textAlign: 'right', fontWeight: '700', color: 'var(--text-primary)' }}>
                                 {((item.qty || item.quantity || 1) * (item.price || 0)).toLocaleString()} UZS
                               </span>
                             </div>
@@ -9128,16 +9128,16 @@ function App() {
                           display: 'flex',
                           justifyContent: 'space-between',
                           alignItems: 'center',
-                          borderTop: '1px solid rgba(255, 255, 255, 0.1)',
+                          borderTop: '1px solid var(--border-color)',
                           paddingTop: '16px',
                           fontWeight: '800',
                           fontSize: '16px',
                           marginBottom: isNasiya ? '12px' : '20px'
                         }}>
-                          <span style={{ color: '#fff' }}>
+                          <span style={{ color: 'var(--text-primary)' }}>
                             {language === 'uz' ? "Umumiy summa:" : "Общая сумма:"}
                           </span>
-                          <span style={{ color: '#10b981' }}>
+                          <span style={{ color: 'var(--success-color)' }}>
                             {totalSum.toLocaleString()} UZS
                           </span>
                         </div>
@@ -9154,7 +9154,7 @@ function App() {
                             display: 'flex',
                             flexDirection: 'column',
                             gap: '6px',
-                            color: '#cbd5e1'
+                            color: 'var(--text-primary)'
                           }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
                               <span>{language === 'uz' ? "To'lov turi:" : "Тип оплаты:"}</span>
@@ -9162,14 +9162,14 @@ function App() {
                             </div>
                             <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                               <span>{language === 'uz' ? "Boshlang'ich to'lov:" : "Первоначальный взнос:"}</span>
-                              <span style={{ color: '#10b981', fontWeight: '600' }}>{initialPayment.toLocaleString()} UZS</span>
+                              <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>{initialPayment.toLocaleString()} UZS</span>
                             </div>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '6px', marginTop: '2px' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', borderTop: '1px dashed var(--border-color)', paddingTop: '6px', marginTop: '2px' }}>
                               <span style={{ color: '#ef4444' }}>{language === 'uz' ? "Qoldiq qarz:" : "Оставшийся долг:"}</span>
                               <span style={{ color: '#ef4444' }}>{Math.max(0, totalSum - initialPayment).toLocaleString()} UZS</span>
                             </div>
                             {(debtorName || debtorPhone) && (
-                              <div style={{ borderTop: '1px dashed rgba(255,255,255,0.08)', paddingTop: '6px', marginTop: '2px', fontSize: '12px', color: '#94a3b8' }}>
+                              <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '6px', marginTop: '2px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                                 <div>👤 {debtorName || (language === 'uz' ? "Kiritilmagan" : "Не указано")}</div>
                                 {debtorPhone && <div style={{ marginTop: '2px' }}>📞 {debtorPhone}</div>}
                               </div>
