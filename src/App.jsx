@@ -1194,7 +1194,7 @@ function App() {
   const activeAgentStores = agentStores.filter(store => {
     const todayStr = getTodayDateString();
     return isAssignmentActive(store.date, store.durationDays || 1) &&
-           !visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
+           !cloudVisits.some(v => v.storeId === store.id && v.date === todayStr);
   });
 
   const inactiveAgentStores = activeAgent 
@@ -8800,20 +8800,8 @@ function App() {
 
                 {(() => {
                   const todayStr = getTodayDateString();
-                  // Merge local visitedStores and cloudVisits by storeId + date + time + status to avoid duplicates, prioritizing local ones if they are newer
-                  const allVisits = [...visitedStores];
-                  
-                  (cloudVisits || []).forEach(cv => {
-                    const exists = allVisits.some(v => v.storeId === cv.storeId && v.date === cv.date && v.time === cv.time && v.status === cv.status);
-                    if (!exists) {
-                      allVisits.push(cv);
-                    } else if (cv.status === 'sold') {
-                      const idx = allVisits.findIndex(v => v.storeId === cv.storeId && v.date === cv.date && v.time === cv.time && v.status === cv.status);
-                      if (idx !== -1 && allVisits[idx].status !== 'sold') {
-                        allVisits[idx] = cv;
-                      }
-                    }
-                  });
+                  // Only use cloudVisits (real online visits)
+                  const allVisits = cloudVisits || [];
 
                   const todayVisits = allVisits.filter(v => v.date === todayStr);
 
@@ -13621,7 +13609,7 @@ function App() {
                   .filter(store => isAssignmentActive(store.date, store.durationDays || 1))
                   .map((store, index) => {
                     const todayStr = getTodayDateString();
-                    const isVisited = visitedStores.some(v => v.storeId === store.id && v.date === todayStr);
+                    const isVisited = cloudVisits.some(v => v.storeId === store.id && v.date === todayStr);
                     return {
                       id: store.id,
                       name: store.storeName,
@@ -14440,7 +14428,7 @@ function App() {
                       }
 
                       // Fallback 2: Find matched visit from visitedStores or cloudVisits
-                      const matchedVisit = [...cloudVisits, ...visitedStores].find(v => 
+                      const matchedVisit = cloudVisits.find(v => 
                         (String(v.storeId) === String(selectedDebtDetail.store_id) || 
                          String(v.id) === String(selectedDebtDetail.id)) && 
                         v.status === 'sold' && 
