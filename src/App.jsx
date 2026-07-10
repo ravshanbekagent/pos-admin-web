@@ -10233,15 +10233,35 @@ function App() {
 
           {/* VIEW: NASIYA PANEL */}
           {activeTab === 'nasiya' && (() => {
-            // Calculate combined debts (database + local offline visits)
+            // Calculate combined debts (database + local/cloud offline visits)
             const allCombinedDebts = (() => {
-              const list = [...debts];
-              
-              const localSales = visitedStores.filter(v => {
+              // Only filter real database debts to prevent displaying mock data 
+              // when we actually have local/cloud visits containing credit sales
+              const hasRealVisitsWithNasiya = [...cloudVisits, ...visitedStores].some(v => {
                 if (v.status !== 'sold' || !v.items) return false;
                 try {
                   const parsed = typeof v.items === 'string' ? JSON.parse(v.items) : v.items;
-                  return parsed?.paymentMethod === 'nasiya';
+                  return parsed?.paymentMethod?.toLowerCase() === 'nasiya';
+                } catch (e) {
+                  return false;
+                }
+              });
+
+              // If we have actual visits with credit sales, we filter out mock database debts
+              // to prevent mixing mock data with real agent data
+              const list = debts.filter(d => {
+                if (hasRealVisitsWithNasiya) {
+                  // Filter out mock debts (id 1 and id 2)
+                  return d.id !== 1 && d.id !== 2;
+                }
+                return true;
+              });
+              
+              const localSales = [...cloudVisits, ...visitedStores].filter(v => {
+                if (v.status !== 'sold' || !v.items) return false;
+                try {
+                  const parsed = typeof v.items === 'string' ? JSON.parse(v.items) : v.items;
+                  return parsed?.paymentMethod?.toLowerCase() === 'nasiya';
                 } catch (e) {
                   return false;
                 }
@@ -10267,7 +10287,7 @@ function App() {
                     paid_amount: initialPayment,
                     remaining_amount: remaining,
                     due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-                    createdAt: new Date().toISOString(),
+                    createdAt: v.date ? `${v.date}T${v.time || '12:00:00'}.000Z` : new Date().toISOString(),
                     status: remaining === 0 ? 'paid' : 'active',
                     debtor_name: parsed?.debtorName || null,
                     debtor_phone: parsed?.debtorPhone || null,
