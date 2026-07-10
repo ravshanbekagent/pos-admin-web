@@ -15455,140 +15455,85 @@ function App() {
               </div>
 
               {/* Shopping Cart List */}
-              <div style={{
-                flexGrow: 1,
-                overflowY: 'auto',
-                border: '1px solid var(--border-color)',
-                borderRadius: '8px',
-                backgroundColor: 'var(--bg-secondary)',
-                padding: '12px',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '8px'
-              }}>
+              <div 
+                className="cashier-cart-list"
+                style={{
+                  flexGrow: 1,
+                  overflowY: 'auto',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '8px',
+                  backgroundColor: 'var(--bg-secondary)',
+                  padding: '12px'
+                }}
+              >
                 <h3 style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', margin: '0 0 8px 0', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px' }}>
                   {language === 'uz' ? "Sotuv savatchasi" : "Корзина продаж"}
                 </h3>
                 {cashierCart.length === 0 ? (
-                  <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  <div style={{ margin: 'auto', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px', padding: '20px 0' }}>
                     {language === 'uz' ? "Savatcha bo'sh. Mahsulot qo'shing." : "Корзина пуста. Добавьте товары."}
                   </div>
                 ) : (
                   cashierCart.map(item => (
-                    <div
-                      key={item.productId}
-                      className="cart-item-row flex-nowrap-mobile"
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        padding: '10px 0',
-                        borderBottom: '1px solid var(--border-color)'
-                      }}
-                    >
-                      <div className="cart-item-info" style={{ display: 'flex', flexDirection: 'column', gap: '2px', maxWidth: '50%' }}>
-                        <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-primary)', wordBreak: 'break-word' }}>
-                          {item.productName}
-                        </span>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
+                    <div key={item.productId} className="cashier-cart-item">
+                      {/* Product Name */}
+                      <div className="cashier-cart-item-title">
+                        {item.productName}
+                      </div>
+                      
+                      {/* Actions Row */}
+                      <div className="cashier-cart-item-actions">
+                        {/* Price & Stock info */}
+                        <div className="cashier-cart-item-details">
+                          <span className="price">
                             {parseFloat(item.price).toLocaleString('uz-UZ')} so'm
                           </span>
-                          <span style={{ 
-                            fontSize: '10px', 
-                            fontWeight: '600', 
-                            color: 'var(--success-color)', 
-                            backgroundColor: 'var(--success-light)',
-                            padding: '1px 6px',
-                            borderRadius: '4px'
-                          }}>
+                          <span className="badge">
                             {language === 'uz' ? `Qoldiq: ${item.maxQty - item.quantity} ${item.unit || 'dona'}` : `Ост: ${item.maxQty - item.quantity} ${item.unit || 'шт'}`}
                           </span>
                         </div>
-                      </div>
 
-                      {/* Quantity Editor */}
-                      <div className="cart-item-qty-container flex-nowrap-mobile" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          className="cart-item-qty-btn"
-                          onClick={() => {
-                            if (item.quantity > 1) {
-                              handleUpdateCartItemQty(item.productId, item.quantity - 1);
-                            }
-                          }}
-                          style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-primary)',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          -
-                        </button>
-                        <input
-                          type="number"
-                          className="cart-item-qty-input"
-                          value={item.quantity}
-                          onChange={(e) => handleUpdateCartItemQty(item.productId, e.target.value)}
-                          style={{
-                            width: '45px',
-                            textAlign: 'center',
-                            padding: '4px',
-                            border: '1px solid var(--border-color)',
-                            borderRadius: '4px',
-                            backgroundColor: 'var(--bg-primary)',
-                            color: 'var(--text-primary)',
-                            fontSize: '13px',
-                            fontWeight: '600'
-                          }}
-                        />
-                        <button
-                          className="cart-item-qty-btn"
-                          onClick={() => {
-                            handleUpdateCartItemQty(item.productId, item.quantity + 1);
-                          }}
-                          style={{
-                            width: '28px',
-                            height: '28px',
-                            borderRadius: '4px',
-                            border: '1px solid var(--border-color)',
-                            backgroundColor: 'var(--bg-primary)',
-                            color: 'var(--text-primary)',
-                            cursor: 'pointer',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontWeight: 'bold'
-                          }}
-                        >
-                          +
-                        </button>
-                      </div>
+                        {/* Quantity Controller */}
+                        <div className="cashier-cart-item-qty">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (item.quantity > 1) {
+                                handleUpdateCartItemQty(item.productId, item.quantity - 1);
+                              }
+                            }}
+                          >
+                            -
+                          </button>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateCartItemQty(item.productId, e.target.value)}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleUpdateCartItemQty(item.productId, item.quantity + 1);
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
 
-                      {/* Subtotal & Delete */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <span className="cart-item-subtotal" style={{ fontSize: '13px', fontWeight: '700', color: 'var(--text-primary)', textAlign: 'right', minWidth: '80px' }}>
-                          {(item.price * item.quantity).toLocaleString('uz-UZ')} so'm
-                        </span>
-                        <button
-                          onClick={() => handleRemoveCartItem(item.productId)}
-                          style={{
-                            border: 'none',
-                            backgroundColor: 'transparent',
-                            color: '#ef4444',
-                            cursor: 'pointer',
-                            padding: '4px'
-                          }}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        {/* Subtotal & Delete Button */}
+                        <div className="cashier-cart-item-total">
+                          <span className="total">
+                            {(item.price * item.quantity).toLocaleString('uz-UZ')} so'm
+                          </span>
+                          <button
+                            type="button"
+                            className="delete-btn"
+                            onClick={() => handleRemoveCartItem(item.productId)}
+                            title={language === 'uz' ? "O'chirish" : "Удалить"}
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </div>
                       </div>
                     </div>
                   ))
