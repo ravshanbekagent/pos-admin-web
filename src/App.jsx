@@ -603,7 +603,13 @@ function App() {
   const [password, setPassword] = useState('');
   const [userRole, setUserRole] = useState(() => localStorage.getItem('userRole') || 'admin'); // admin, warehouse_manager, agent
   const [currentUserId, setCurrentUserId] = useState(() => localStorage.getItem('currentUserId') || '');
-  const [activeTab, setActiveTab] = useState('dashboard');
+  const [activeTab, setActiveTab] = useState(() => {
+    const saved = localStorage.getItem('activeTab');
+    if (saved) return saved;
+    const role = localStorage.getItem('userRole');
+    if (role === 'agent') return 'assignments';
+    return 'dashboard';
+  });
   const [loginError, setLoginError] = useState('');
 
   // Interactive Lists
@@ -705,7 +711,52 @@ function App() {
 
   useEffect(() => {
     setIsMobileMenuOpen(false);
+    localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
+
+  useEffect(() => {
+    if (activeCashierStore) {
+      localStorage.setItem('activeCashierStore', JSON.stringify(activeCashierStore));
+    } else {
+      localStorage.removeItem('activeCashierStore');
+    }
+  }, [activeCashierStore]);
+
+  useEffect(() => {
+    localStorage.setItem('cashierCart', JSON.stringify(cashierCart));
+  }, [cashierCart]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedPaymentMethod', selectedPaymentMethod);
+  }, [selectedPaymentMethod]);
+
+  useEffect(() => {
+    localStorage.setItem('nasiyaDueDate', nasiyaDueDate);
+  }, [nasiyaDueDate]);
+
+  useEffect(() => {
+    localStorage.setItem('nasiyaInitialPayment', nasiyaInitialPayment);
+  }, [nasiyaInitialPayment]);
+
+  useEffect(() => {
+    localStorage.setItem('nasiyaDebtorName', nasiyaDebtorName);
+  }, [nasiyaDebtorName]);
+
+  useEffect(() => {
+    localStorage.setItem('nasiyaDebtorPhone', nasiyaDebtorPhone);
+  }, [nasiyaDebtorPhone]);
+
+  useEffect(() => {
+    localStorage.setItem('cashierDiscount', String(cashierDiscount));
+  }, [cashierDiscount]);
+
+  useEffect(() => {
+    localStorage.setItem('customDiscountInput', customDiscountInput);
+  }, [customDiscountInput]);
+
+  useEffect(() => {
+    localStorage.setItem('showPaymentSection', showPaymentSection ? 'true' : 'false');
+  }, [showPaymentSection]);
 
   const loadCloudData = async (authToken) => {
     if (!authToken) return;
@@ -957,6 +1008,20 @@ function App() {
     localStorage.removeItem('tinda_default_mxik');
     localStorage.removeItem('tinda_default_package');
     localStorage.removeItem('tinda_test_mode');
+    localStorage.removeItem('activeTab');
+    localStorage.removeItem('activeCashierStore');
+    localStorage.removeItem('cashierCart');
+    localStorage.removeItem('selectedPaymentMethod');
+    localStorage.removeItem('nasiyaDueDate');
+    localStorage.removeItem('nasiyaInitialPayment');
+    localStorage.removeItem('nasiyaDebtorName');
+    localStorage.removeItem('nasiyaDebtorPhone');
+    localStorage.removeItem('cashierDiscount');
+    localStorage.removeItem('customDiscountInput');
+    localStorage.removeItem('showPaymentSection');
+    setActiveCashierStore(null);
+    setCashierCart([]);
+    setShowPaymentSection(false);
     setIsLoggedIn(false);
     showAlert('Tizimdan chiqildi', 'info');
   };
@@ -1066,22 +1131,45 @@ function App() {
   });
 
   // Agent Cashier (POS) and Payment Integration States
-  const [activeCashierStore, setActiveCashierStore] = useState(null);
-  const [cashierCart, setCashierCart] = useState([]);
+  const [activeCashierStore, setActiveCashierStore] = useState(() => {
+    try {
+      const saved = localStorage.getItem('activeCashierStore');
+      return saved ? JSON.parse(saved) : null;
+    } catch(e) {
+      return null;
+    }
+  });
+  const [cashierCart, setCashierCart] = useState(() => {
+    try {
+      const saved = localStorage.getItem('cashierCart');
+      return saved ? JSON.parse(saved) : [];
+    } catch(e) {
+      return [];
+    }
+  });
   const [barcodeInput, setBarcodeInput] = useState('');
   const [searchProductQuery, setSearchProductQuery] = useState('');
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState('naqd');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState(() => {
+    return localStorage.getItem('selectedPaymentMethod') || 'naqd';
+  });
   const [nasiyaDueDate, setNasiyaDueDate] = useState(() => {
+    const saved = localStorage.getItem('nasiyaDueDate');
+    if (saved) return saved;
     const d = new Date();
     d.setDate(d.getDate() + 30);
     return d.toISOString().split('T')[0];
   });
-  const [nasiyaInitialPayment, setNasiyaInitialPayment] = useState('');
-  const [nasiyaDebtorName, setNasiyaDebtorName] = useState('');
-  const [nasiyaDebtorPhone, setNasiyaDebtorPhone] = useState('');
-  const [cashierDiscount, setCashierDiscount] = useState(0);
-  const [customDiscountInput, setCustomDiscountInput] = useState('');
-  const [showPaymentSection, setShowPaymentSection] = useState(false);
+  const [nasiyaInitialPayment, setNasiyaInitialPayment] = useState(() => localStorage.getItem('nasiyaInitialPayment') || '');
+  const [nasiyaDebtorName, setNasiyaDebtorName] = useState(() => localStorage.getItem('nasiyaDebtorName') || '');
+  const [nasiyaDebtorPhone, setNasiyaDebtorPhone] = useState(() => localStorage.getItem('nasiyaDebtorPhone') || '');
+  const [cashierDiscount, setCashierDiscount] = useState(() => {
+    const saved = localStorage.getItem('cashierDiscount');
+    return saved ? parseFloat(saved) : 0;
+  });
+  const [customDiscountInput, setCustomDiscountInput] = useState(() => localStorage.getItem('customDiscountInput') || '');
+  const [showPaymentSection, setShowPaymentSection] = useState(() => {
+    return localStorage.getItem('showPaymentSection') === 'true';
+  });
   const [paymentIntegrations, setPaymentIntegrations] = useState(() => {
     try {
       const stored = localStorage.getItem('payment_integrations');
