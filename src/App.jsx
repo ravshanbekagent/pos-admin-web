@@ -1321,7 +1321,8 @@ function App() {
         reason: visitData.reason,
         items: visitData.items,
         date: visitData.date,
-        time: visitData.time
+        time: visitData.time,
+        sale_recorded: true
       })
     })
     .then(res => {
@@ -10285,7 +10286,7 @@ function App() {
                         {(() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
                             const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
                           });
                           return userRelatedDebts.reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
                         })().toLocaleString()} UZS
@@ -10298,7 +10299,7 @@ function App() {
                     {(() => {
                       const userRelatedDebts = allCombinedDebts.filter(d => {
                         const isAgentObj = userRole === 'agent';
-                        return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                        return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
                       });
                       const overdueAmt = userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
                       return overdueAmt > 0 && (
@@ -10335,7 +10336,7 @@ function App() {
                         color: (() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
                             const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
                           });
                           return userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0) > 0 ? '#ef4444' : 'var(--text-primary)';
                         })()
@@ -10343,7 +10344,7 @@ function App() {
                         {(() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
                             const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
                           });
                           return userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
                         })().toLocaleString()} UZS
@@ -10372,7 +10373,7 @@ function App() {
                         {(() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
                             const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
                           });
                           return userRelatedDebts.reduce((sum, d) => sum + parseFloat(d.paid_amount || 0), 0);
                         })().toLocaleString()} UZS
@@ -10401,7 +10402,7 @@ function App() {
                         {(() => {
                           const userRelatedDebts = allCombinedDebts.filter(d => {
                             const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
                           });
                           return new Set(userRelatedDebts.filter(d => parseFloat(d.remaining_amount || 0) > 0).map(d => d.store_id)).size;
                         })()} {language === 'uz' ? "ta" : "маг."}
@@ -10493,7 +10494,7 @@ function App() {
                           {(() => {
                             const displayedDebts = allCombinedDebts.filter(d => {
                               const isAgentObj = userRole === 'agent';
-                              const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                              const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
                               const storeName = d.store?.name || '';
                               const agentName = d.agent?.name || '';
                               const debtorName = d.debtor_name || '';
@@ -10606,7 +10607,7 @@ function App() {
                     {(() => {
                       const displayedDebts = allCombinedDebts.filter(d => {
                         const isAgentObj = userRole === 'agent';
-                        const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId);
+                        const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
                         const storeName = d.store?.name || '';
                         const agentName = d.agent?.name || '';
                         const debtorName = d.debtor_name || '';
