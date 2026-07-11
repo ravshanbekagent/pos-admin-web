@@ -714,49 +714,7 @@ function App() {
     localStorage.setItem('activeTab', activeTab);
   }, [activeTab]);
 
-  useEffect(() => {
-    if (activeCashierStore) {
-      localStorage.setItem('activeCashierStore', JSON.stringify(activeCashierStore));
-    } else {
-      localStorage.removeItem('activeCashierStore');
-    }
-  }, [activeCashierStore]);
 
-  useEffect(() => {
-    localStorage.setItem('cashierCart', JSON.stringify(cashierCart));
-  }, [cashierCart]);
-
-  useEffect(() => {
-    localStorage.setItem('selectedPaymentMethod', selectedPaymentMethod);
-  }, [selectedPaymentMethod]);
-
-  useEffect(() => {
-    localStorage.setItem('nasiyaDueDate', nasiyaDueDate);
-  }, [nasiyaDueDate]);
-
-  useEffect(() => {
-    localStorage.setItem('nasiyaInitialPayment', nasiyaInitialPayment);
-  }, [nasiyaInitialPayment]);
-
-  useEffect(() => {
-    localStorage.setItem('nasiyaDebtorName', nasiyaDebtorName);
-  }, [nasiyaDebtorName]);
-
-  useEffect(() => {
-    localStorage.setItem('nasiyaDebtorPhone', nasiyaDebtorPhone);
-  }, [nasiyaDebtorPhone]);
-
-  useEffect(() => {
-    localStorage.setItem('cashierDiscount', String(cashierDiscount));
-  }, [cashierDiscount]);
-
-  useEffect(() => {
-    localStorage.setItem('customDiscountInput', customDiscountInput);
-  }, [customDiscountInput]);
-
-  useEffect(() => {
-    localStorage.setItem('showPaymentSection', showPaymentSection ? 'true' : 'false');
-  }, [showPaymentSection]);
 
   const loadCloudData = async (authToken) => {
     if (!authToken) return;
@@ -1170,6 +1128,51 @@ function App() {
   const [showPaymentSection, setShowPaymentSection] = useState(() => {
     return localStorage.getItem('showPaymentSection') === 'true';
   });
+
+  useEffect(() => {
+    if (activeCashierStore) {
+      localStorage.setItem('activeCashierStore', JSON.stringify(activeCashierStore));
+    } else {
+      localStorage.removeItem('activeCashierStore');
+    }
+  }, [activeCashierStore]);
+
+  useEffect(() => {
+    localStorage.setItem('cashierCart', JSON.stringify(cashierCart));
+  }, [cashierCart]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedPaymentMethod', selectedPaymentMethod);
+  }, [selectedPaymentMethod]);
+
+  useEffect(() => {
+    localStorage.setItem('nasiyaDueDate', nasiyaDueDate);
+  }, [nasiyaDueDate]);
+
+  useEffect(() => {
+    localStorage.setItem('nasiyaInitialPayment', nasiyaInitialPayment);
+  }, [nasiyaInitialPayment]);
+
+  useEffect(() => {
+    localStorage.setItem('nasiyaDebtorName', nasiyaDebtorName);
+  }, [nasiyaDebtorName]);
+
+  useEffect(() => {
+    localStorage.setItem('nasiyaDebtorPhone', nasiyaDebtorPhone);
+  }, [nasiyaDebtorPhone]);
+
+  useEffect(() => {
+    localStorage.setItem('cashierDiscount', String(cashierDiscount));
+  }, [cashierDiscount]);
+
+  useEffect(() => {
+    localStorage.setItem('customDiscountInput', customDiscountInput);
+  }, [customDiscountInput]);
+
+  useEffect(() => {
+    localStorage.setItem('showPaymentSection', showPaymentSection ? 'true' : 'false');
+  }, [showPaymentSection]);
+
   const [paymentIntegrations, setPaymentIntegrations] = useState(() => {
     try {
       const stored = localStorage.getItem('payment_integrations');
