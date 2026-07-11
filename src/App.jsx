@@ -9287,6 +9287,39 @@ function App() {
                           </div>
                         )}
 
+                        {/* Discount block inside Tarix Modal */}
+                        {discount > 0 && (
+                          <div style={{
+                            backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                            border: '1px solid rgba(16, 185, 129, 0.15)',
+                            borderRadius: '10px',
+                            padding: '12px',
+                            marginBottom: '16px',
+                            fontSize: '13px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            gap: '6px',
+                            color: 'var(--text-primary)'
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
+                              <span>{language === 'uz' ? "Chegirma foizi:" : "Процент скидки:"}</span>
+                              <span style={{ color: '#10b981' }}>{discount}%</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{language === 'uz' ? "Asl summa (chegirmasiz):" : "Исходная сумма:"}</span>
+                              <span style={{ textDecoration: 'line-through', color: 'var(--text-secondary)' }}>
+                                {Math.round(totalSum / (1 - discount / 100)).toLocaleString()} UZS
+                              </span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                              <span>{language === 'uz' ? "Tejalingan summa (chegirma):" : "Сэкономленная сумма:"}</span>
+                              <span style={{ color: '#10b981', fontWeight: '700' }}>
+                                {Math.round((totalSum / (1 - discount / 100)) - totalSum).toLocaleString()} UZS
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
                         {/* Close Button */}
                         <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
                           <button 
@@ -14423,22 +14456,53 @@ function App() {
       )}
 
       {/* Modal: Nasiya Details & Payment Recording */}
-      {selectedDebtDetail && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          width: '100vw',
-          height: '100vh',
-          backgroundColor: 'rgba(15, 23, 42, 0.85)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 9999
-        }} className="fade-in">
-          <div className="nasiya-modal-wrapper">
-            {/* Modal Header */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+      {selectedDebtDetail && (() => {
+        // Find matched visit from cloudVisits to read discount
+        const matchedVisit = cloudVisits.find(v => 
+          (String(v.storeId) === String(selectedDebtDetail.store_id) || String(v.id) === String(selectedDebtDetail.id)) && 
+          v.status === 'sold' && 
+          v.items
+        );
+        
+        let discount = 0;
+        if (matchedVisit) {
+          try {
+            const parsed = typeof matchedVisit.items === 'string' ? JSON.parse(matchedVisit.items) : matchedVisit.items;
+            discount = parsed.discount || 0;
+          } catch(e) {}
+        }
+        
+        // Backup: calculate discount percentage from SaleItems vs Product original prices
+        if (!discount && selectedDebtDetail.sale?.items && selectedDebtDetail.sale.items.length > 0) {
+          let originalSum = 0;
+          let actualSum = 0;
+          selectedDebtDetail.sale.items.forEach(item => {
+            if (item.product?.price) {
+              originalSum += parseFloat(item.product.price) * (item.quantity || 1);
+              actualSum += parseFloat(item.unit_price) * (item.quantity || 1);
+            }
+          });
+          if (originalSum > 0 && originalSum > actualSum) {
+            discount = Math.round(((originalSum - actualSum) / originalSum) * 100);
+          }
+        }
+
+        return (
+          <div style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            backgroundColor: 'rgba(15, 23, 42, 0.85)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999
+          }} className="fade-in">
+            <div className="nasiya-modal-wrapper">
+              {/* Modal Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <div>
                 <h3 style={{ fontSize: '20px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
                   {selectedDebtDetail.store?.name || `Do'kon #${selectedDebtDetail.store_id}`}
@@ -14522,6 +14586,39 @@ function App() {
                 </div>
               )}
             </div>
+
+            {/* Discount info for Nasiya if present */}
+            {discount > 0 && (
+              <div style={{
+                backgroundColor: 'rgba(16, 185, 129, 0.05)',
+                border: '1px solid rgba(16, 185, 129, 0.15)',
+                borderRadius: '10px',
+                padding: '12px',
+                marginTop: '12px',
+                fontSize: '13px',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '6px',
+                color: 'var(--text-primary)'
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '600' }}>
+                  <span>{language === 'uz' ? "Berilgan chegirma:" : "Предоставленная скидка:"}</span>
+                  <span style={{ color: '#10b981' }}>{discount}%</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{language === 'uz' ? "Asl summa (chegirmasiz):" : "Сумма без скидки:"}</span>
+                  <span style={{ textDecoration: 'line-through', color: 'var(--text-secondary)' }}>
+                    {Math.round(parseFloat(selectedDebtDetail.total_amount) / (1 - discount / 100)).toLocaleString()} UZS
+                  </span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>{language === 'uz' ? "Chegirma summasi:" : "Сумма скидки:"}</span>
+                  <span style={{ color: '#10b981', fontWeight: '700' }}>
+                    {Math.round((parseFloat(selectedDebtDetail.total_amount) / (1 - discount / 100)) - parseFloat(selectedDebtDetail.total_amount)).toLocaleString()} UZS
+                  </span>
+                </div>
+              </div>
+            )}
 
             {/* Products List (Olgan maxsulotlari) */}
             <div>
@@ -14831,7 +14928,7 @@ function App() {
             </div>
           </div>
         </div>
-      )}
+      )})()}
 
       {/* Modal: Agent Store Sales Details */}
       {selectedTahlilAgentStore && (() => {
