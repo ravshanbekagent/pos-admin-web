@@ -8938,8 +8938,12 @@ function App() {
                         // Find matching active or paid debt from cloud debts state for this store/sale total
                         const activeDebt = debts.find(d => 
                           String(d.store_id) === String(visit.storeId) && 
+                          Math.abs(parseFloat(d.total_amount) - parseFloat(totalSum)) < 10 &&
+                          d.status !== 'paid'
+                        ) || debts.find(d => 
+                          String(d.store_id) === String(visit.storeId) && 
                           Math.abs(parseFloat(d.total_amount) - parseFloat(totalSum)) < 10
-                        ) || debts.find(d => String(d.store_id) === String(visit.storeId));
+                        );
 
                         const remainingSum = activeDebt 
                           ? parseFloat(activeDebt.remaining_amount) 
@@ -9103,8 +9107,12 @@ function App() {
 
                   const activeDebt = debts.find(d => 
                     String(d.store_id) === String(visit.storeId) && 
+                    Math.abs(parseFloat(d.total_amount) - parseFloat(totalSum)) < 10 &&
+                    d.status !== 'paid'
+                  ) || debts.find(d => 
+                    String(d.store_id) === String(visit.storeId) && 
                     Math.abs(parseFloat(d.total_amount) - parseFloat(totalSum)) < 10
-                  ) || debts.find(d => String(d.store_id) === String(visit.storeId));
+                  );
 
                   const remainingSum = activeDebt 
                     ? parseFloat(activeDebt.remaining_amount) 
