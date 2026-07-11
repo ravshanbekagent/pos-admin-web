@@ -1342,7 +1342,8 @@ function App() {
       reason: '',
       items: {
         products: cart.map(item => ({
-          productName: item.productName || "Mahsulot",
+          productId: item.productId || item.product_id || item.id,
+          productName: item.productName || item.name || "Mahsulot",
           qty: item.quantity,
           price: item.price
         })),
@@ -8861,18 +8862,7 @@ function App() {
 
                   // Apply status filter
                   if (historyStatusFilter === 'sold') {
-                    filteredVisits = filteredVisits.filter(v => {
-                      let isNasiya = false;
-                      try {
-                        if (v.items) {
-                          const parsed = typeof v.items === 'string' ? JSON.parse(v.items) : v.items;
-                          if (parsed && parsed.paymentMethod === 'nasiya') {
-                            isNasiya = true;
-                          }
-                        }
-                      } catch (e) {}
-                      return v.status === 'sold' && !isNasiya;
-                    });
+                    filteredVisits = filteredVisits.filter(v => v.status === 'sold');
                   } else if (historyStatusFilter === 'nasiya') {
                     filteredVisits = filteredVisits.filter(v => {
                       let isNasiya = false;
@@ -10511,7 +10501,7 @@ function App() {
                                                     agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
                                                     debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
                               const matchesStatus = debtStatusFilter === 'all' || 
-                                                    (debtStatusFilter === 'active' && d.status === 'active') ||
+                                                    (debtStatusFilter === 'active' && (d.status === 'active' || d.status === 'pending')) ||
                                                     (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
                                                     (debtStatusFilter === 'paid' && d.status === 'paid');
                               return matchesUser && matchesSearch && matchesStatus;
@@ -10624,7 +10614,7 @@ function App() {
                                               agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
                                               debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
                         const matchesStatus = debtStatusFilter === 'all' || 
-                                              (debtStatusFilter === 'active' && d.status === 'active') ||
+                                              (debtStatusFilter === 'active' && (d.status === 'active' || d.status === 'pending')) ||
                                               (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
                                               (debtStatusFilter === 'paid' && d.status === 'paid');
                         return matchesUser && matchesSearch && matchesStatus;
