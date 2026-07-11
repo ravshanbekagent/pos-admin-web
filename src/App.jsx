@@ -3675,7 +3675,7 @@ function App() {
     }
     
     // Find matching debt to validate payment limit
-    const targetDebt = allCombinedDebts.find(d => String(d.id) === String(debtId));
+    const targetDebt = debts.find(d => String(d.id) === String(debtId));
     const remaining = targetDebt ? parseFloat(targetDebt.remaining_amount) : 0;
     if (parseFloat(amount) > remaining) {
       showAlert(
