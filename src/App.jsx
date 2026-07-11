@@ -3500,7 +3500,7 @@ function App() {
     setCashierDiscount(0);
     setCustomDiscountInput('');
     setShowPaymentSection(false);
-    setSelectedPaymentMethod('tinda');
+    setSelectedPaymentMethod('naqd');
     const d = new Date();
     d.setDate(d.getDate() + 30);
     setNasiyaDueDate(d.toISOString().split('T')[0]);
