@@ -3582,6 +3582,20 @@ function App() {
       showAlert(language === 'uz' ? "Iltimos, to'g'ri summa kiriting!" : "Пожалуйста, введите корректную сумму!", 'error');
       return;
     }
+    
+    // Find matching debt to validate payment limit
+    const targetDebt = allCombinedDebts.find(d => String(d.id) === String(debtId));
+    const remaining = targetDebt ? parseFloat(targetDebt.remaining_amount) : 0;
+    if (parseFloat(amount) > remaining) {
+      showAlert(
+        language === 'uz' 
+          ? `To'lov summasi qoldiq qarzdan (${remaining.toLocaleString()} UZS) oshib ketishi mumkin emas!` 
+          : `Сумма платежа не может превышать оставшийся долг (${remaining.toLocaleString()} UZS)!`, 
+        'error'
+      );
+      return;
+    }
+
     try {
       const res = await fetch(`${API_URL}/debts/${debtId}/pay`, {
         method: 'POST',
