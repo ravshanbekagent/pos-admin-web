@@ -8920,7 +8920,16 @@ function App() {
                           : 0;
 
                         const isNasiya = paymentMethod === 'nasiya';
-                        const remainingSum = Math.max(0, totalSum - initialPayment);
+                        
+                        // Find matching active or paid debt from cloud debts state for this store/sale total
+                        const activeDebt = debts.find(d => 
+                          String(d.store_id) === String(visit.storeId) && 
+                          Math.abs(parseFloat(d.total_amount) - parseFloat(totalSum)) < 10
+                        ) || debts.find(d => String(d.store_id) === String(visit.storeId));
+
+                        const remainingSum = activeDebt 
+                          ? parseFloat(activeDebt.remaining_amount) 
+                          : Math.max(0, totalSum - initialPayment);
 
                         return (
                           <div 
@@ -8972,11 +8981,11 @@ function App() {
                                       <span style={{
                                         fontSize: '12px',
                                         fontWeight: '700',
-                                        color: isNasiya ? '#ef4444' : '#10b981',
-                                        backgroundColor: isNasiya ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)',
+                                        color: isNasiya ? (remainingSum > 0 ? '#ef4444' : '#10b981') : '#10b981',
+                                        backgroundColor: isNasiya ? (remainingSum > 0 ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)') : 'rgba(16, 185, 129, 0.08)',
                                         padding: '4px 10px',
                                         borderRadius: '6px',
-                                        border: isNasiya ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)'
+                                        border: isNasiya ? (remainingSum > 0 ? '1px solid rgba(239, 68, 68, 0.2)' : '1px solid rgba(16, 185, 129, 0.2)') : '1px solid rgba(16, 185, 129, 0.2)'
                                       }}>
                                         {isNasiya 
                                           ? `${totalSum.toLocaleString()} UZS (Qoldiq: ${remainingSum.toLocaleString()} UZS)` 
@@ -8984,19 +8993,46 @@ function App() {
                                         }
                                       </span>
                                     )}
-                                    <span style={{
-                                      backgroundColor: isNasiya ? 'rgba(239, 68, 68, 0.1)' : 'rgba(16, 185, 129, 0.1)',
-                                      color: isNasiya ? '#ef4444' : '#10b981',
-                                      padding: '4px 10px',
-                                      borderRadius: '20px',
-                                      fontSize: '11px',
-                                      fontWeight: '600'
-                                    }}>
-                                      {isNasiya 
-                                        ? (language === 'uz' ? "Qarz" : "Долг") 
-                                        : (language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена")
-                                      }
-                                    </span>
+                                    {isNasiya ? (
+                                      <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                                        {remainingSum === 0 ? (
+                                          <span style={{
+                                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                            color: '#10b981',
+                                            padding: '4px 10px',
+                                            borderRadius: '20px',
+                                            fontSize: '11px',
+                                            fontWeight: '600'
+                                          }}>
+                                            {language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена"}
+                                          </span>
+                                        ) : null}
+                                        <span style={{
+                                          backgroundColor: remainingSum === 0 ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)',
+                                          color: remainingSum === 0 ? '#10b981' : '#ef4444',
+                                          padding: '4px 10px',
+                                          borderRadius: '20px',
+                                          fontSize: '11px',
+                                          fontWeight: '600'
+                                        }}>
+                                          {language === 'uz' 
+                                            ? (remainingSum === 0 ? "Qarz (To'langan)" : "Qarz") 
+                                            : (remainingSum === 0 ? "Долг (Погашен)" : "Долг")
+                                          }
+                                        </span>
+                                      </div>
+                                    ) : (
+                                      <span style={{
+                                        backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                        color: '#10b981',
+                                        padding: '4px 10px',
+                                        borderRadius: '20px',
+                                        fontSize: '11px',
+                                        fontWeight: '600'
+                                      }}>
+                                        {language === 'uz' ? "Sotuv yakunlandi" : "Продажа завершена"}
+                                      </span>
+                                    )}
                                   </div>
                                 ) : (
                                   <span style={{
@@ -9050,6 +9086,19 @@ function App() {
 
                   const totalSum = products.reduce((sum, item) => sum + ((item.qty || item.quantity || 1) * (item.price || 0)), 0);
                   const isNasiya = paymentMethod === 'nasiya';
+
+                  const activeDebt = debts.find(d => 
+                    String(d.store_id) === String(visit.storeId) && 
+                    Math.abs(parseFloat(d.total_amount) - parseFloat(totalSum)) < 10
+                  ) || debts.find(d => String(d.store_id) === String(visit.storeId));
+
+                  const remainingSum = activeDebt 
+                    ? parseFloat(activeDebt.remaining_amount) 
+                    : Math.max(0, totalSum - initialPayment);
+
+                  const totalPaidSum = activeDebt
+                    ? parseFloat(activeDebt.paid_amount)
+                    : initialPayment;
 
                   return (
                     <div style={{
@@ -9197,9 +9246,15 @@ function App() {
                               <span>{language === 'uz' ? "Boshlang'ich to'lov:" : "Первоначальный взнос:"}</span>
                               <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>{initialPayment.toLocaleString()} UZS</span>
                             </div>
+                            {totalPaidSum > initialPayment && (
+                              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                                <span>{language === 'uz' ? "Jami to'langan:" : "Всего оплачено:"}</span>
+                                <span style={{ color: 'var(--success-color)', fontWeight: '600' }}>{totalPaidSum.toLocaleString()} UZS</span>
+                              </div>
+                            )}
                             <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: '700', borderTop: '1px dashed var(--border-color)', paddingTop: '6px', marginTop: '2px' }}>
-                              <span style={{ color: '#ef4444' }}>{language === 'uz' ? "Qoldiq qarz:" : "Оставшийся долг:"}</span>
-                              <span style={{ color: '#ef4444' }}>{Math.max(0, totalSum - initialPayment).toLocaleString()} UZS</span>
+                              <span style={{ color: remainingSum > 0 ? '#ef4444' : '#10b981' }}>{language === 'uz' ? "Qoldiq qarz:" : "Оставшийся долг:"}</span>
+                              <span style={{ color: remainingSum > 0 ? '#ef4444' : '#10b981' }}>{remainingSum.toLocaleString()} UZS</span>
                             </div>
                             {(debtorName || debtorPhone) && (
                               <div style={{ borderTop: '1px dashed var(--border-color)', paddingTop: '6px', marginTop: '2px', fontSize: '12px', color: 'var(--text-secondary)' }}>
