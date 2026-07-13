@@ -33,7 +33,8 @@ import {
   Download,
   Map,
   Calendar,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react';
 import { Html5Qrcode } from 'html5-qrcode';
 import { 
@@ -697,7 +698,15 @@ function App() {
   const [selectedTahlilStoreDetails, setSelectedTahlilStoreDetails] = useState(null);
   const [selectedTahlilAgentStore, setSelectedTahlilAgentStore] = useState(null);
   const [selectedTahlilProductDetails, setSelectedTahlilProductDetails] = useState(null);
-  const [debtStatusFilter, setDebtStatusFilter] = useState('all');
+  const [debtStatusFilter, setDebtStatusFilter] = useState(() => (localStorage.getItem('userRole') === 'agent' ? 'active' : 'all'));
+
+  useEffect(() => {
+    if (userRole === 'agent') {
+      setDebtStatusFilter('active');
+    } else {
+      setDebtStatusFilter('all');
+    }
+  }, [userRole]);
   const [debtSearchQuery, setDebtSearchQuery] = useState('');
   const [dateFilter, setDateFilter] = useState('bugun');
   const [startDate, setStartDate] = useState(() => getTodayDateString(0));
@@ -944,6 +953,100 @@ function App() {
     }
   };
 
+  const handleResetAgentHistory = async () => {
+    if (!selectedCleanupAgentId) return;
+    setIsCleaningUp(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/reset-agent-history/${selectedCleanupAgentId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showAlert(
+          language === 'uz' 
+            ? "Agent savdo va tashriflar tarixi muvaffaqiyatli tozalab yuborildi!" 
+            : "История продаж и визитов агента успешно очищена!", 
+          'success'
+        );
+        loadCloudData(token);
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Server tozalash so\'rovini rad etdi');
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert(err.message, 'error');
+    } finally {
+      setIsCleaningUp(false);
+      setShowAgentHistoryConfirm(false);
+    }
+  };
+
+  const handleResetAgentDebts = async () => {
+    if (!selectedCleanupAgentId) return;
+    setIsCleaningUp(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/reset-agent-debts/${selectedCleanupAgentId}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showAlert(
+          language === 'uz' 
+            ? "Agent nasiya va qarzlar tarixi muvaffaqiyatli tozalab yuborildi!" 
+            : "История кредитов и долгов агента успешно очищена!", 
+          'success'
+        );
+        loadCloudData(token);
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Server tozalash so\'rovini rad etdi');
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert(err.message, 'error');
+    } finally {
+      setIsCleaningUp(false);
+      setShowAgentDebtsConfirm(false);
+    }
+  };
+
+  const handleFactoryReset = async () => {
+    setIsCleaningUp(true);
+    try {
+      const res = await fetch(`${API_URL}/auth/factory-reset`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      if (res.ok) {
+        showAlert(
+          language === 'uz' 
+            ? "Butun tizim tozalandi va dastlabki holatga keltirildi! Tizimdan chiqilmoqda..." 
+            : "Вся система успешно очищена и сброшена! Выход из системы...", 
+          'success'
+        );
+        setTimeout(() => {
+          handleLogout();
+        }, 2000);
+      } else {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Server tozalash so\'rovini rad etdi');
+      }
+    } catch (err) {
+      console.error(err);
+      showAlert(err.message, 'error');
+    } finally {
+      setIsCleaningUp(false);
+      setShowFactoryResetConfirm(false);
+    }
+  };
+
   const handleLogout = () => {
     setToken('');
     setCurrentUserId('');
@@ -1047,6 +1150,12 @@ function App() {
   const [selectedPendingPayment, setSelectedPendingPayment] = useState(null);
   const [selectedStoreForBinding, setSelectedStoreForBinding] = useState('');
   const [adminPhoto, setAdminPhoto] = useState(() => localStorage.getItem('adminPhoto') || '');
+
+  const [selectedCleanupAgentId, setSelectedCleanupAgentId] = useState('');
+  const [showFactoryResetConfirm, setShowFactoryResetConfirm] = useState(false);
+  const [showAgentHistoryConfirm, setShowAgentHistoryConfirm] = useState(false);
+  const [showAgentDebtsConfirm, setShowAgentDebtsConfirm] = useState(false);
+  const [isCleaningUp, setIsCleaningUp] = useState(false);
 
   // Poll pending terminal payments for the logged-in agent
   useEffect(() => {
@@ -1218,6 +1327,9 @@ function App() {
   const [selectedAdminHistoryVisit, setSelectedAdminHistoryVisit] = useState(null);
   const [historySearchQuery, setHistorySearchQuery] = useState('');
   const [historyStatusFilter, setHistoryStatusFilter] = useState('all');
+  const [historyDateFilter, setHistoryDateFilter] = useState('bugun'); // 'bugun', 'all', 'custom'
+  const [historyStartDate, setHistoryStartDate] = useState(() => getTodayDateString(0));
+  const [historyEndDate, setHistoryEndDate] = useState(() => getTodayDateString(0));
   const [showExitQuestionnaire, setShowExitQuestionnaire] = useState(false);
   const [exitReason, setExitReason] = useState('');
 
@@ -4883,8 +4995,8 @@ function App() {
                   padding: '12px 16px',
                   borderRadius: '8px',
                   border: 'none',
-                  backgroundColor: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_autoterminal', 'settings_company', 'settings_agents', 'settings_admins'].includes(activeTab) ? 'var(--accent-light)' : 'transparent',
-                  color: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_autoterminal', 'settings_company', 'settings_agents', 'settings_admins'].includes(activeTab) ? 'var(--accent-color)' : 'var(--text-secondary)',
+                  backgroundColor: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_autoterminal', 'settings_company', 'settings_agents', 'settings_admins', 'settings_cleanup'].includes(activeTab) ? 'var(--accent-light)' : 'transparent',
+                  color: ['settings_profile', 'settings_language', 'settings_discounts', 'settings_payments', 'settings_autoterminal', 'settings_company', 'settings_agents', 'settings_admins', 'settings_cleanup'].includes(activeTab) ? 'var(--accent-color)' : 'var(--text-secondary)',
                   cursor: 'pointer',
                   fontWeight: '500',
                   textAlign: 'left',
@@ -5055,6 +5167,23 @@ function App() {
                       >
                         {language === 'uz' ? 'Adminlar Boshqaruvi' : 'Управление админами'}
                       </button>
+                      <button
+                        onClick={() => setActiveTab('settings_cleanup')}
+                        style={{
+                          padding: '8px 12px',
+                          borderRadius: '6px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'settings_cleanup' ? 'rgba(13, 148, 136, 0.1)' : 'transparent',
+                          color: activeTab === 'settings_cleanup' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                          cursor: 'pointer',
+                          fontSize: '13px',
+                          fontWeight: '500',
+                          textAlign: 'left',
+                          transition: 'all var(--transition-fast)'
+                        }}
+                      >
+                        {language === 'uz' ? 'Tozalash' : 'Очистка данных'}
+                      </button>
                     </>
                   )}
                   
@@ -5189,7 +5318,7 @@ function App() {
             {activeTab === 'tahlil_agent' && t('agent_analytics')}
             {activeTab === 'settings_profile' && t('profile_title')}
             {activeTab === 'settings_language' && t('language_title')}
-            {activeTab === 'settings_discounts' && t('settings_discounts')}
+            {activeTab === 'settings_cleanup' && (language === 'uz' ? 'Ma\'lumotlarni tozalash' : 'Очистка данных')}
           </h2>
           </div>
 
@@ -8882,7 +9011,12 @@ function App() {
                   {language === 'uz' ? "Sotuvlar va Tashriflar Tarixi" : "История продаж и визитов"}
                 </h3>
                 <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                  {language === 'uz' ? "Bugun tashrif buyurilgan va savdo qilingan do'konlar ro'yxati" : "Список магазинов, которые вы посетили сегодня"}
+                  {historyDateFilter === 'bugun'
+                    ? (language === 'uz' ? "Bugun tashrif buyurilgan va savdo qilingan do'konlar ro'yxati" : "Список магазинов, которые вы посетили сегодня")
+                    : historyDateFilter === 'all'
+                    ? (language === 'uz' ? "Barcha tashrif buyurilgan va savdo qilingan do'konlar ro'yxati" : "Список всех посещенных магазинов")
+                    : (language === 'uz' ? `${historyStartDate} dan ${historyEndDate} gacha tashrif buyurilgan do'konlar ro'yxati` : `Список посещенных магазинов с ${historyStartDate} по ${historyEndDate}`)
+                  }
                 </p>
 
                 {/* Search & Status Filters */}
@@ -8890,7 +9024,8 @@ function App() {
                   display: 'flex',
                   gap: '12px',
                   marginBottom: '20px',
-                  flexWrap: 'wrap'
+                  flexWrap: 'wrap',
+                  alignItems: 'center'
                 }}>
                   {/* Search Input */}
                   <div style={{ position: 'relative', flex: 1, minWidth: '240px' }}>
@@ -8948,17 +9083,93 @@ function App() {
                       <option value="no_sale">{language === 'uz' ? "Sotuvsiz tashrif" : "Без продажи"}</option>
                     </select>
                   </div>
+
+                  {/* Date Filter Dropdown */}
+                  <div style={{ width: '180px' }}>
+                    <select
+                      value={historyDateFilter}
+                      onChange={(e) => setHistoryDateFilter(e.target.value)}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        fontSize: '13px',
+                        outline: 'none',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="bugun">{language === 'uz' ? "Bugun" : "Сегодня"}</option>
+                      <option value="all">{language === 'uz' ? "Barchasi" : "Все"}</option>
+                      <option value="custom">{language === 'uz' ? "Sana oralig'i" : "Sana oralig'i"}</option>
+                    </select>
+                  </div>
+
+                  {/* Custom Date Range Fields */}
+                  {historyDateFilter === 'custom' && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      backgroundColor: 'var(--bg-primary)',
+                      padding: '5px 12px',
+                      borderRadius: '8px',
+                      border: '1px solid var(--border-color)',
+                      height: '40px'
+                    }}>
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {language === 'uz' ? "dan" : "с"}
+                      </span>
+                      <input
+                        type="date"
+                        value={historyStartDate}
+                        onChange={(e) => setHistoryStartDate(e.target.value)}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '13px',
+                          outline: 'none'
+                        }}
+                      />
+                      <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>
+                        {language === 'uz' ? "gacha" : "по"}
+                      </span>
+                      <input
+                        type="date"
+                        value={historyEndDate}
+                        onChange={(e) => setHistoryEndDate(e.target.value)}
+                        style={{
+                          backgroundColor: 'transparent',
+                          border: 'none',
+                          color: 'var(--text-primary)',
+                          fontSize: '13px',
+                          outline: 'none'
+                        }}
+                      />
+                    </div>
+                  )}
                 </div>
 
                 {(() => {
                   const todayStr = getTodayDateString();
-                  // Only use cloudVisits (real online visits)
                   const allVisits = cloudVisits || [];
 
-                  const todayVisits = allVisits.filter(v => v.date === todayStr);
+                  // Apply Date Filter
+                  let dateFilteredVisits = allVisits;
+                  if (historyDateFilter === 'bugun') {
+                    dateFilteredVisits = allVisits.filter(v => v.date === todayStr);
+                  } else if (historyDateFilter === 'custom') {
+                    dateFilteredVisits = allVisits.filter(v => {
+                      if (!v.date) return false;
+                      return v.date >= historyStartDate && v.date <= historyEndDate;
+                    });
+                  }
 
                   // Apply search query filter
-                  let filteredVisits = todayVisits;
+                  let filteredVisits = dateFilteredVisits;
                   if (historySearchQuery.trim()) {
                     const query = historySearchQuery.toLowerCase();
                     filteredVisits = filteredVisits.filter(v => 
@@ -8991,7 +9202,11 @@ function App() {
                       <div style={{ padding: '36px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
                         {historySearchQuery || historyStatusFilter !== 'all'
                           ? (language === 'uz' ? "Filtrga mos keladigan tashriflar topilmadi." : "Визиты по заданным фильтрам не найдены.")
-                          : (language === 'uz' ? "Bugun hali hech qaysi do'konga tashrif buyurilmadi." : "Сегодня вы еще не посетили ни один магазин.")
+                          : historyDateFilter === 'bugun'
+                          ? (language === 'uz' ? "Bugun hali hech qaysi do'konga tashrif buyurilmadi." : "Сегодня вы еще не посетили ни один магазин.")
+                          : historyDateFilter === 'all'
+                          ? (language === 'uz' ? "Tashriflar ro'yxati bo'sh." : "Список визитов пуст.")
+                          : (language === 'uz' ? "Tanlangan sana oralig'ida tashriflar topilmadi." : "В выбранном периоде визиты не найдены.")
                         }
                       </div>
                     );
@@ -13241,8 +13456,381 @@ function App() {
             </div>
           )}
 
+
+          {/* VIEW: DATA CLEANUP / RESET */}
+          {activeTab === 'settings_cleanup' && (
+            <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1.5fr', gap: '24px' }}>
+                
+                {/* Agent Data Cleanup Panel */}
+                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', height: 'fit-content' }}>
+                  <h3 style={{ fontSize: '16px', fontWeight: '500', marginBottom: '20px', color: 'var(--text-primary)' }}>
+                    {language === 'uz' ? "Agent Ma'lumotlarini Tozalash" : "Очистка данных агента"}
+                  </h3>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>
+                        {language === 'uz' ? "Agentni tanlang" : "Выберите агента"}
+                      </label>
+                      <select
+                        value={selectedCleanupAgentId}
+                        onChange={(e) => setSelectedCleanupAgentId(e.target.value)}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)',
+                          color: 'var(--text-primary)',
+                          fontSize: '13px',
+                          outline: 'none',
+                          fontWeight: '600'
+                        }}
+                      >
+                        <option value="">{language === 'uz' ? "-- Agentni Tanlang --" : "-- Выберите агента --"}</option>
+                        {agents.filter(a => a.role === 'agent').map(a => (
+                          <option key={a.id} value={a.id}>{a.name || a.username}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {selectedCleanupAgentId && (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginTop: '8px' }}>
+                        <button
+                          onClick={() => setShowAgentHistoryConfirm(true)}
+                          disabled={isCleaningUp}
+                          style={{
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            color: 'var(--danger-color)',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                          onMouseOver={(e) => {
+                            if (!isCleaningUp) e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.1)';
+                          }}
+                        >
+                          <Trash2 size={16} />
+                          {language === 'uz' ? "Tarixni tozalash (Savdo va Tashriflar)" : "Очистить историю (Продажи и визиты)"}
+                        </button>
+
+                        <button
+                          onClick={() => setShowAgentDebtsConfirm(true)}
+                          disabled={isCleaningUp}
+                          style={{
+                            padding: '12px',
+                            borderRadius: '8px',
+                            border: 'none',
+                            backgroundColor: 'rgba(234, 88, 12, 0.1)',
+                            color: 'var(--warning-color)',
+                            fontWeight: '600',
+                            fontSize: '13px',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '8px'
+                          }}
+                          onMouseOver={(e) => {
+                            if (!isCleaningUp) e.currentTarget.style.backgroundColor = 'rgba(234, 88, 12, 0.2)';
+                          }}
+                          onMouseOut={(e) => {
+                            e.currentTarget.style.backgroundColor = 'rgba(234, 88, 12, 0.1)';
+                          }}
+                        >
+                          <Trash2 size={16} />
+                          {language === 'uz' ? "Nasiyalarni tozalash" : "Очистить кредиты / долги"}
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Factory Reset / Global Cleanup Panel */}
+                <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', gap: '20px' }}>
+                  <div>
+                    <h3 style={{ fontSize: '16px', fontWeight: '500', marginBottom: '14px', color: 'var(--danger-color)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <AlertTriangle size={18} />
+                      {language === 'uz' ? "Tizimni To'liq Tozalash" : "Полный сброс системы"}
+                    </h3>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.6' }}>
+                      {language === 'uz'
+                        ? "Diqqat! Ushbu bo'lim orqali butun tizimdagi barcha ma'lumotlarni (savdolar, do'konlar, mahsulotlar, agentlar, adminlar va barcha yozuvlarni) butunlay o'chirib yuborishingiz mumkin. Bu amalni ortga qaytarib bo'lmaydi."
+                        : "Внимание! С помощью этого раздела вы можете полностью удалить все данные в системе (продажи, магазины, товары, агенты, администраторы и все записи). Это действие невозможно отменить."}
+                    </p>
+                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: '1.6' }}>
+                      {language === 'uz'
+                        ? "Jarayon yakunlangach, barcha ma'lumotlar o'chiriladi va ma'lumotlar bazasi default (dastlabki) admin, agent va mahsulotlar bilan qayta to'ldiriladi hamda siz tizimdan avtomatik ravishda chiqasiz."
+                        : "После завершения процесса все данные будут удалены, а база данных будет повторно заполнена дефолтными админом, агентом и товарами, и вы будете автоматически разлогинены."}
+                    </p>
+                  </div>
+                  
+                  {/* Subtle, less prominent factory reset button */}
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '10px' }}>
+                    <button
+                      onClick={() => setShowFactoryResetConfirm(true)}
+                      disabled={isCleaningUp}
+                      style={{
+                        padding: '10px 16px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--danger-color)',
+                        backgroundColor: 'transparent',
+                        color: 'var(--danger-color)',
+                        fontWeight: '500',
+                        fontSize: '12px',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                      onMouseOver={(e) => {
+                        if (!isCleaningUp) {
+                          e.currentTarget.style.backgroundColor = 'var(--danger-color)';
+                          e.currentTarget.style.color = '#fff';
+                        }
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.backgroundColor = 'transparent';
+                        e.currentTarget.style.color = 'var(--danger-color)';
+                      }}
+                    >
+                      <RefreshCw size={14} className={isCleaningUp ? "spin" : ""} />
+                      {language === 'uz' ? "Factory Reset (Umumiy tozalash)" : "Factory Reset (Общий сброс)"}
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          )}
+
         </div>
       </main>
+
+      {/* Cleanup Confirmation Modals */}
+      {showAgentHistoryConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="fade-in" style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', width: '100%', maxWidth: '440px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--danger-color)' }}>
+              <AlertTriangle size={24} />
+              <h3 style={{ fontSize: '18px', fontWeight: '600' }}>
+                {language === 'uz' ? "Tarixni tozalash" : "Очистка истории"}
+              </h3>
+            </div>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              {language === 'uz' 
+                ? `Haqiqatdan ham ushbu agentning barcha savdolar, tashriflar va biriktirilgan mahsulotlar tarixini tozalab yubormoqchimisiz?`
+                : `Вы действительно хотите очистить всю историю продаж, визитов и прикрепленных товаров этого агента?`}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button
+                onClick={() => setShowAgentHistoryConfirm(false)}
+                disabled={isCleaningUp}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                {language === 'uz' ? "Yo'q" : "Нет"}
+              </button>
+              <button
+                onClick={handleResetAgentHistory}
+                disabled={isCleaningUp}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: 'var(--danger-color)',
+                  color: '#fff',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {isCleaningUp && <Loader size={14} className="spin" />}
+                {language === 'uz' ? "Ha, tozalansin" : "Да, очистить"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showAgentDebtsConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="fade-in" style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', width: '100%', maxWidth: '440px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--warning-color)' }}>
+              <AlertTriangle size={24} />
+              <h3 style={{ fontSize: '18px', fontWeight: '600' }}>
+                {language === 'uz' ? "Nasiyalarni tozalash" : "Очистка кредитов"}
+              </h3>
+            </div>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              {language === 'uz' 
+                ? `Haqiqatdan ham ushbu agentning barcha nasiyalari va nasiya to'lovlari tarixini tozalab yubormoqchimisiz?`
+                : `Вы действительно хотите очистить все кредиты и историю платежей по кредитам этого агента?`}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button
+                onClick={() => setShowAgentDebtsConfirm(false)}
+                disabled={isCleaningUp}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                {language === 'uz' ? "Yo'q" : "Нет"}
+              </button>
+              <button
+                onClick={handleResetAgentDebts}
+                disabled={isCleaningUp}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: 'var(--warning-color)',
+                  color: '#fff',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {isCleaningUp && <Loader size={14} className="spin" />}
+                {language === 'uz' ? "Ha, tozalansin" : "Да, очистить"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showFactoryResetConfirm && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(15, 23, 42, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '20px',
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div className="fade-in" style={{ backgroundColor: 'var(--bg-secondary)', borderRadius: '12px', border: '1px solid var(--border-color)', width: '100%', maxWidth: '440px', padding: '24px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--danger-color)' }}>
+              <AlertTriangle size={24} />
+              <h3 style={{ fontSize: '18px', fontWeight: '600' }}>
+                {language === 'uz' ? "Tizimni to'liq tozalash (Factory Reset)" : "Полный сброс системы"}
+              </h3>
+            </div>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              <strong>{language === 'uz' ? "DIQQAT! HAQIQATDAN HAM BARCHA DATA NI TOZALAMOQCHIMISIZ?" : "ВНИМАНИЕ! ВЫ ДЕЙСТВИТЕЛЬНО ХОТИТЕ ОЧИСТИТЬ ВСЕ ДАННЫЕ?"}</strong>
+            </p>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+              {language === 'uz' 
+                ? "Bu amal barcha adminlar, agentlar, do'konlar, mahsulotlar, savdo va nasiyalar tarixini butunlay o'chirib yuboradi. Barcha baza toza, ya'ni zavod sozlamalari holatiga qaytadi. Tizim avtomatik ravishda boshlang'ich ma'lumotlar bilan to'ldiriladi."
+                : "Это действие полностью удалит всех админов, агентов, магазины, товары, историю продаж и кредитов. База данных вернется к чистому первоначальному состоянию. Система автоматически заполнится исходными данными."}
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '4px' }}>
+              <button
+                onClick={() => setShowFactoryResetConfirm(false)}
+                disabled={isCleaningUp}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  backgroundColor: 'transparent',
+                  color: 'var(--text-primary)',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer'
+                }}
+              >
+                {language === 'uz' ? "Yo'q, bekor qilish" : "Нет, отменить"}
+              </button>
+              <button
+                onClick={handleFactoryReset}
+                disabled={isCleaningUp}
+                style={{
+                  padding: '10px 16px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: 'var(--danger-color)',
+                  color: '#fff',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px'
+                }}
+              >
+                {isCleaningUp && <Loader size={14} className="spin" />}
+                {language === 'uz' ? "Xa, butunlay tozalansin" : "Да, полностью очистить"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal 1: Assign Tovar */}
       {showAssignProductModal && (
