@@ -468,23 +468,11 @@ const translations = {
   }
 };
 
-const initialProducts = [
-  { id: 1, barcode: "48200001", name: "IQOS Iluma One (Pebble Grey)", price: 350000, originalPrice: 300000, unit: "dona", stock: 150, is_active: true },
-  { id: 2, barcode: "48200002", name: "Heets Amber Selection", price: 18000, originalPrice: 15000, unit: "blok", stock: 1200, is_active: true },
-  { id: 3, barcode: "48200003", name: "IQOS Terea Silver", price: 22000, originalPrice: 19000, unit: "blok", stock: 800, is_active: true },
-  { id: 4, barcode: "48200004", name: "Fiit Regular", price: 17000, originalPrice: 14000, unit: "blok", stock: 650, is_active: true },
-];
+const initialProducts = [];
 
-const initialStores = [
-  { id: 14489, name: "G'ofur Ota Mini Market", owner_name: "G'ofurjon akam", phone: "+998 90 123 45 67", address: "Toshkent sh., Chilonzor 6-daha", map_link: "https://maps.google.com/?q=41.2842,69.1863", latitude: 41.2842, longitude: 69.1863, route: 'NM_01', sde: 'SDE_NM_01', census_type: 'Census    RET', status: 0 },
-  { id: 57196, name: "Premium Smoke Shop", owner_name: "Davronbek", phone: "+998 93 543 21 09", address: "Toshkent sh., Amir Temur ko'chasi 12", map_link: "https://maps.google.com/?q=41.3113,69.2797", latitude: 41.3113, longitude: 69.2797, route: 'NM_01', sde: 'SDE_NM_01', census_type: 'Census    RET', status: 0 },
-  { id: 53110, name: "24/7 Baza Do'kon", owner_name: "Azamat", phone: "+998 99 999 88 77", address: "Toshkent sh., Yunusobod 11-kvartal", map_link: "https://maps.google.com/?q=41.3654,69.2891", latitude: 41.3654, longitude: 69.2891, route: 'NM_02', sde: 'SDE_NM_02', census_type: 'Census    RET', status: 0 },
-];
+const initialStores = [];
 
-const initialAgents = [
-  { id: 2, login: "AGENT-FG-R1", password: "123", username: "sherzod_agent", name: "Sherzod Alimov", role: "agent", phone: "+998 94 333 22 11", is_active: true },
-  { id: 3, login: "AGENT-FG-R2", password: "123", username: "malika_agent", name: "Malika Qodirova", role: "agent", phone: "+998 97 777 55 44", is_active: true },
-];
+const initialAgents = [];
 
 const getTodayDateString = (offsetDays = 0) => {
   const d = new Date();
@@ -494,99 +482,7 @@ const getTodayDateString = (offsetDays = 0) => {
   return localDate.toISOString().split('T')[0];
 };
 
-const initialSales = [
-  { 
-    id: 101, 
-    agentId: 2, 
-    agent: "Sherzod Alimov", 
-    storeId: 57196,
-    store: "Premium Smoke Shop", 
-    total: 1490000, 
-    payment: "Payme", 
-    status: "completed", 
-    date: getTodayDateString(0), // Today
-    items: [
-      { productName: "IQOS Iluma One (Pebble Grey)", qty: 4, price: 350000, originalPrice: 300000 },
-      { productName: "Heets Amber Selection", qty: 5, price: 18000, originalPrice: 15000 }
-    ]
-  },
-  { 
-    id: 102, 
-    agentId: 3, 
-    agent: "Malika Qodirova", 
-    storeId: 14489,
-    store: "G'ofur Ota Mini Market", 
-    total: 610000, 
-    payment: "Click", 
-    status: "completed", 
-    date: getTodayDateString(0), // Today
-    items: [
-      { productName: "IQOS Terea Silver", qty: 20, price: 22000, originalPrice: 19000 },
-      { productName: "Fiit Regular", qty: 10, price: 17000, originalPrice: 14000 }
-    ]
-  },
-  { 
-    id: 103, 
-    agentId: 2, 
-    agent: "Sherzod Alimov", 
-    storeId: 53110,
-    store: "24/7 Baza Do'kon", 
-    total: 2144000, 
-    payment: "Payme", 
-    status: "completed", 
-    date: getTodayDateString(1), // Yesterday
-    items: [
-      { productName: "IQOS Iluma One (Pebble Grey)", qty: 5, price: 350000, originalPrice: 300000 },
-      { productName: "Heets Amber Selection", qty: 20, price: 18000, originalPrice: 15000 },
-      { productName: "Fiit Regular", qty: 2, price: 17000, originalPrice: 14000 }
-    ]
-  },
-  { 
-    id: 104, 
-    agentId: 3, 
-    agent: "Malika Qodirova", 
-    storeId: 57196,
-    store: "Premium Smoke Shop", 
-    total: 850000, 
-    payment: "Click", 
-    status: "completed", 
-    date: getTodayDateString(5), // 5 days ago
-    items: [
-      { productName: "Heets Amber Selection", qty: 30, price: 18000, originalPrice: 15000 },
-      { productName: "Fiit Regular", qty: 10, price: 17000, originalPrice: 14000 }
-    ]
-  },
-  { 
-    id: 105, 
-    agentId: 2, 
-    agent: "Sherzod Alimov", 
-    storeId: 14489,
-    store: "G'ofur Ota Mini Market", 
-    total: 1200000, 
-    payment: "Payme", 
-    status: "completed", 
-    date: getTodayDateString(12), // 12 days ago
-    items: [
-      { productName: "IQOS Iluma One (Pebble Grey)", qty: 3, price: 350000, originalPrice: 300000 },
-      { productName: "Fiit Regular", qty: 5, price: 17000, originalPrice: 14000 }
-    ]
-  },
-  { 
-    id: 106, 
-    agentId: 3, 
-    agent: "Malika Qodirova", 
-    storeId: 53110,
-    store: "24/7 Baza Do'kon", 
-    total: 360000, 
-    payment: "Click", 
-    status: "completed", 
-    date: getTodayDateString(25), // 25 days ago
-    items: [
-      { productName: "IQOS Terea Silver", qty: 10, price: 22000, originalPrice: 19000 },
-      { productName: "Heets Amber Selection", qty: 5, price: 18000, originalPrice: 15000 }
-    ]
-  }
-];
+const initialSales = [];
 
 const chartData = [
   { name: 'Dush', savdo: 4200000 },
@@ -622,75 +518,21 @@ function App() {
   const [editingAdmin, setEditingAdmin] = useState(null);
   const [showEditAdminModal, setShowEditAdminModal] = useState(false);
   const [sales, setSales] = useState(initialSales);
-  const [debts, setDebts] = useState([
-    {
-      id: 1,
-      sale_id: 101,
-      agent_id: 2,
-      store_id: 57196,
-      total_amount: 1000000,
-      paid_amount: 200000,
-      remaining_amount: 800000,
-      due_date: getTodayDateString(-5),
-      status: 'overdue',
-      createdAt: getTodayDateString(-10) + 'T12:00:00.000Z',
-      store: { name: 'Premium Smoke Shop' },
-      agent: { name: 'Sherzod Alimov' },
-      sale: {
-        items: [
-          { product: { name: 'IQOS Iluma One (Pebble Grey)' }, quantity: 2, unit_price: 350000 },
-          { product: { name: 'Heets Amber Selection' }, quantity: 15, unit_price: 20000 }
-        ]
-      },
-      payments: [
-        { amount: 200000, payment_method: 'naqd', createdAt: getTodayDateString(-8) + 'T15:30:00.000Z' }
-      ]
-    },
-    {
-      id: 2,
-      sale_id: 102,
-      agent_id: 3,
-      store_id: 14489,
-      total_amount: 1500000,
-      paid_amount: 1000000,
-      remaining_amount: 500000,
-      due_date: getTodayDateString(10),
-      status: 'active',
-      createdAt: getTodayDateString(-2) + 'T10:00:00.000Z',
-      store: { name: "G'ofur Ota Mini Market" },
-      agent: { name: 'Malika Qodirova' },
-      sale: {
-        items: [
-          { product: { name: 'IQOS Terea Silver' }, quantity: 50, unit_price: 22000 },
-          { product: { name: 'Fiit Regular' }, quantity: 20, unit_price: 20000 }
-        ]
-      },
-      payments: [
-        { amount: 1000000, payment_method: 'click', createdAt: getTodayDateString(-2) + 'T10:05:00.000Z' }
-      ]
-    }
-  ]);
-  const [overdueDebtsCount, setOverdueDebtsCount] = useState(1);
+  const [debts, setDebts] = useState([]);
+  const [overdueDebtsCount, setOverdueDebtsCount] = useState(0);
   const [selectedDebtDetail, setSelectedDebtDetail] = useState(null);
   const [receivePaymentAmount, setReceivePaymentAmount] = useState('');
   const [debtPaymentMethod, setDebtPaymentMethod] = useState('naqd');
-  const [assignments, setAssignments] = useState([
-    { id: 1, agentId: 2, agentName: "Sherzod Alimov", productName: "IQOS Iluma One (Pebble Grey)", qty: 50, remainingQty: 50, date: getTodayDateString() },
-    { id: 2, agentId: 2, agentName: "Sherzod Alimov", productName: "Heets Amber Selection", qty: 200, remainingQty: 200, date: getTodayDateString() },
-    { id: 3, agentId: 3, agentName: "Malika Qodirova", productName: "IQOS Terea Silver", qty: 150, remainingQty: 150, date: getTodayDateString() },
-  ]);
+  const [assignments, setAssignments] = useState([]);
 
-  const [storeAssignments, setStoreAssignments] = useState([
-    { id: 1, agentId: 2, agentName: "Sherzod Alimov", storeName: "Premium Smoke Shop", ownerName: "Davronbek", phone: "+998 93 543 21 09", address: "Toshkent sh., Amir Temur ko'chasi 12", date: getTodayDateString(), order: 1 },
-    { id: 2, agentId: 2, agentName: "Sherzod Alimov", storeName: "24/7 Baza Do'kon", ownerName: "Azamat", phone: "+998 99 999 88 77", address: "Toshkent sh., Yunusobod 11-kvartal", date: getTodayDateString(), order: 2 },
-    { id: 3, agentId: 3, agentName: "Malika Qodirova", storeName: "G'ofur Ota Mini Market", ownerName: "G'ofurjon akam", phone: "+998 90 123 45 67", address: "Toshkent sh., Chilonzor 6-daha", date: getTodayDateString(), order: 1 },
-  ]);
+  const [storeAssignments, setStoreAssignments] = useState([]);
 
   const [selectedAgentId, setSelectedAgentId] = useState(2); // Defaults to Sherzod Alimov (id: 2)
   const [agentSearchQuery, setAgentSearchQuery] = useState('');
   const [isAgentDropdownOpen, setIsAgentDropdownOpen] = useState(false);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'sold', 'no_sale'
   const [isStatusDropdownOpen, setIsStatusDropdownOpen] = useState(false);
+  const [isDateDropdownOpen, setIsDateDropdownOpen] = useState(false);
   const [productsTabMode, setProductsTabMode] = useState('warehouse'); // 'warehouse' or 'agents_stock'
   const [selectedProductStockDetails, setSelectedProductStockDetails] = useState(null); // stores product name for detailed stock modal
   const [tahlillarOpen, setTahlillarOpen] = useState(false);
@@ -708,9 +550,12 @@ function App() {
     }
   }, [userRole]);
   const [debtSearchQuery, setDebtSearchQuery] = useState('');
-  const [dateFilter, setDateFilter] = useState('bugun');
+  const [dateFilter, setDateFilter] = useState('barchasi');
   const [startDate, setStartDate] = useState(() => getTodayDateString(0));
   const [endDate, setEndDate] = useState(() => getTodayDateString(0));
+  const [nasiyaDateFilter, setNasiyaDateFilter] = useState('barchasi');
+  const [nasiyaStartDate, setNasiyaStartDate] = useState(() => getTodayDateString(0));
+  const [nasiyaEndDate, setNasiyaEndDate] = useState(() => getTodayDateString(0));
 
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -4621,9 +4466,7 @@ function App() {
             </button>
           </form>
 
-          <div style={{ marginTop: '24px', fontSize: '12px', color: 'var(--text-muted)' }}>
-            {t('demo_mode')}
-          </div>
+
         </div>
       </div>
     );
@@ -5434,6 +5277,7 @@ function App() {
                       outline: 'none'
                     }}
                   >
+                    <option value="barchasi">{language === 'uz' ? "Barchasi" : "Все"}</option>
                     <option value="bugun">{t('bugun')}</option>
                     <option value="custom">{t('custom_range')}</option>
                   </select>
@@ -10034,8 +9878,21 @@ function App() {
               a.username.toLowerCase().includes(agentSearchQuery.toLowerCase())
             );
 
+            // Filter visits by date and status
+            const todayStr = getTodayDateString(0);
+            const dateFilteredVisits = agentVisits.filter(v => {
+              const visitDate = v.date || v.createdAt?.split('T')[0];
+              if (historyDateFilter === 'bugun') {
+                return visitDate === todayStr;
+              }
+              if (historyDateFilter === 'custom') {
+                return (!historyStartDate || visitDate >= historyStartDate) && (!historyEndDate || visitDate <= historyEndDate);
+              }
+              return true; // 'all'
+            });
+
             // Filter visits by statusFilter
-            const statusFilteredVisits = agentVisits.filter(v => {
+            const statusFilteredVisits = dateFilteredVisits.filter(v => {
               if (statusFilter === 'sold') return v.status === 'sold';
               if (statusFilter === 'no_sale') return v.status !== 'sold';
               return true;
@@ -10286,6 +10143,153 @@ function App() {
                         </div>
                       )}
                     </div>
+
+                    {/* 3. Date Filter Dropdown */}
+                    <div style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column', 
+                      gap: '4px', 
+                      position: 'relative', 
+                      zIndex: 98, 
+                      flex: '1 1 180px', 
+                      maxWidth: '300px' 
+                    }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                        {language === 'uz' ? "Sana bo'yicha filter:" : "Фильтр по дате:"}
+                      </span>
+                      
+                      {/* Trigger Button */}
+                      <div 
+                        onClick={() => {
+                          setIsDateDropdownOpen(!isDateDropdownOpen);
+                          setIsAgentDropdownOpen(false);
+                          setIsStatusDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '8px 12px',
+                          borderRadius: '8px',
+                          border: '1px solid var(--border-color)',
+                          backgroundColor: 'var(--bg-primary)',
+                          color: 'var(--text-primary)',
+                          cursor: 'pointer',
+                          fontSize: '12.5px',
+                          fontWeight: '600',
+                          userSelect: 'none',
+                          transition: 'border-color 0.2s'
+                        }}
+                        onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-color)'}
+                        onMouseOut={(e) => e.currentTarget.style.borderColor = isDateDropdownOpen ? 'var(--accent-color)' : 'var(--border-color)'}
+                      >
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          📅 {historyDateFilter === 'all' 
+                            ? (language === 'uz' ? "Barchasi" : "Все") 
+                            : historyDateFilter === 'bugun' 
+                              ? (language === 'uz' ? "Bugun" : "Сегодня") 
+                              : (language === 'uz' ? "Sana oralig'i" : "Диапазон дат")}
+                        </span>
+                        <span>{isDateDropdownOpen ? '▲' : '▼'}</span>
+                      </div>
+
+                      {/* Dropdown Menu Overlay */}
+                      {isDateDropdownOpen && (
+                        <div style={{
+                          position: 'absolute',
+                          top: 'calc(100% + 4px)',
+                          left: 0,
+                          width: '100%',
+                          backgroundColor: 'var(--bg-secondary)',
+                          border: '1px solid var(--border-color)',
+                          borderRadius: '8px',
+                          boxShadow: '0 10px 15px -3px rgba(0,0,0,0.3), 0 4px 6px -2px rgba(0,0,0,0.15)',
+                          overflow: 'hidden',
+                          display: 'flex',
+                          flexDirection: 'column'
+                        }}>
+                          {[
+                            { key: 'all', label: language === 'uz' ? "Barchasi" : "Все" },
+                            { key: 'bugun', label: language === 'uz' ? "Bugun" : "Сегодня" },
+                            { key: 'custom', label: language === 'uz' ? "Sana oralig'i" : "Диапазон дат" }
+                          ].map(opt => (
+                            <div
+                              key={opt.key}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setHistoryDateFilter(opt.key);
+                                setIsDateDropdownOpen(false);
+                              }}
+                              style={{
+                                padding: '10px 14px',
+                                fontSize: '12.5px',
+                                color: historyDateFilter === opt.key ? 'var(--accent-color)' : 'var(--text-primary)',
+                                backgroundColor: historyDateFilter === opt.key ? 'var(--accent-light)' : 'transparent',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.15s',
+                                fontWeight: historyDateFilter === opt.key ? '700' : '500',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px'
+                              }}
+                              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-primary)'}
+                              onMouseOut={(e) => e.currentTarget.style.backgroundColor = historyDateFilter === opt.key ? 'var(--accent-light)' : 'transparent'}
+                            >
+                              {opt.label}
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Custom Date Range Picker under dropdown trigger if 'custom' is active */}
+                    {historyDateFilter === 'custom' && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: 'var(--bg-primary)',
+                        padding: '6px 10px',
+                        borderRadius: '8px',
+                        border: '1px solid var(--border-color)',
+                        height: '35px',
+                        flex: '1 1 200px',
+                        maxWidth: '300px'
+                      }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{language === 'uz' ? 'Dan:' : 'От:'}</span>
+                        <input 
+                          type="date" 
+                          value={historyStartDate} 
+                          onChange={(e) => setHistoryStartDate(e.target.value)} 
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: 'var(--text-primary)',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            width: '90px'
+                          }}
+                        />
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{language === 'uz' ? 'Gacha:' : 'До:'}</span>
+                        <input 
+                          type="date" 
+                          value={historyEndDate} 
+                          onChange={(e) => setHistoryEndDate(e.target.value)} 
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: 'var(--text-primary)',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            width: '90px'
+                          }}
+                        />
+                      </div>
+                    )}
 
                   </div>
 
@@ -10574,6 +10578,7 @@ function App() {
                       outline: 'none'
                     }}
                   >
+                    <option value="barchasi">{language === 'uz' ? "Barchasi" : "Все"}</option>
                     <option value="bugun">{t('bugun')}</option>
                     <option value="custom">{t('custom_range')}</option>
                   </select>
@@ -10675,6 +10680,40 @@ function App() {
           {activeTab === 'nasiya' && (() => {
             // Calculate combined debts (database only for 100% online cloud sync)
             const allCombinedDebts = debts;
+            const todayStr = getTodayDateString(0);
+            
+            const isAgentObj = userRole === 'agent';
+            
+            const dateFilteredDebts = allCombinedDebts.filter(d => {
+              const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
+              
+              // Date filtering
+              const debtDate = d.createdAt?.split('T')[0] || d.given_date || '';
+              let matchesDate = true;
+              if (nasiyaDateFilter === 'bugun') {
+                matchesDate = (debtDate === todayStr);
+              } else if (nasiyaDateFilter === 'custom') {
+                matchesDate = (!nasiyaStartDate || debtDate >= nasiyaStartDate) && (!nasiyaEndDate || debtDate <= nasiyaEndDate);
+              }
+
+              return matchesUser && matchesDate;
+            });
+
+            const displayedDebts = dateFilteredDebts.filter(d => {
+              const storeName = d.store?.name || '';
+              const agentName = d.agent?.name || '';
+              const debtorName = d.debtor_name || '';
+              const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
+                                    agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
+                                    debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
+              
+              const matchesStatus = debtStatusFilter === 'all' || 
+                                    (debtStatusFilter === 'active' && (d.status === 'active' || d.status === 'pending')) ||
+                                    (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
+                                    (debtStatusFilter === 'paid' && d.status === 'paid');
+
+              return matchesSearch && matchesStatus;
+            });
 
             return (
               <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -10699,13 +10738,7 @@ function App() {
                         {language === 'uz' ? "Jami Qoldiq Qarz" : "Общий остаток долга"}
                       </span>
                       <span style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        {(() => {
-                          const userRelatedDebts = allCombinedDebts.filter(d => {
-                            const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
-                          });
-                          return userRelatedDebts.reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
-                        })().toLocaleString()} UZS
+                        {dateFilteredDebts.reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0).toLocaleString()} UZS
                       </span>
                     </div>
                   </div>
@@ -10713,11 +10746,7 @@ function App() {
                   {/* Metric 2 */}
                   <div className="nasiya-metric-card" style={{ position: 'relative' }}>
                     {(() => {
-                      const userRelatedDebts = allCombinedDebts.filter(d => {
-                        const isAgentObj = userRole === 'agent';
-                        return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
-                      });
-                      const overdueAmt = userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
+                      const overdueAmt = dateFilteredDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
                       return overdueAmt > 0 && (
                         <div style={{
                           position: 'absolute',
@@ -10749,21 +10778,9 @@ function App() {
                       <span style={{
                         fontSize: '16px',
                         fontWeight: '700',
-                        color: (() => {
-                          const userRelatedDebts = allCombinedDebts.filter(d => {
-                            const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
-                          });
-                          return userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0) > 0 ? '#ef4444' : 'var(--text-primary)';
-                        })()
+                        color: dateFilteredDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0) > 0 ? '#ef4444' : 'var(--text-primary)'
                       }}>
-                        {(() => {
-                          const userRelatedDebts = allCombinedDebts.filter(d => {
-                            const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
-                          });
-                          return userRelatedDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0);
-                        })().toLocaleString()} UZS
+                        {dateFilteredDebts.filter(d => d.status === 'overdue').reduce((sum, d) => sum + parseFloat(d.remaining_amount || 0), 0).toLocaleString()} UZS
                       </span>
                     </div>
                   </div>
@@ -10786,13 +10803,7 @@ function App() {
                         {language === 'uz' ? "Qaytarilgan Summa" : "Возвращенная сумма"}
                       </span>
                       <span style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        {(() => {
-                          const userRelatedDebts = allCombinedDebts.filter(d => {
-                            const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
-                          });
-                          return userRelatedDebts.reduce((sum, d) => sum + parseFloat(d.paid_amount || 0), 0);
-                        })().toLocaleString()} UZS
+                        {dateFilteredDebts.reduce((sum, d) => sum + parseFloat(d.paid_amount || 0), 0).toLocaleString()} UZS
                       </span>
                     </div>
                   </div>
@@ -10815,13 +10826,7 @@ function App() {
                         {language === 'uz' ? "Qarzdor Do'konlar" : "Магазины-должники"}
                       </span>
                       <span style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        {(() => {
-                          const userRelatedDebts = allCombinedDebts.filter(d => {
-                            const isAgentObj = userRole === 'agent';
-                            return !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
-                          });
-                          return new Set(userRelatedDebts.filter(d => parseFloat(d.remaining_amount || 0) > 0).map(d => d.store_id)).size;
-                        })()} {language === 'uz' ? "ta" : "маг."}
+                        {new Set(dateFilteredDebts.filter(d => parseFloat(d.remaining_amount || 0) > 0).map(d => d.store_id)).size} {language === 'uz' ? "ta" : "маг."}
                       </span>
                     </div>
                   </div>
@@ -10886,6 +10891,72 @@ function App() {
                       <option value="overdue">{language === 'uz' ? "Muddati o'tganlar" : "Просроченные"}</option>
                       <option value="paid">{language === 'uz' ? "Qoplanganlar" : "Погашенные"}</option>
                     </select>
+
+                    {/* Nasiya Date Filter */}
+                    <select
+                      value={nasiyaDateFilter}
+                      onChange={(e) => setNasiyaDateFilter(e.target.value)}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        backgroundColor: 'var(--bg-primary)',
+                        color: 'var(--text-primary)',
+                        outline: 'none',
+                        fontSize: '13px',
+                        cursor: 'pointer'
+                      }}
+                    >
+                      <option value="barchasi">{language === 'uz' ? "Barcha muddat" : "Все периоды"}</option>
+                      <option value="bugun">{language === 'uz' ? "Bugun" : "Сегодня"}</option>
+                      <option value="custom">{language === 'uz' ? "Sana oralig'i" : "Диапазон дат"}</option>
+                    </select>
+
+                    {nasiyaDateFilter === 'custom' && (
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        backgroundColor: 'var(--bg-primary)',
+                        padding: '4px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--border-color)',
+                        height: '35px'
+                      }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{language === 'uz' ? 'Dan:' : 'От:'}</span>
+                        <input 
+                          type="date" 
+                          value={nasiyaStartDate} 
+                          onChange={(e) => setNasiyaStartDate(e.target.value)} 
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: 'var(--text-primary)',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            width: '90px'
+                          }}
+                        />
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{language === 'uz' ? 'Gacha:' : 'До:'}</span>
+                        <input 
+                          type="date" 
+                          value={nasiyaEndDate} 
+                          onChange={(e) => setNasiyaEndDate(e.target.value)} 
+                          style={{
+                            border: 'none',
+                            backgroundColor: 'transparent',
+                            color: 'var(--text-primary)',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            outline: 'none',
+                            cursor: 'pointer',
+                            width: '90px'
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -10908,22 +10979,6 @@ function App() {
                         </thead>
                         <tbody>
                           {(() => {
-                            const displayedDebts = allCombinedDebts.filter(d => {
-                              const isAgentObj = userRole === 'agent';
-                              const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
-                              const storeName = d.store?.name || '';
-                              const agentName = d.agent?.name || '';
-                              const debtorName = d.debtor_name || '';
-                              const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
-                                                    agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
-                                                    debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
-                              const matchesStatus = debtStatusFilter === 'all' || 
-                                                    (debtStatusFilter === 'active' && (d.status === 'active' || d.status === 'pending')) ||
-                                                    (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
-                                                    (debtStatusFilter === 'paid' && d.status === 'paid');
-                              return matchesUser && matchesSearch && matchesStatus;
-                            });
-
                             if (displayedDebts.length === 0) {
                               return (
                                 <tr>
@@ -11021,22 +11076,6 @@ function App() {
                   {/* Mobile View - Chiroyli ixcham cardlar (Tarix oynasi kabi) */}
                   <div className="nasiya-mobile-view" style={{ display: 'none', flexDirection: 'column', gap: '10px', width: '100%' }}>
                     {(() => {
-                      const displayedDebts = allCombinedDebts.filter(d => {
-                        const isAgentObj = userRole === 'agent';
-                        const matchesUser = !isAgentObj || String(d.agent_id) === String(localStorage.getItem('currentUserId') || currentUserId) || true;
-                        const storeName = d.store?.name || '';
-                        const agentName = d.agent?.name || '';
-                        const debtorName = d.debtor_name || '';
-                        const matchesSearch = storeName.toLowerCase().includes(debtSearchQuery.toLowerCase()) || 
-                                              agentName.toLowerCase().includes(debtSearchQuery.toLowerCase()) ||
-                                              debtorName.toLowerCase().includes(debtSearchQuery.toLowerCase());
-                        const matchesStatus = debtStatusFilter === 'all' || 
-                                              (debtStatusFilter === 'active' && (d.status === 'active' || d.status === 'pending')) ||
-                                              (debtStatusFilter === 'overdue' && d.status === 'overdue') ||
-                                              (debtStatusFilter === 'paid' && d.status === 'paid');
-                        return matchesUser && matchesSearch && matchesStatus;
-                      });
-
                       if (displayedDebts.length === 0) {
                         return (
                           <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '13px', backgroundColor: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
@@ -11164,6 +11203,7 @@ function App() {
                       outline: 'none'
                     }}
                   >
+                    <option value="barchasi">{language === 'uz' ? "Barchasi" : "Все"}</option>
                     <option value="bugun">{t('bugun')}</option>
                     <option value="custom">{t('custom_range')}</option>
                   </select>
@@ -11421,6 +11461,7 @@ function App() {
                         outline: 'none'
                       }}
                     >
+                      <option value="barchasi">{language === 'uz' ? "Barchasi" : "Все"}</option>
                       <option value="bugun">{t('bugun')}</option>
                       <option value="custom">{t('custom_range')}</option>
                     </select>
@@ -11679,6 +11720,7 @@ function App() {
                       outline: 'none'
                     }}
                   >
+                    <option value="barchasi">{language === 'uz' ? "Barchasi" : "Все"}</option>
                     <option value="bugun">{t('bugun')}</option>
                     <option value="custom">{t('custom_range')}</option>
                   </select>
