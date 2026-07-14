@@ -2608,6 +2608,9 @@ function App() {
     const file = e.target.files[0];
     if (!file) return;
 
+    const fileName = (file.name || '').toLowerCase();
+    const isFerganaFile = fileName.includes('fergana') || fileName.includes('fargona') || fileName.includes('fr') || fileName.includes('ферган');
+
     const reader = new FileReader();
     reader.onload = (evt) => {
       try {
@@ -2632,14 +2635,32 @@ function App() {
         let censusCol = headers.findIndex(h => h.includes('тип') || h.includes('census') || h.includes('type') || h.includes('вид тп'));
         let statusCol = headers.findIndex(h => h.includes('класс') || h.includes('status') || h.includes('некорректный'));
 
+        // Identify coordinates dynamically to detect region fallback if route is missing
+        let detectedRouteRegion = '';
+        if (latCol !== -1) {
+          for (let i = 1; i < data.length; i++) {
+            const row = data[i];
+            if (row && row[latCol]) {
+              const latVal = parseFloat(row[latCol]);
+              if (!isNaN(latVal) && latVal > 0) {
+                if (latVal >= 40.0 && latVal < 40.9) {
+                  detectedRouteRegion = 'FR_01';
+                  break;
+                } else if (latVal >= 40.9 && latVal < 41.8) {
+                  detectedRouteRegion = 'NM_01';
+                  break;
+                }
+              }
+            }
+          }
+        }
+        
+        const fallbackRoute = detectedRouteRegion || (isFerganaFile ? 'FR_01' : 'NM_01');
+
         if (idCol === -1) idCol = 0;
         if (nameCol === -1) nameCol = 1;
         if (latCol === -1) latCol = 2;
         if (lngCol === -1) lngCol = 3;
-        if (routeCol === -1) routeCol = 4;
-        if (sdeCol === -1) sdeCol = 5;
-        if (censusCol === -1) censusCol = 6;
-        if (statusCol === -1) statusCol = 7;
 
         const importedStores = [];
         for (let i = 1; i < data.length; i++) {
@@ -2648,13 +2669,13 @@ function App() {
             const id = row[idCol] || (Date.now() + i);
             const rawName = String(row[nameCol]);
             const cleanName = rawName.replace(/["']/g, '').split('(')[0].trim();
-            const lat = String(row[latCol] || '').trim();
-            const lng = String(row[lngCol] || '').trim();
+            const lat = latCol !== -1 ? String(row[latCol] || '').trim() : '';
+            const lng = lngCol !== -1 ? String(row[lngCol] || '').trim() : '';
             
-            let rawRoute = String(row[routeCol] || 'NM_01').trim();
-            let rawSde = String(row[sdeCol] || '').trim();
+            let rawRoute = routeCol !== -1 ? String(row[routeCol] || '').trim() : '';
+            let rawSde = sdeCol !== -1 ? String(row[sdeCol] || '').trim() : '';
             
-            let route = rawRoute;
+            let route = rawRoute || fallbackRoute;
             if (rawRoute.startsWith('SDE_')) {
               route = rawRoute.replace('SDE_', '');
             } else if (rawSde.startsWith('SDE_')) {
@@ -2662,7 +2683,7 @@ function App() {
             }
 
             if (!route || route === 'undefined' || route === 'null') {
-              route = 'FR_01';
+              route = fallbackRoute;
             }
             
             let sde = rawSde || `SDE_${route}`;
@@ -2670,8 +2691,8 @@ function App() {
               sde = `SDE_${route}`;
             }
 
-            const census_type = row[censusCol] || 'Census    RET';
-            const statusVal = parseInt(row[statusCol]);
+            const census_type = (censusCol !== -1 && row[censusCol]) || 'Census    RET';
+            const statusVal = statusCol !== -1 ? parseInt(row[statusCol]) : 0;
             const status = isNaN(statusVal) ? 0 : statusVal;
 
             let region = 'Farg\'ona';
