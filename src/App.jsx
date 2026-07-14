@@ -6903,7 +6903,7 @@ function App() {
             <div className="fade-in" style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               
               {/* Stores Table Container (Full Width) */}
-              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '24px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+              <div style={{ backgroundColor: 'var(--bg-secondary)', padding: '16px 20px', borderRadius: '12px', border: '1px solid var(--border-color)', overflowX: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '12px' }}>
                   <h3 style={{ fontSize: '16px', fontWeight: '500' }}>{t('stores_list')}</h3>
                   <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
@@ -6995,10 +6995,10 @@ function App() {
                   </div>
                 </div>
 
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', tableLayout: 'auto' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '13px' }}>
-                        <th style={{ padding: '12px', width: '40px' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                        <th style={{ padding: '8px 12px', width: '40px' }}>
                           <input 
                             type="checkbox"
                             checked={stores.length > 0 && selectedStoreIds.length === stores.length}
@@ -7012,11 +7012,9 @@ function App() {
                             style={{ cursor: 'pointer' }}
                           />
                         </th>
-                        <th style={{ padding: '12px' }}>{language === 'uz' ? 'Do\'kon (Kodi & Nomi)' : 'Магазин (Код и Название)'}</th>
-                        <th style={{ padding: '12px' }}>{language === 'uz' ? 'Manzili & Geopozitsiya' : 'Адрес и Геопозиция'}</th>
-                        <th style={{ padding: '12px' }}>{language === 'uz' ? 'Yo\'nalish (SDE / Route)' : 'Маршрут (SDE / Route)'}</th>
-                        <th style={{ padding: '12px' }}>{language === 'uz' ? 'Kategoriya / Status' : 'Категория / Статус'}</th>
-                        <th style={{ padding: '12px', textAlign: 'center' }}>{t('actions')}</th>
+                        <th style={{ padding: '8px 12px' }}>{language === 'uz' ? 'Do\'kon (Kodi & Nomi)' : 'Магазин (Код и Название)'}</th>
+                        <th style={{ padding: '8px 12px' }}>{language === 'uz' ? 'Manzili & Geopozitsiya' : 'Адрес и Геопозиция'}</th>
+                        <th style={{ padding: '8px 12px', textAlign: 'center', width: '110px' }}>{t('actions')}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -7025,11 +7023,11 @@ function App() {
                         return (
                           <tr key={store.id} style={{ 
                             borderBottom: '1px solid var(--border-color)', 
-                            fontSize: '14px',
+                            fontSize: '12px',
                             backgroundColor: isChecked ? 'rgba(13, 148, 136, 0.05)' : 'transparent',
                             transition: 'background-color 0.2s'
                           }}>
-                            <td style={{ padding: '12px' }}>
+                            <td style={{ padding: '8px 12px' }}>
                               <input 
                                 type="checkbox"
                                 checked={isChecked}
@@ -7043,37 +7041,34 @@ function App() {
                                 style={{ cursor: 'pointer' }}
                               />
                             </td>
-                            <td style={{ padding: '12px' }}>
-                              <div style={{ fontWeight: '600', color: 'var(--text-primary)' }}>{store.name}</div>
-                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>ID: {store.id}</span>
+                            <td style={{ padding: '8px 12px', maxWidth: '250px' }}>
+                              <div style={{ fontWeight: '600', color: 'var(--text-primary)', fontSize: '11.5px', wordBreak: 'break-word', lineHeight: '1.3' }}>
+                                {store.name}
+                              </div>
+                              <div style={{ fontSize: '10px', color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                                ID: {store.id}
+                                {store.status ? (
+                                  <span style={{ color: 'var(--danger-color)', display: 'inline-flex', alignItems: 'center', marginLeft: '6px' }} title={language === 'uz' ? 'Xato RET' : 'Ошибка RET'}>
+                                    <AlertCircle size={10} style={{ marginRight: '2px' }} />
+                                    <span style={{ fontSize: '9px', fontWeight: 'bold' }}>XATO RET</span>
+                                  </span>
+                                ) : (
+                                  <span style={{ color: '#10b981', display: 'inline-flex', alignItems: 'center', marginLeft: '6px' }} title={language === 'uz' ? 'Normal' : 'Нормальный'}>
+                                    <CheckCircle size={10} />
+                                  </span>
+                                )}
+                              </div>
                             </td>
-                            <td style={{ padding: '12px' }}>
-                              <div style={{ fontSize: '13px', color: 'var(--text-primary)' }}>{store.address}</div>
+                            <td style={{ padding: '8px 12px', maxWidth: '300px' }}>
+                              <div style={{ fontSize: '11px', color: 'var(--text-primary)', wordBreak: 'break-word', lineHeight: '1.3' }}>{store.address}</div>
                               {store.latitude && store.longitude ? (
-                                <span style={{ fontSize: '11px', color: 'var(--accent-color)' }}>
+                                <span style={{ fontSize: '10px', color: 'var(--accent-color)', marginTop: '2px', display: 'block' }}>
                                   {store.latitude}, {store.longitude}
                                 </span>
                               ) : null}
                             </td>
-                            <td style={{ padding: '12px' }}>
-                              <div style={{ fontWeight: '500' }}>{store.route}</div>
-                              <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>{store.sde}</span>
-                            </td>
-                            <td style={{ padding: '12px' }}>
-                              <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{store.census_type}</div>
-                              <span style={{ 
-                                fontSize: '11px', 
-                                padding: '2px 6px', 
-                                borderRadius: '4px',
-                                backgroundColor: store.status ? 'rgba(239, 68, 110, 0.1)' : 'rgba(13, 148, 136, 0.1)',
-                                color: store.status ? 'var(--danger-color)' : 'var(--accent-color)',
-                                fontWeight: '600'
-                              }}>
-                                {store.status ? (language === 'uz' ? 'Xato RET' : 'Ошибка RET') : (language === 'uz' ? 'Normal' : 'Нормальный')}
-                              </span>
-                            </td>
-                            <td style={{ padding: '12px', textAlign: 'center' }}>
-                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                            <td style={{ padding: '8px 12px', textAlign: 'center' }}>
+                              <div style={{ display: 'flex', gap: '6px', justifyContent: 'center', alignItems: 'center' }}>
                                 <a 
                                   href={store.map_link} 
                                   target="_blank" 
@@ -7083,15 +7078,15 @@ function App() {
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '28px',
-                                    height: '28px',
+                                    width: '26px',
+                                    height: '26px',
                                     borderRadius: '6px',
                                     backgroundColor: 'var(--bg-primary)',
                                     border: '1px solid var(--border-color)',
                                     color: 'var(--accent-color)'
                                   }}
                                 >
-                                  <MapPin size={14} />
+                                  <MapPin size={13} />
                                 </a>
                                 <button
                                   onClick={() => {
@@ -7103,8 +7098,8 @@ function App() {
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '28px',
-                                    height: '28px',
+                                    width: '26px',
+                                    height: '26px',
                                     borderRadius: '6px',
                                     backgroundColor: 'var(--bg-primary)',
                                     border: '1px solid var(--border-color)',
@@ -7112,7 +7107,7 @@ function App() {
                                     cursor: 'pointer'
                                   }}
                                 >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 20h9M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
                                 </button>
                                 <button
                                   onClick={() => handleDeleteStore(store.id)}
@@ -7121,8 +7116,8 @@ function App() {
                                     display: 'inline-flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
-                                    width: '28px',
-                                    height: '28px',
+                                    width: '26px',
+                                    height: '26px',
                                     borderRadius: '6px',
                                     backgroundColor: 'var(--bg-primary)',
                                     border: '1px solid var(--border-color)',
@@ -7130,7 +7125,7 @@ function App() {
                                     cursor: 'pointer'
                                   }}
                                 >
-                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
+                                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6"/></svg>
                                 </button>
                               </div>
                             </td>
