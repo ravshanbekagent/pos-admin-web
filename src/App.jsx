@@ -2617,29 +2617,81 @@ function App() {
         const ws = wb.Sheets[wsname];
         const data = XLSX.utils.sheet_to_json(ws, { header: 1 });
         
+        if (data.length < 2) {
+          throw new Error(language === 'uz' ? "Excel fayli bo'sh yoki noto'g'ri formatda." : "Excel файл пуст или имеет неверный формат.");
+        }
+
+        const headers = data[0].map(h => String(h || '').trim().toLowerCase());
+        
+        let idCol = headers.findIndex(h => h.includes('код') || h.includes('идентификатор') || h.includes('id') || h.includes('code'));
+        let nameCol = headers.findIndex(h => h.includes('наименование') || h.includes('название') || h.includes('точка') || h.includes('name'));
+        let latCol = headers.findIndex(h => h.includes('широта') || h.includes('lat') || h.includes('latitude') || h.includes('y'));
+        let lngCol = headers.findIndex(h => h.includes('долгота') || h.includes('lng') || h.includes('longitude') || h.includes('x'));
+        let routeCol = headers.findIndex(h => h.includes('рабочее место') || h === 'ret' || h.includes('route'));
+        let sdeCol = headers.findIndex(h => h.includes('сотрудник') || h.includes('sde') || h.includes('workplace') || h.includes('рабочее место'));
+        let censusCol = headers.findIndex(h => h.includes('тип') || h.includes('census') || h.includes('type') || h.includes('вид тп'));
+        let statusCol = headers.findIndex(h => h.includes('класс') || h.includes('status') || h.includes('некорректный'));
+
+        if (idCol === -1) idCol = 0;
+        if (nameCol === -1) nameCol = 1;
+        if (latCol === -1) latCol = 2;
+        if (lngCol === -1) lngCol = 3;
+        if (routeCol === -1) routeCol = 4;
+        if (sdeCol === -1) sdeCol = 5;
+        if (censusCol === -1) censusCol = 6;
+        if (statusCol === -1) statusCol = 7;
+
         const importedStores = [];
         for (let i = 1; i < data.length; i++) {
           const row = data[i];
-          if (row && row[1]) {
-            const id = row[0] || (Date.now() + i);
-            const rawName = String(row[1]);
+          if (row && row[nameCol]) {
+            const id = row[idCol] || (Date.now() + i);
+            const rawName = String(row[nameCol]);
             const cleanName = rawName.replace(/["']/g, '').split('(')[0].trim();
-            const lat = row[2] || '';
-            const lng = row[3] || '';
-            const route = row[4] || 'NM_01';
+            const lat = String(row[latCol] || '').trim();
+            const lng = String(row[lngCol] || '').trim();
             
+            let rawRoute = String(row[routeCol] || 'NM_01').trim();
+            let rawSde = String(row[sdeCol] || '').trim();
+            
+            let route = rawRoute;
+            if (rawRoute.startsWith('SDE_')) {
+              route = rawRoute.replace('SDE_', '');
+            } else if (rawSde.startsWith('SDE_')) {
+              route = rawSde.replace('SDE_', '');
+            }
+
+            if (!route || route === 'undefined' || route === 'null') {
+              route = 'FR_01';
+            }
+            
+            let sde = rawSde || `SDE_${route}`;
+            if (!sde || sde === 'undefined' || sde === 'null') {
+              sde = `SDE_${route}`;
+            }
+
+            const census_type = row[censusCol] || 'Census    RET';
+            const statusVal = parseInt(row[statusCol]);
+            const status = isNaN(statusVal) ? 0 : statusVal;
+
+            let region = 'Farg\'ona';
+            if (route.toLowerCase().includes('nm') || sde.toLowerCase().includes('nm')) {
+              region = 'Namangan';
+            }
+            const address = `${region}, yo'nalish: ${route}`;
+
             importedStores.push({
               id: parseInt(id) || (Date.now() + i),
               name: cleanName,
               owner_name: "Tadbirkor",
               phone: "+998 90 000 00 00",
-              address: `Namangan, yo'nalish: ${route}`,
+              address: address,
               latitude: parseFloat(lat) || '',
               longitude: parseFloat(lng) || '',
               route: route,
-              sde: row[5] || `SDE_${route}`,
-              census_type: row[6] || 'Census    RET',
-              status: parseInt(row[7]) || 0,
+              sde: sde,
+              census_type: census_type,
+              status: status,
               map_link: lat && lng ? `https://maps.google.com/?q=${lat},${lng}` : `https://maps.google.com/?q=${cleanName}`
             });
           }
