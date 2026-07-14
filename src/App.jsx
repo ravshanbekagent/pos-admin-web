@@ -2658,7 +2658,17 @@ function App() {
                 body: JSON.stringify(importedStores)
               });
 
-              const data = await res.json();
+              let data = {};
+              const contentType = res.headers.get('content-type');
+              if (contentType && contentType.includes('application/json')) {
+                data = await res.json();
+              } else {
+                if (res.status === 413) {
+                  throw new Error(language === 'uz' ? 'Fayl yoki ma\'lumotlar hajmi juda katta (413 Content Too Large)' : 'Размер файла или данных слишком велик (413 Content Too Large)');
+                }
+                const text = await res.text();
+                throw new Error(text.substring(0, 100) || `Server error: ${res.status}`);
+              }
               if (!res.ok) {
                 throw new Error(data.error || 'Do\'konlarni bulutga yuklashda xatolik yuz berdi');
               }
