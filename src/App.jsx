@@ -1700,6 +1700,11 @@ function App() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403 || (data.error && data.error.toLowerCase().includes('token'))) {
+          handleLogout();
+          showAlert(language === 'uz' ? "Sessiya muddati tugagan. Iltimos, qaytadan tizimga kiring." : "Сессия истекла. Пожалуйста, войдите снова.", 'warning');
+          return;
+        }
         throw new Error(data.error || 'Mahsulot qo\'shishda xatolik yuz berdi');
       }
 
@@ -1773,6 +1778,11 @@ function App() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 401 || res.status === 403 || (data.error && data.error.toLowerCase().includes('token'))) {
+          handleLogout();
+          showAlert(language === 'uz' ? "Sessiya muddati tugagan. Iltimos, qaytadan tizimga kiring." : "Сессия истекла. Пожалуйста, войдите снова.", 'warning');
+          return;
+        }
         throw new Error(data.error || 'Mahsulotni tahrirlashda xatolik yuz berdi');
       }
 
