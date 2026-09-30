@@ -1496,7 +1496,7 @@ function App() {
     psid: '02402001001041009',
     category: 'Tamakilar',
     name: '',
-    unit: 'blok',
+    unit: 'dona',
     is_integer_units: true,
     unit_code: '1',
     package_code: '1871434',
@@ -1682,7 +1682,7 @@ function App() {
           barcode: finalBarcode,
           name: newProduct.name.trim(),
           price: parseFloat(newProduct.price || 0),
-          unit: newProduct.unit || 'blok',
+          unit: newProduct.unit || 'dona',
           stock: 100,
           category: newProduct.category || 'Tamakilar',
           psid: newProduct.psid || '02402001001041009',
@@ -1709,7 +1709,7 @@ function App() {
         psid: '02402001001041009',
         category: 'Tamakilar',
         name: '',
-        unit: 'blok',
+        unit: 'dona',
         is_integer_units: true,
         unit_code: '1',
         package_code: '1871434',
@@ -6190,12 +6190,9 @@ function App() {
                             onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
                             style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: '500' }}
                           >
-                            <option value="blok">📦 Blok</option>
-                            <option value="pachka">📦 Pachka</option>
-                            <option value="karobka">📦 Karobka</option>
-                            <option value="dona">🏷️ Dona</option>
-                            <option value="kg">⚖️ Kilogramm (kg)</option>
-                            <option value="litr">🧴 Litr</option>
+                            <option value="dona">{language === 'uz' ? 'Dona' : 'Штука'}</option>
+                            <option value="blok">{language === 'uz' ? 'Blok' : 'Блок'}</option>
+                            <option value="karobka">{language === 'uz' ? 'Karobka' : 'Коробка'}</option>
                           </select>
                         </div>
                       </div>
@@ -6228,7 +6225,7 @@ function App() {
                               onClick={() => setNewProduct({ ...newProduct, barcode: '200' + Math.floor(100000 + Math.random() * 900000) })}
                               style={{ background: 'none', border: 'none', color: 'var(--accent-color)', fontSize: '12px', cursor: 'pointer', padding: 0, fontWeight: '600' }}
                             >
-                              🎲 {language === 'uz' ? "Avto kod" : "Авто"}
+                              {language === 'uz' ? "+ Avto kod" : "+ Авто код"}
                             </button>
                           </div>
                           <input 
@@ -6261,7 +6258,7 @@ function App() {
                           }}
                         >
                           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            ⚙️ {language === 'uz' ? "Qo'shimcha sozlamalar (Soliq / MXIK / QQS)" : "Доп. настройки (Налоги / МХИК)"}
+                            {language === 'uz' ? "Qo'shimcha sozlamalar (Soliq / MXIK / QQS)" : "Доп. настройки (Налоги / МХИК)"}
                           </span>
                           <ChevronDown 
                             size={16} 
@@ -6453,16 +6450,13 @@ function App() {
                             <span style={{ color: 'var(--warning-color)' }}>*</span> {language === 'uz' ? "O'lchov birligi" : "Единица"}
                           </label>
                           <select
-                            value={editingProduct.unit || 'blok'}
+                            value={editingProduct.unit || 'dona'}
                             onChange={(e) => setEditingProduct({ ...editingProduct, unit: e.target.value })}
                             style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: '500' }}
                           >
-                            <option value="blok">📦 Blok</option>
-                            <option value="pachka">📦 Pachka</option>
-                            <option value="karobka">📦 Karobka</option>
-                            <option value="dona">🏷️ Dona</option>
-                            <option value="kg">⚖️ Kilogramm (kg)</option>
-                            <option value="litr">🧴 Litr</option>
+                            <option value="dona">{language === 'uz' ? 'Dona' : 'Штука'}</option>
+                            <option value="blok">{language === 'uz' ? 'Blok' : 'Блок'}</option>
+                            <option value="karobka">{language === 'uz' ? 'Karobka' : 'Коробка'}</option>
                           </select>
                         </div>
                       </div>
@@ -6495,7 +6489,7 @@ function App() {
                               onClick={() => setEditingProduct({ ...editingProduct, barcode: '200' + Math.floor(100000 + Math.random() * 900000) })}
                               style={{ background: 'none', border: 'none', color: 'var(--accent-color)', fontSize: '12px', cursor: 'pointer', padding: 0, fontWeight: '600' }}
                             >
-                              🎲 {language === 'uz' ? "Avto kod" : "Авто"}
+                              {language === 'uz' ? "+ Avto kod" : "+ Авто код"}
                             </button>
                           </div>
                           <input 
@@ -6528,7 +6522,7 @@ function App() {
                           }}
                         >
                           <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                            ⚙️ {language === 'uz' ? "Qo'shimcha sozlamalar (Soliq / MXIK / QQS)" : "Доп. настройки (Налоги / МХИК)"}
+                            {language === 'uz' ? "Qo'shimcha sozlamalar (Soliq / MXIK / QQS)" : "Доп. настройки (Налоги / МХИК)"}
                           </span>
                           <ChevronDown 
                             size={16} 
