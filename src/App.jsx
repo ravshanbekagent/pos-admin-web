@@ -1488,22 +1488,25 @@ function App() {
   const [editAssignmentQty, setEditAssignmentQty] = useState('');
   const [editAssignmentRemainingQty, setEditAssignmentRemainingQty] = useState('');
 
+  const [showAdvancedProductFields, setShowAdvancedProductFields] = useState(false);
+  const [showAdvancedEditFields, setShowAdvancedEditFields] = useState(false);
+
   const [newProduct, setNewProduct] = useState({
     id: '',
-    psid: '',
-    category: '',
+    psid: '02402001001041009',
+    category: 'Tamakilar',
     name: '',
-    unit: 'dona',
+    unit: 'blok',
     is_integer_units: true,
-    unit_code: '',
-    package_code: '',
+    unit_code: '1',
+    package_code: '1871434',
     owner_type: '0',
     inn: '',
     pinfl: '',
     vat: 0.12,
     marked: true,
     is_active: true,
-    price: 0,
+    price: '',
     store_name: '',
     barcode: ''
   });
@@ -1658,7 +1661,14 @@ function App() {
 
   const handleAddProduct = async (e) => {
     e.preventDefault();
-    if (!newProduct.barcode || !newProduct.name) return;
+    if (!newProduct.name || !newProduct.name.trim()) {
+      showAlert(language === 'uz' ? "Mahsulot nomini kiriting!" : "Введите название товара!", 'warning');
+      return;
+    }
+
+    const finalBarcode = (newProduct.barcode && String(newProduct.barcode).trim()) 
+      ? String(newProduct.barcode).trim() 
+      : ('200' + Math.floor(100000 + Math.random() * 900000));
     
     setIsLoading(true);
     try {
@@ -1669,22 +1679,22 @@ function App() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          barcode: newProduct.barcode,
-          name: newProduct.name,
+          barcode: finalBarcode,
+          name: newProduct.name.trim(),
           price: parseFloat(newProduct.price || 0),
-          unit: newProduct.unit,
+          unit: newProduct.unit || 'blok',
           stock: 100,
-          category: newProduct.category,
-          psid: newProduct.psid,
-          marked: newProduct.marked,
-          is_integer_units: newProduct.is_integer_units,
-          package_code: newProduct.package_code,
-          inn: newProduct.inn,
-          pinfl: newProduct.pinfl,
-          owner_type: newProduct.owner_type,
-          store_name: newProduct.store_name,
-          vat: parseFloat(newProduct.vat),
-          unit_code: newProduct.unit_code
+          category: newProduct.category || 'Tamakilar',
+          psid: newProduct.psid || '02402001001041009',
+          marked: newProduct.marked !== undefined ? newProduct.marked : true,
+          is_integer_units: newProduct.is_integer_units !== undefined ? newProduct.is_integer_units : true,
+          package_code: newProduct.package_code || '1871434',
+          inn: newProduct.inn || '',
+          pinfl: newProduct.pinfl || '',
+          owner_type: newProduct.owner_type || '0',
+          store_name: newProduct.store_name || '',
+          vat: newProduct.vat !== undefined ? parseFloat(newProduct.vat) : 0.12,
+          unit_code: newProduct.unit_code || '1'
         })
       });
 
@@ -1696,20 +1706,20 @@ function App() {
       showAlert('Mahsulot muvaffaqiyatli qo\'shildi!', 'success');
       setNewProduct({
         id: '',
-        psid: '',
-        category: '',
+        psid: '02402001001041009',
+        category: 'Tamakilar',
         name: '',
-        unit: 'dona',
+        unit: 'blok',
         is_integer_units: true,
-        unit_code: '',
-        package_code: '',
+        unit_code: '1',
+        package_code: '1871434',
         owner_type: '0',
         inn: '',
         pinfl: '',
         vat: 0.12,
         marked: true,
         is_active: true,
-        price: 0,
+        price: '',
         store_name: '',
         barcode: ''
       });
@@ -1724,7 +1734,14 @@ function App() {
 
   const handleEditProductSubmit = async (e) => {
     e.preventDefault();
-    if (!editingProduct.barcode || !editingProduct.name) return;
+    if (!editingProduct.name || !editingProduct.name.trim()) {
+      showAlert(language === 'uz' ? "Mahsulot nomini kiriting!" : "Введите название товара!", 'warning');
+      return;
+    }
+
+    const finalBarcode = (editingProduct.barcode && String(editingProduct.barcode).trim()) 
+      ? String(editingProduct.barcode).trim() 
+      : ('200' + Math.floor(100000 + Math.random() * 900000));
 
     setIsLoading(true);
     try {
@@ -1735,22 +1752,22 @@ function App() {
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          barcode: editingProduct.barcode,
-          name: editingProduct.name,
+          barcode: finalBarcode,
+          name: editingProduct.name.trim(),
           price: parseFloat(editingProduct.price || 0),
-          unit: editingProduct.unit,
-          is_active: editingProduct.is_active,
-          category: editingProduct.category,
-          psid: editingProduct.psid,
-          marked: editingProduct.marked,
-          is_integer_units: editingProduct.is_integer_units,
-          package_code: editingProduct.package_code,
-          inn: editingProduct.inn,
-          pinfl: editingProduct.pinfl,
-          owner_type: editingProduct.owner_type,
-          store_name: editingProduct.store_name,
-          vat: parseFloat(editingProduct.vat),
-          unit_code: editingProduct.unit_code
+          unit: editingProduct.unit || 'blok',
+          is_active: editingProduct.is_active !== undefined ? editingProduct.is_active : true,
+          category: editingProduct.category || 'Tamakilar',
+          psid: editingProduct.psid || '02402001001041009',
+          marked: editingProduct.marked !== undefined ? editingProduct.marked : true,
+          is_integer_units: editingProduct.is_integer_units !== undefined ? editingProduct.is_integer_units : true,
+          package_code: editingProduct.package_code || '1871434',
+          inn: editingProduct.inn || '',
+          pinfl: editingProduct.pinfl || '',
+          owner_type: editingProduct.owner_type || '0',
+          store_name: editingProduct.store_name || '',
+          vat: editingProduct.vat !== undefined ? parseFloat(editingProduct.vat) : 0.12,
+          unit_code: editingProduct.unit_code || '1'
         })
       });
 
@@ -6102,360 +6119,222 @@ function App() {
                   zIndex: 1000
                 }} className="fade-in">
                   <div style={{
-                    width: '900px',
+                    width: '560px',
+                    maxWidth: '95vw',
                     backgroundColor: 'var(--bg-secondary)',
                     border: '1px solid var(--border-color)',
                     borderRadius: '16px',
-                    padding: '28px',
+                    padding: '24px',
                     boxShadow: 'var(--shadow-lg)',
                     maxHeight: '90vh',
                     overflowY: 'auto'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        {language === 'uz' ? "Mahsulot qo'shish" : "Add product"}
-                      </h3>
+                      <div>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                          {language === 'uz' ? "Mahsulot qo'shish" : "Add product"}
+                        </h3>
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                          {language === 'uz' ? "Yangi mahsulot ma'lumotlarini kiriting" : "Введите данные нового товара"}
+                        </p>
+                      </div>
                       <button 
                         type="button"
                         onClick={() => setShowAddProductModal(false)}
-                        style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
                       >
                         <X size={20} />
                       </button>
                     </div>
 
-                    <form onSubmit={handleAddProduct} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      {/* Grid 3-columns */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                        
-                        {/* Row 1 */}
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Product ID
-                          </label>
-                          <input 
-                            type="text" 
-                            disabled 
-                            placeholder="Auto-generated"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-muted)', fontSize: '14px' }}
-                          />
-                        </div>
+                    <form onSubmit={handleAddProduct} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {/* Mahsulot nomi */}
+                      <div>
+                        <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+                          <span style={{ color: 'var(--warning-color)' }}>*</span> {language === 'uz' ? "Mahsulot nomi" : "Название товара"}
+                        </label>
+                        <input 
+                          type="text" 
+                          required
+                          value={newProduct.name}
+                          onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                          placeholder={language === 'uz' ? "Masalan: Chapman Green, Marlboro..." : "Например: Chapman Green"}
+                          style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '15px', fontWeight: '500' }}
+                        />
+                      </div>
 
+                      {/* Narxi va O'lchov birligi (2 ustun) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                         <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> PSID <span style={{ fontStyle: 'italic', fontWeight: 'normal', fontSize: '11px', color: 'var(--text-muted)' }}>Check the psid on <a href="https://tasnif.soliq.uz" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline' }}>tasnif.soliq.uz</a></span>
+                          <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+                            <span style={{ color: 'var(--warning-color)' }}>*</span> {language === 'uz' ? "Narxi (so'm)" : "Цена (сум)"}
                           </label>
                           <input 
-                            type="text"
+                            type="number" 
                             required
-                            value={newProduct.psid}
-                            onChange={(e) => setNewProduct({ ...newProduct, psid: e.target.value })}
-                            placeholder="02402001001041009"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                            min="0"
+                            step="any"
+                            value={newProduct.price}
+                            onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
+                            placeholder="0"
+                            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '15px' }}
                           />
                         </div>
 
                         <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Category
+                          <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+                            <span style={{ color: 'var(--warning-color)' }}>*</span> {language === 'uz' ? "O'lchov birligi" : "Единица"}
+                          </label>
+                          <select
+                            value={newProduct.unit}
+                            onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
+                            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: '500' }}
+                          >
+                            <option value="blok">📦 Blok</option>
+                            <option value="pachka">📦 Pachka</option>
+                            <option value="karobka">📦 Karobka</option>
+                            <option value="dona">🏷️ Dona</option>
+                            <option value="kg">⚖️ Kilogramm (kg)</option>
+                            <option value="litr">🧴 Litr</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Kategoriya va Shtrix-kod (2 ustun) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+                            {language === 'uz' ? "Kategoriya" : "Категория"}
                           </label>
                           <select
                             value={newProduct.category}
                             onChange={(e) => setNewProduct({ ...newProduct, category: e.target.value })}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
                           >
-                            <option value="">-</option>
                             <option value="Tamakilar">{language === 'uz' ? 'Tamaki mahsulotlari' : 'Табачные изделия'}</option>
                             <option value="Ichimliklar">{language === 'uz' ? 'Ichimliklar' : 'Напитки'}</option>
+                            <option value="Oziq-ovqat">{language === 'uz' ? 'Oziq-ovqat' : 'Продукты'}</option>
                             <option value="Boshqa">{language === 'uz' ? 'Boshqa' : 'Другое'}</option>
                           </select>
                         </div>
 
-                        {/* Row 2 */}
                         <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> Product name
-                          </label>
-                          <input 
-                            type="text" 
-                            required
-                            value={newProduct.name}
-                            onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                            placeholder="Chapman Green OP"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> Units
-                          </label>
-                          <input 
-                            type="text" 
-                            required
-                            value={newProduct.unit}
-                            onChange={(e) => setNewProduct({ ...newProduct, unit: e.target.value })}
-                            placeholder="blok"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Sell by piece
-                          </label>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
-                            <input 
-                              type="checkbox" 
-                              id="new-product-by-piece"
-                              checked={newProduct.is_integer_units}
-                              onChange={(e) => setNewProduct({ ...newProduct, is_integer_units: e.target.checked })}
-                              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
-                            />
-                            <label htmlFor="new-product-by-piece" style={{ marginLeft: '8px', fontSize: '14px', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                              By piece
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                              {language === 'uz' ? "Shtrix-kod" : "Штрих-код"}
                             </label>
+                            <button
+                              type="button"
+                              onClick={() => setNewProduct({ ...newProduct, barcode: '200' + Math.floor(100000 + Math.random() * 900000) })}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent-color)', fontSize: '12px', cursor: 'pointer', padding: 0, fontWeight: '600' }}
+                            >
+                              🎲 {language === 'uz' ? "Avto kod" : "Авто"}
+                            </button>
                           </div>
-                        </div>
-
-                        {/* Row 3 */}
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Unit code
-                          </label>
                           <input 
                             type="text" 
-                            value={newProduct.unit_code}
-                            onChange={(e) => setNewProduct({ ...newProduct, unit_code: e.target.value })}
-                            placeholder="1 - 999"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                            value={newProduct.barcode}
+                            onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
+                            placeholder={language === 'uz' ? "Avtomatik yaratiladi" : "Авто-генерация"}
+                            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
                           />
                         </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Package code
-                          </label>
-                          <input 
-                            type="text" 
-                            value={newProduct.package_code}
-                            onChange={(e) => setNewProduct({ ...newProduct, package_code: e.target.value })}
-                            placeholder="1871434"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Marked product
-                          </label>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
-                            <input 
-                              type="checkbox" 
-                              id="new-product-marked"
-                              checked={newProduct.marked}
-                              onChange={(e) => setNewProduct({ ...newProduct, marked: e.target.checked })}
-                              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
-                            />
-                            <label htmlFor="new-product-marked" style={{ marginLeft: '8px', fontSize: '14px', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                              Marked
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Row 4 */}
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> Product/service owner type
-                          </label>
-                          <select
-                            value={newProduct.owner_type}
-                            onChange={(e) => setNewProduct({ ...newProduct, owner_type: e.target.value })}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          >
-                            <option value="0">Buy-Sell</option>
-                            <option value="1">Commission</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Commission TIN <span style={{ fontStyle: 'italic', fontWeight: 'normal', fontSize: '11px', color: 'var(--text-muted)' }}>9 digits</span>
-                          </label>
-                          <input 
-                            type="text" 
-                            maxLength={9}
-                            value={newProduct.inn}
-                            onChange={(e) => setNewProduct({ ...newProduct, inn: e.target.value })}
-                            placeholder="TIN"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Commission PINFL <span style={{ fontStyle: 'italic', fontWeight: 'normal', fontSize: '11px', color: 'var(--text-muted)' }}>14 digits</span>
-                          </label>
-                          <input 
-                            type="text" 
-                            maxLength={14}
-                            value={newProduct.pinfl}
-                            onChange={(e) => setNewProduct({ ...newProduct, pinfl: e.target.value })}
-                            placeholder="PINFL"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        {/* Row 5 */}
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> VAT in %
-                          </label>
-                          <select
-                            value={newProduct.vat}
-                            onChange={(e) => setNewProduct({ ...newProduct, vat: parseFloat(e.target.value) })}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          >
-                            <option value="0.12">12 %</option>
-                            <option value="0">0 %</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Is active
-                          </label>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
-                            <input 
-                              type="checkbox" 
-                              id="new-product-active"
-                              checked={newProduct.is_active}
-                              onChange={(e) => setNewProduct({ ...newProduct, is_active: e.target.checked })}
-                              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
-                            />
-                            <label htmlFor="new-product-active" style={{ marginLeft: '8px', fontSize: '14px', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                              Active
-                            </label>
-                          </div>
-                        </div>
-
                       </div>
 
-                      {/* Stores section */}
-                      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                          <ShoppingCart size={16} /> Stores
-                        </h4>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '12px', alignItems: 'end' }}>
-                          <div>
-                            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Store</label>
-                            <select 
-                              value={newProduct.store_name}
-                              onChange={(e) => setNewProduct({ ...newProduct, store_name: e.target.value })}
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                            >
-                              <option value="">-</option>
-                              {stores.map(st => (
-                                <option key={st.id} value={st.name}>{st.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Price</label>
-                            <input 
-                              type="number" 
-                              value={newProduct.price || ''}
-                              onChange={(e) => setNewProduct({ ...newProduct, price: e.target.value })}
-                              placeholder="0.00"
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                            />
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              if (!newProduct.store_name || !newProduct.price) {
-                                showAlert(language === 'uz' ? "Do'kon va narxni kiriting!" : "Введите магазин и цену!", 'info');
-                                return;
-                              }
-                              showAlert(language === 'uz' ? "Do'kon biriktirildi" : "Магазин привязан", 'success');
-                            }}
-                            style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--accent-color)', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', height: '40px' }}
-                          >
-                            Set price
-                          </button>
-                        </div>
+                      {/* Qo'shimcha soliq (MXIK) sozlamalari - Accordion */}
+                      <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvancedProductFields(!showAdvancedProductFields)}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '10px 14px',
+                            background: 'var(--bg-tertiary)',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            ⚙️ {language === 'uz' ? "Qo'shimcha sozlamalar (Soliq / MXIK / QQS)" : "Доп. настройки (Налоги / МХИК)"}
+                          </span>
+                          <ChevronDown 
+                            size={16} 
+                            style={{ 
+                              transform: showAdvancedProductFields ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.2s ease'
+                            }} 
+                          />
+                        </button>
 
-                        {newProduct.store_name && (
-                          <div style={{ marginTop: '12px', backgroundColor: 'var(--bg-primary)', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{newProduct.store_name}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <span style={{ fontWeight: '700', color: 'var(--accent-color)' }}>{parseFloat(newProduct.price).toLocaleString()} UZS</span>
-                              <button 
-                                type="button" 
-                                onClick={() => setNewProduct({ ...newProduct, store_name: '', price: '' })}
-                                style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--warning-color)', cursor: 'pointer' }}
+                        {showAdvancedProductFields && (
+                          <div style={{ padding: '14px', backgroundColor: 'var(--bg-primary)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
+                                PSID (MXIK)
+                              </label>
+                              <input 
+                                type="text"
+                                value={newProduct.psid}
+                                onChange={(e) => setNewProduct({ ...newProduct, psid: e.target.value })}
+                                placeholder="02402001001041009"
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
+                                Package code
+                              </label>
+                              <input 
+                                type="text"
+                                value={newProduct.package_code}
+                                onChange={(e) => setNewProduct({ ...newProduct, package_code: e.target.value })}
+                                placeholder="1871434"
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
+                                VAT in %
+                              </label>
+                              <select
+                                value={newProduct.vat}
+                                onChange={(e) => setNewProduct({ ...newProduct, vat: parseFloat(e.target.value) })}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }}
                               >
-                                <Trash2 size={16} />
-                              </button>
+                                <option value="0.12">12 %</option>
+                                <option value="0">0 %</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
+                                Owner type
+                              </label>
+                              <select
+                                value={newProduct.owner_type}
+                                onChange={(e) => setNewProduct({ ...newProduct, owner_type: e.target.value })}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }}
+                              >
+                                <option value="0">Buy-Sell</option>
+                                <option value="1">Commission</option>
+                              </select>
                             </div>
                           </div>
                         )}
                       </div>
 
-                      {/* Barcodes section */}
-                      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginBottom: '10px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5H5V19H3V5ZM21 5H19V19H21V5ZM7 5H8V19H7V5ZM11 5H13V19H11V5ZM15 5H17V19H15V5ZM9 5H10V19H9V5Z"/></svg> Barcodes
-                        </h4>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'end' }}>
-                          <div>
-                            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Barcode</label>
-                            <input 
-                              type="text" 
-                              value={newProduct.barcode}
-                              onChange={(e) => setNewProduct({ ...newProduct, barcode: e.target.value })}
-                              placeholder="Barcode"
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                            />
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              if (!newProduct.barcode) {
-                                showAlert(language === 'uz' ? "Shtrix kodni kiriting!" : "Введите штрих-код!", 'info');
-                                return;
-                              }
-                              showAlert(language === 'uz' ? "Shtrix kod o'rnatildi" : "Штрих-код установлен", 'success');
-                            }}
-                            style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--accent-color)', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', height: '40px' }}
-                          >
-                            Set barcode
-                          </button>
-                        </div>
-
-                        {newProduct.barcode && (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '12px', backgroundColor: 'var(--bg-primary)', padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
-                            <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>{newProduct.barcode}</span>
-                            <button 
-                              type="button" 
-                              onClick={() => setNewProduct({ ...newProduct, barcode: '' })}
-                              style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
                       {/* Footer Buttons */}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '6px' }}>
                         <button 
                           type="button"
                           onClick={() => setShowAddProductModal(false)}
                           style={{
-                            padding: '10px 24px',
+                            padding: '10px 20px',
                             borderRadius: '8px',
                             border: '1px solid var(--border-color)',
                             backgroundColor: 'transparent',
@@ -6465,7 +6344,7 @@ function App() {
                             cursor: 'pointer'
                           }}
                         >
-                          Cancel
+                          {language === 'uz' ? 'Bekor qilish' : 'Отмена'}
                         </button>
                         <button 
                           type="submit"
@@ -6480,7 +6359,7 @@ function App() {
                             cursor: 'pointer'
                           }}
                         >
-                          Save
+                          {language === 'uz' ? 'Saqlash' : 'Сохранить'}
                         </button>
                       </div>
                     </form>
@@ -6504,358 +6383,224 @@ function App() {
                   zIndex: 1000
                 }} className="fade-in">
                   <div style={{
-                    width: '900px',
+                    width: '560px',
+                    maxWidth: '95vw',
                     backgroundColor: 'var(--bg-secondary)',
                     border: '1px solid var(--border-color)',
                     borderRadius: '16px',
-                    padding: '28px',
+                    padding: '24px',
                     boxShadow: 'var(--shadow-lg)',
                     maxHeight: '90vh',
                     overflowY: 'auto'
                   }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                      <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)' }}>
-                        {language === 'uz' ? "Mahsulotni tahrirlash" : "Edit product"}
-                      </h3>
+                      <div>
+                        <h3 style={{ fontSize: '18px', fontWeight: '700', color: 'var(--text-primary)', margin: 0 }}>
+                          {language === 'uz' ? "Mahsulotni tahrirlash" : "Edit product"}
+                        </h3>
+                        <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '4px 0 0 0' }}>
+                          ID: #{editingProduct.id} — {editingProduct.name}
+                        </p>
+                      </div>
                       <button 
                         type="button"
                         onClick={() => {
                           setShowEditProductModal(false);
                           setEditingProduct(null);
                         }}
-                        style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer' }}
+                        style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: '4px' }}
                       >
                         <X size={20} />
                       </button>
                     </div>
 
-                    <form onSubmit={handleEditProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      {/* Grid 3-columns */}
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '16px' }}>
-                        
-                        {/* Row 1 */}
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Product ID
-                          </label>
-                          <input 
-                            type="text" 
-                            disabled 
-                            value={editingProduct.id}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-tertiary)', color: 'var(--text-muted)', fontSize: '14px' }}
-                          />
-                        </div>
+                    <form onSubmit={handleEditProductSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      {/* Mahsulot nomi */}
+                      <div>
+                        <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+                          <span style={{ color: 'var(--warning-color)' }}>*</span> {language === 'uz' ? "Mahsulot nomi" : "Название товара"}
+                        </label>
+                        <input 
+                          type="text" 
+                          required
+                          value={editingProduct.name}
+                          onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                          placeholder={language === 'uz' ? "Masalan: Chapman Green, Marlboro..." : "Например: Chapman Green"}
+                          style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '15px', fontWeight: '500' }}
+                        />
+                      </div>
 
+                      {/* Narxi va O'lchov birligi (2 ustun) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
                         <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> PSID <span style={{ fontStyle: 'italic', fontWeight: 'normal', fontSize: '11px', color: 'var(--text-muted)' }}>Check the psid on <a href="https://tasnif.soliq.uz" target="_blank" rel="noreferrer" style={{ color: 'var(--accent-color)', textDecoration: 'underline' }}>tasnif.soliq.uz</a></span>
+                          <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+                            <span style={{ color: 'var(--warning-color)' }}>*</span> {language === 'uz' ? "Narxi (so'm)" : "Цена (сум)"}
                           </label>
                           <input 
-                            type="text"
+                            type="number" 
                             required
-                            value={editingProduct.psid}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, psid: e.target.value })}
-                            placeholder="02402001001041009"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                            min="0"
+                            step="any"
+                            value={editingProduct.price}
+                            onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
+                            placeholder="0"
+                            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '15px' }}
                           />
                         </div>
 
                         <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Category
+                          <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+                            <span style={{ color: 'var(--warning-color)' }}>*</span> {language === 'uz' ? "O'lchov birligi" : "Единица"}
                           </label>
                           <select
-                            value={editingProduct.category}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                            value={editingProduct.unit || 'blok'}
+                            onChange={(e) => setEditingProduct({ ...editingProduct, unit: e.target.value })}
+                            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px', fontWeight: '500' }}
                           >
-                            <option value="">-</option>
+                            <option value="blok">📦 Blok</option>
+                            <option value="pachka">📦 Pachka</option>
+                            <option value="karobka">📦 Karobka</option>
+                            <option value="dona">🏷️ Dona</option>
+                            <option value="kg">⚖️ Kilogramm (kg)</option>
+                            <option value="litr">🧴 Litr</option>
+                          </select>
+                        </div>
+                      </div>
+
+                      {/* Kategoriya va Shtrix-kod (2 ustun) */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px' }}>
+                        <div>
+                          <label style={{ fontSize: '13px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
+                            {language === 'uz' ? "Kategoriya" : "Категория"}
+                          </label>
+                          <select
+                            value={editingProduct.category || 'Tamakilar'}
+                            onChange={(e) => setEditingProduct({ ...editingProduct, category: e.target.value })}
+                            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                          >
                             <option value="Tamakilar">{language === 'uz' ? 'Tamaki mahsulotlari' : 'Табачные изделия'}</option>
                             <option value="Ichimliklar">{language === 'uz' ? 'Ichimliklar' : 'Напитки'}</option>
+                            <option value="Oziq-ovqat">{language === 'uz' ? 'Oziq-ovqat' : 'Продукты'}</option>
                             <option value="Boshqa">{language === 'uz' ? 'Boshqa' : 'Другое'}</option>
                           </select>
                         </div>
 
-                        {/* Row 2 */}
                         <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> Product name
-                          </label>
-                          <input 
-                            type="text" 
-                            required
-                            value={editingProduct.name}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                            placeholder="Chapman Green OP"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> Units
-                          </label>
-                          <input 
-                            type="text" 
-                            required
-                            value={editingProduct.unit}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, unit: e.target.value })}
-                            placeholder="blok"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Sell by piece
-                          </label>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
-                            <input 
-                              type="checkbox" 
-                              id="edit-product-by-piece"
-                              checked={editingProduct.is_integer_units}
-                              onChange={(e) => setEditingProduct({ ...editingProduct, is_integer_units: e.target.checked })}
-                              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
-                            />
-                            <label htmlFor="edit-product-by-piece" style={{ marginLeft: '8px', fontSize: '14px', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                              By piece
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <label style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                              {language === 'uz' ? "Shtrix-kod" : "Штрих-код"}
                             </label>
+                            <button
+                              type="button"
+                              onClick={() => setEditingProduct({ ...editingProduct, barcode: '200' + Math.floor(100000 + Math.random() * 900000) })}
+                              style={{ background: 'none', border: 'none', color: 'var(--accent-color)', fontSize: '12px', cursor: 'pointer', padding: 0, fontWeight: '600' }}
+                            >
+                              🎲 {language === 'uz' ? "Avto kod" : "Авто"}
+                            </button>
                           </div>
-                        </div>
-
-                        {/* Row 3 */}
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Unit code
-                          </label>
                           <input 
                             type="text" 
-                            value={editingProduct.unit_code}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, unit_code: e.target.value })}
-                            placeholder="1 - 999"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
+                            value={editingProduct.barcode || ''}
+                            onChange={(e) => setEditingProduct({ ...editingProduct, barcode: e.target.value })}
+                            placeholder={language === 'uz' ? "Shtrix-kod kiriting" : "Введите штрих-код"}
+                            style={{ width: '100%', padding: '12px 14px', borderRadius: '10px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
                           />
                         </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Package code
-                          </label>
-                          <input 
-                            type="text" 
-                            value={editingProduct.package_code}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, package_code: e.target.value })}
-                            placeholder="1871434"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Marked product
-                          </label>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
-                            <input 
-                              type="checkbox" 
-                              id="edit-product-marked"
-                              checked={editingProduct.marked}
-                              onChange={(e) => setEditingProduct({ ...editingProduct, marked: e.target.checked })}
-                              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
-                            />
-                            <label htmlFor="edit-product-marked" style={{ marginLeft: '8px', fontSize: '14px', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                              Marked
-                            </label>
-                          </div>
-                        </div>
-
-                        {/* Row 4 */}
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> Product/service owner type
-                          </label>
-                          <select
-                            value={editingProduct.owner_type}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, owner_type: e.target.value })}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          >
-                            <option value="0">Buy-Sell</option>
-                            <option value="1">Commission</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Commission TIN <span style={{ fontStyle: 'italic', fontWeight: 'normal', fontSize: '11px', color: 'var(--text-muted)' }}>9 digits</span>
-                          </label>
-                          <input 
-                            type="text" 
-                            maxLength={9}
-                            value={editingProduct.inn}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, inn: e.target.value })}
-                            placeholder="TIN"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Commission PINFL <span style={{ fontStyle: 'italic', fontWeight: 'normal', fontSize: '11px', color: 'var(--text-muted)' }}>14 digits</span>
-                          </label>
-                          <input 
-                            type="text" 
-                            maxLength={14}
-                            value={editingProduct.pinfl}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, pinfl: e.target.value })}
-                            placeholder="PINFL"
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          />
-                        </div>
-
-                        {/* Row 5 */}
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            <span style={{ color: 'var(--warning-color)' }}>*</span> VAT in %
-                          </label>
-                          <select
-                            value={editingProduct.vat}
-                            onChange={(e) => setEditingProduct({ ...editingProduct, vat: parseFloat(e.target.value) })}
-                            style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                          >
-                            <option value="0.12">12 %</option>
-                            <option value="0">0 %</option>
-                          </select>
-                        </div>
-
-                        <div>
-                          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px', fontWeight: '600' }}>
-                            Is active
-                          </label>
-                          <div style={{ display: 'flex', alignItems: 'center', height: '40px' }}>
-                            <input 
-                              type="checkbox" 
-                              id="edit-product-active"
-                              checked={editingProduct.is_active}
-                              onChange={(e) => setEditingProduct({ ...editingProduct, is_active: e.target.checked })}
-                              style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
-                            />
-                            <label htmlFor="edit-product-active" style={{ marginLeft: '8px', fontSize: '14px', cursor: 'pointer', color: 'var(--text-primary)' }}>
-                              Active
-                            </label>
-                          </div>
-                        </div>
-
                       </div>
 
-                      {/* Stores section */}
-                      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                          <ShoppingCart size={16} /> Stores
-                        </h4>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr auto', gap: '12px', alignItems: 'end' }}>
-                          <div>
-                            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Store</label>
-                            <select 
-                              value={editingProduct.store_name}
-                              onChange={(e) => setEditingProduct({ ...editingProduct, store_name: e.target.value })}
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                            >
-                              <option value="">-</option>
-                              {stores.map(st => (
-                                <option key={st.id} value={st.name}>{st.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Price</label>
-                            <input 
-                              type="number" 
-                              value={editingProduct.price || ''}
-                              onChange={(e) => setEditingProduct({ ...editingProduct, price: e.target.value })}
-                              placeholder="0.00"
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                            />
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              if (!editingProduct.store_name || !editingProduct.price) {
-                                showAlert(language === 'uz' ? "Do'kon va narxni kiriting!" : "Введите магазин и цену!", 'info');
-                                return;
-                              }
-                              showAlert(language === 'uz' ? "Do'kon biriktirildi" : "Магазин привязан", 'success');
-                            }}
-                            style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--accent-color)', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', height: '40px' }}
-                          >
-                            Set price
-                          </button>
-                        </div>
+                      {/* Qo'shimcha soliq (MXIK) sozlamalari - Accordion */}
+                      <div style={{ border: '1px solid var(--border-color)', borderRadius: '10px', overflow: 'hidden' }}>
+                        <button
+                          type="button"
+                          onClick={() => setShowAdvancedEditFields(!showAdvancedEditFields)}
+                          style={{
+                            width: '100%',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: '10px 14px',
+                            background: 'var(--bg-tertiary)',
+                            border: 'none',
+                            color: 'var(--text-secondary)',
+                            fontSize: '13px',
+                            fontWeight: '600',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            ⚙️ {language === 'uz' ? "Qo'shimcha sozlamalar (Soliq / MXIK / QQS)" : "Доп. настройки (Налоги / МХИК)"}
+                          </span>
+                          <ChevronDown 
+                            size={16} 
+                            style={{ 
+                              transform: showAdvancedEditFields ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.2s ease'
+                            }} 
+                          />
+                        </button>
 
-                        {editingProduct.store_name && (
-                          <div style={{ marginTop: '12px', backgroundColor: 'var(--bg-primary)', padding: '10px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ fontWeight: '500', color: 'var(--text-primary)' }}>{editingProduct.store_name}</span>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                              <span style={{ fontWeight: '700', color: 'var(--accent-color)' }}>{parseFloat(editingProduct.price).toLocaleString()} UZS</span>
-                              <button 
-                                type="button" 
-                                onClick={() => setEditingProduct({ ...editingProduct, store_name: '', price: '' })}
-                                style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--warning-color)', cursor: 'pointer' }}
+                        {showAdvancedEditFields && (
+                          <div style={{ padding: '14px', backgroundColor: 'var(--bg-primary)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
+                                PSID (MXIK)
+                              </label>
+                              <input 
+                                type="text"
+                                value={editingProduct.psid || ''}
+                                onChange={(e) => setEditingProduct({ ...editingProduct, psid: e.target.value })}
+                                placeholder="02402001001041009"
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
+                                Package code
+                              </label>
+                              <input 
+                                type="text"
+                                value={editingProduct.package_code || ''}
+                                onChange={(e) => setEditingProduct({ ...editingProduct, package_code: e.target.value })}
+                                placeholder="1871434"
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }}
+                              />
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
+                                VAT in %
+                              </label>
+                              <select
+                                value={editingProduct.vat !== undefined ? editingProduct.vat : 0.12}
+                                onChange={(e) => setEditingProduct({ ...editingProduct, vat: parseFloat(e.target.value) })}
+                                style={{ width: '100%', padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', fontSize: '13px' }}
                               >
-                                <Trash2 size={16} />
-                              </button>
+                                <option value="0.12">12 %</option>
+                                <option value="0">0 %</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label style={{ fontSize: '11px', color: 'var(--text-secondary)', display: 'block', marginBottom: '4px', fontWeight: '600' }}>
+                                Holati (Faol)
+                              </label>
+                              <div style={{ display: 'flex', alignItems: 'center', height: '36px' }}>
+                                <input 
+                                  type="checkbox" 
+                                  id="edit-product-active"
+                                  checked={editingProduct.is_active}
+                                  onChange={(e) => setEditingProduct({ ...editingProduct, is_active: e.target.checked })}
+                                  style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--accent-color)' }}
+                                />
+                                <label htmlFor="edit-product-active" style={{ marginLeft: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--text-primary)' }}>
+                                  {language === 'uz' ? 'Faol mahsulot' : 'Активный товар'}
+                                </label>
+                              </div>
                             </div>
                           </div>
                         )}
                       </div>
 
-                      {/* Barcodes section */}
-                      <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginBottom: '10px' }}>
-                        <h4 style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
-                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 5H5V19H3V5ZM21 5H19V19H21V5ZM7 5H8V19H7V5ZM11 5H13V19H11V5ZM15 5H17V19H15V5ZM9 5H10V19H9V5Z"/></svg> Barcodes
-                        </h4>
-                        
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', alignItems: 'end' }}>
-                          <div>
-                            <label style={{ fontSize: '12px', color: 'var(--text-secondary)', display: 'block', marginBottom: '6px' }}>Barcode</label>
-                            <input 
-                              type="text" 
-                              value={editingProduct.barcode}
-                              onChange={(e) => setEditingProduct({ ...editingProduct, barcode: e.target.value })}
-                              placeholder="Barcode"
-                              style={{ width: '100%', padding: '10px 12px', borderRadius: '8px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-primary)', color: 'var(--text-primary)', fontSize: '14px' }}
-                            />
-                          </div>
-                          <button 
-                            type="button"
-                            onClick={() => {
-                              if (!editingProduct.barcode) {
-                                showAlert(language === 'uz' ? "Shtrix kodni kiriting!" : "Введите штрих-код!", 'info');
-                                return;
-                              }
-                              showAlert(language === 'uz' ? "Shtrix kod o'rnatildi" : "Штрих-код установлен", 'success');
-                            }}
-                            style={{ padding: '10px 16px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--accent-color)', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: 'pointer', height: '40px' }}
-                          >
-                            Set barcode
-                          </button>
-                        </div>
-
-                        {editingProduct.barcode && (
-                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', marginTop: '12px', backgroundColor: 'var(--bg-primary)', padding: '6px 12px', borderRadius: '20px', border: '1px solid var(--border-color)' }}>
-                            <span style={{ fontSize: '13px', color: 'var(--text-primary)', fontFamily: 'monospace' }}>{editingProduct.barcode}</span>
-                            <button 
-                              type="button" 
-                              onClick={() => setEditingProduct({ ...editingProduct, barcode: '' })}
-                              style={{ border: 'none', backgroundColor: 'transparent', color: 'var(--text-muted)', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}
-                            >
-                              <X size={14} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
                       {/* Footer Buttons */}
-                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', borderTop: '1px solid var(--border-color)', paddingTop: '16px', marginTop: '6px' }}>
                         <button 
                           type="button"
                           onClick={() => {
@@ -6863,7 +6608,7 @@ function App() {
                             setEditingProduct(null);
                           }}
                           style={{
-                            padding: '10px 24px',
+                            padding: '10px 20px',
                             borderRadius: '8px',
                             border: '1px solid var(--border-color)',
                             backgroundColor: 'transparent',
@@ -6873,7 +6618,7 @@ function App() {
                             cursor: 'pointer'
                           }}
                         >
-                          Cancel
+                          {language === 'uz' ? 'Bekor qilish' : 'Отмена'}
                         </button>
                         <button 
                           type="submit"
@@ -6888,7 +6633,7 @@ function App() {
                             cursor: 'pointer'
                           }}
                         >
-                          Save
+                          {language === 'uz' ? 'Saqlash' : 'Сохранить'}
                         </button>
                       </div>
                     </form>
